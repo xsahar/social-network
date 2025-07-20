@@ -226,6 +226,14 @@ func ConnectWeb(db *sql.DB) {
 		g.GetGroupInvitations(db, w, r)
 	}))
 
+	http.HandleFunc("/get-pending-requests", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
+		g.GetPendingRequests(db, w, r)
+	}))
+
+	http.HandleFunc("/approve-join-request", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
+		g.ApproveJoinRequest(db, w, r)
+	}))
+
 	http.HandleFunc("/check-session", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
 		userID, loggedIn := u.ValidateSession(db, r)
 		username, _ := database.GetUsernameUsingID(db, userID)

@@ -7,6 +7,7 @@ function initializeGroupsPage() {
     loadAllGroups();
     loadUserGroups();
     loadGroupInvitations();
+    loadPendingApprovals();
 
     // Tab functionality
     setupTabs();
@@ -71,6 +72,22 @@ function setupTabs() {
             // Add active class to clicked tab and corresponding content
             button.classList.add('active');
             document.getElementById(targetTab).classList.add('active');
+            
+            // Load appropriate data based on the selected tab
+            switch(targetTab) {
+                case 'all-groups':
+                    loadAllGroups();
+                    break;
+                case 'my-groups':
+                    loadUserGroups();
+                    break;
+                case 'invitations':
+                    loadGroupInvitations();
+                    break;
+                case 'pending-approvals':
+                    loadPendingApprovals();
+                    break;
+            }
         });
     });
 }
@@ -363,6 +380,83 @@ function respondToInvitation(invitationId, status) {
     .catch(error => {
         console.error('Error responding to invitation:', error);
         alert('Error responding to invitation');
+    });
+}
+
+// Load pending join requests for group admin
+function loadPendingApprovals() {
+    fetch('http://localhost:8080/get-pending-requests', {
+        method: 'GET',
+        credentials: 'include'
+    })
+    .then(response => response.json())
+    .then(requests => {
+        displayPendingRequests(requests);
+    })
+    .catch(error => {
+        console.error('Error loading pending requests:', error);
+    });
+}
+
+// Display pending join requests
+function displayPendingRequests(requests) {
+    const container = document.getElementById('pending-approvals-list');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    if (!requests || requests.length === 0) {
+        container.innerHTML = '<p>No pending join requests.</p>';
+        return;
+    }
+
+    requests.forEach(request => {
+        const requestElement = document.createElement('div');
+        requestElement.className = 'invitation-card';
+        requestElement.innerHTML = `
+            <div class="invitation-content">
+                <h4>${request.username} wants to join "${request.group_title}"</h4>
+                <p class="invitation-date">Requested: ${new Date(request.requested_at).toLocaleDateString()}</p>
+            </div>
+            <div class="invitation-actions">
+                <button class="btn btn-success" onclick="approveJoinRequest(${request.id}, 'accepted')">Accept</button>
+                <button class="btn btn-danger" onclick="approveJoinRequest(${request.id}, 'denied')">Decline</button>
+            </div>
+        `;
+        container.appendChild(requestElement);
+    });
+}
+
+// Approve or deny join request
+function approveJoinRequest(membershipId, status) {
+    const approvalData = {
+        membership_id: membershipId,
+        status: status
+    };
+
+    fetch('http://localhost:8080/approve-join-request', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify(approvalData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Join request ${status} successfully!`);
+            // Reload pending requests and user groups
+            loadPendingApprovals();
+            loadUserGroups();
+            loadAllGroups(); // Refresh to update member counts
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error processing join request:', error);
+        alert('Error processing join request');
     });
 }
 

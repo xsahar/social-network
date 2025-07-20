@@ -349,3 +349,78 @@ func GetGroupInvitations(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(invitations)
 }
+
+// GetPendingRequests returns pending join requests for groups owned by the user
+func GetPendingRequests(db *sql.DB, w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Validate session and get user ID
+	userID, loggedIn := u.ValidateSession(db, r)
+	if !loggedIn {
+		http.Error(w, "Unauthorized. Please log in.", http.StatusUnauthorized)
+		return
+	}
+
+	// Get pending join requests for groups owned by this user
+	requests, err := database.GetPendingJoinRequests(db, userID)
+	if err != nil {
+		fmt.Println("Error retrieving pending requests:", err)
+		http.Error(w, "Failed to retrieve pending requests", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(requests)
+}
+
+// ApproveJoinRequest handles approval/denial of join requests
+func ApproveJoinRequest(db *sql.DB, w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Validate session and get user ID
+	userID, loggedIn := u.ValidateSession(db, r)
+	if !loggedIn {
+		http.Error(w, "Unauthorized. Please log in.", http.StatusUnauthorized)
+		return
+	}
+
+	// Parse request body
+	var approvalData struct {
+		MembershipID int    `json:"membership_id"`
+		Status       string `json:"status"` // "accepted" or "denied"
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&approvalData); err != nil {
+		fmt.Println("JSON Decoding Error:", err)
+		http.Error(w, "Failed to parse JSON", http.StatusBadRequest)
+		return
+	}
+
+	// Validate status
+	if approvalData.Status != "accepted" && approvalData.Status != "denied" {
+		http.Error(w, "Status must be 'accepted' or 'denied'", http.StatusBadRequest)
+		return
+	}
+
+	// Approve or deny the request
+	err := database.ApproveJoinRequest(db, approvalData.MembershipID, userID, approvalData.Status)
+	if err != nil {
+		fmt.Println("Error processing join request approval:", err)
+		http.Error(w, "Failed to process request", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"success": true,
+		"message": fmt.Sprintf("Join request %s successfully.", approvalData.Status),
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
