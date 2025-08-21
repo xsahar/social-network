@@ -234,6 +234,11 @@ func ConnectWeb(db *sql.DB) {
 		g.ApproveJoinRequest(db, w, r)
 	}))
 
+	http.HandleFunc("/get-invitable-users/", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
+		groupIDStr := strings.TrimPrefix(r.URL.Path, "/get-invitable-users/")
+		g.GetInvitableUsers(db, w, r, groupIDStr)
+	}))
+
 	http.HandleFunc("/check-session", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
 		userID, loggedIn := u.ValidateSession(db, r)
 		username, _ := database.GetUsernameUsingID(db, userID)

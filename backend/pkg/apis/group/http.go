@@ -127,9 +127,22 @@ func GetGroupDetails(db *sql.DB, w http.ResponseWriter, r *http.Request, groupID
 		return
 	}
 
+	// Add is_creator flag to the response
+	isCreator := group["creator_id"] == userID
+
+	// Get the user's membership status
+	membershipStatus, err := database.GetGroupMemberStatus(db, groupID, userID)
+	if err != nil && err != sql.ErrNoRows {
+		fmt.Println("Error getting membership status:", err)
+		// Continue anyway, just mark as not a member
+		membershipStatus = ""
+	}
+
 	response := map[string]interface{}{
-		"group":    group,
-		"isMember": isMember,
+		"group":                  group,
+		"isMember":               isMember,
+		"is_creator":             isCreator,
+		"user_membership_status": membershipStatus,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -278,14 +291,22 @@ func RequestToJoinGroup(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 	if err == nil && existingStatus != "" {
 		if existingStatus == "accepted" {
 			http.Error(w, "You are already a member of this group", http.StatusConflict)
-		} else {
+			return
+		} else if existingStatus == "pending" {
 			http.Error(w, "You already have a pending request for this group", http.StatusConflict)
+			return
 		}
-		return
+		// If the status is "denied", allow the user to request again by continuing
 	}
 
 	// Add user as pending member (requires approval)
-	err = database.InsertGroupMember(db, joinData.GroupID, userID, "pending", false)
+	// If the user has a "denied" status, update it to "pending" instead of inserting a new record
+	if err == nil && existingStatus == "denied" {
+		err = database.UpdateGroupMemberStatus(db, joinData.GroupID, userID, "pending")
+	} else {
+		err = database.InsertGroupMember(db, joinData.GroupID, userID, "pending", false)
+	}
+
 	if err != nil {
 		fmt.Println("Error creating join request:", err)
 		http.Error(w, "Failed to send join request", http.StatusInternalServerError)
@@ -423,4 +444,42 @@ func ApproveJoinRequest(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
+}
+
+// GetInvitableUsers returns users who can be invited to a group
+func GetInvitableUsers(db *sql.DB, w http.ResponseWriter, r *http.Request, groupIDStr string) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Validate session and get user ID
+	userID, loggedIn := u.ValidateSession(db, r)
+	if !loggedIn {
+		http.Error(w, "Unauthorized. Please log in.", http.StatusUnauthorized)
+		return
+	}
+
+	groupID, err := database.ParseID(groupIDStr)
+	if err != nil {
+		http.Error(w, "Invalid group ID", http.StatusBadRequest)
+		return
+	}
+
+	// Verify the user is a member of the group
+	isMember, err := database.IsGroupMember(db, groupID, userID)
+	if err != nil || !isMember {
+		http.Error(w, "You must be a member of the group to view invitable users", http.StatusForbidden)
+		return
+	}
+
+	users, err := database.GetInvitableUsers(db, groupID)
+	if err != nil {
+		fmt.Println("Error retrieving invitable users:", err)
+		http.Error(w, "Failed to retrieve users", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(users)
 }

@@ -8,6 +8,9 @@ function initializeGroupsPage() {
     loadUserGroups();
     loadGroupInvitations();
     loadPendingApprovals();
+    
+    // Check for pending requests to show notification dot
+    checkPendingRequests();
 
     // Tab functionality
     setupTabs();
@@ -20,6 +23,24 @@ function initializeGroupsPage() {
     
     // Setup logout functionality
     setupLogout();
+}
+
+// Check if there are pending requests and show notification dot if needed
+function checkPendingRequests() {
+    fetch('http://localhost:8080/get-pending-requests', {
+        method: 'GET',
+        credentials: 'include'
+    })
+    .then(response => response.json())
+    .then(requests => {
+        const indicator = document.getElementById('pending-requests-indicator');
+        if (indicator) {
+            indicator.style.display = (requests && requests.length > 0) ? 'inline-block' : 'none';
+        }
+    })
+    .catch(error => {
+        console.error('Error checking pending requests:', error);
+    });
 }
 
 // Initialize when DOM is ready or immediately if already loaded
@@ -401,13 +422,23 @@ function loadPendingApprovals() {
 // Display pending join requests
 function displayPendingRequests(requests) {
     const container = document.getElementById('pending-approvals-list');
+    const indicator = document.getElementById('pending-requests-indicator');
     if (!container) return;
 
     container.innerHTML = '';
 
     if (!requests || requests.length === 0) {
         container.innerHTML = '<p>No pending join requests.</p>';
+        // Hide the notification dot if there are no pending requests
+        if (indicator) {
+            indicator.style.display = 'none';
+        }
         return;
+    }
+
+    // Show the notification dot if there are pending requests
+    if (indicator) {
+        indicator.style.display = 'inline-block';
     }
 
     requests.forEach(request => {
@@ -450,6 +481,23 @@ function approveJoinRequest(membershipId, status) {
             loadPendingApprovals();
             loadUserGroups();
             loadAllGroups(); // Refresh to update member counts
+            
+            // Check if there are any more pending requests
+            fetch('http://localhost:8080/get-pending-requests', {
+                method: 'GET',
+                credentials: 'include'
+            })
+            .then(response => response.json())
+            .then(requests => {
+                const indicator = document.getElementById('pending-requests-indicator');
+                if (indicator) {
+                    // Hide the dot if there are no more pending requests
+                    indicator.style.display = (!requests || requests.length === 0) ? 'none' : 'inline-block';
+                }
+            })
+            .catch(error => {
+                console.error('Error checking pending requests:', error);
+            });
         } else {
             alert('Error: ' + data.message);
         }
@@ -477,4 +525,37 @@ function setupLogout() {
             .catch(error => console.log(error));
         });
     }
+}
+
+// Invite a user to a group
+function inviteUserToGroup(groupId, userId) {
+    const inviteData = {
+        group_id: groupId,
+        user_id: userId
+    };
+    
+    fetch('http://localhost:8080/invite-to-group', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify(inviteData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Invitation sent successfully!');
+            // Reload the list if we're on the invitations page
+            if (document.querySelector('.tab-button[data-tab="invitations"].active')) {
+                loadGroupInvitations();
+            }
+        } else {
+            alert('Error: ' + (data.message || 'Failed to send invitation'));
+        }
+    })
+    .catch(error => {
+        console.error('Error inviting user:', error);
+        alert('Error sending invitation');
+    });
 }

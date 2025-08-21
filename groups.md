@@ -1,3 +1,8 @@
+Group creators (and members, once they've joined) should be able to invite other users to join their group.
+When a user is invited, they need to accept the invitation to become a member.
+Once a user is a member of a group, they can also invite other users.
+Users can also request to join a group they find, and only the creator can accept/refuse these requests.
+
 # Groups Feature Requirements
 
 ## Overview

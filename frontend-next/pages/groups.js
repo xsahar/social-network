@@ -28,6 +28,8 @@ export default function Groups() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
         <link rel="stylesheet" href="/css/style.css" />
+        <link rel="stylesheet" href="/css/notification-dot.css" />
+        <link rel="stylesheet" href="/css/invite-users.css" />
       </Head>
 
       <div className="navbar">
@@ -79,7 +81,10 @@ export default function Groups() {
             <button className="tab-button active" data-tab="all-groups">All Groups</button>
             <button className="tab-button" data-tab="my-groups">My Groups</button>
             <button className="tab-button" data-tab="invitations">Invitations</button>
-            <button className="tab-button" data-tab="pending-approvals">Pending Approvals</button>
+            <button className="tab-button" data-tab="pending-approvals">
+              Pending Approvals
+              <span id="pending-requests-indicator" className="notification-dot" style={{ display: 'none' }}></span>
+            </button>
           </div>
 
           <div id="all-groups" className="tab-content active">
