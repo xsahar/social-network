@@ -53,3 +53,40 @@ type ResponseInvitationRequest struct {
 type JoinGroupRequest struct {
 	GroupID int `json:"group_id"`
 }
+
+type BulkInviteRequest struct {
+	GroupID int   `json:"group_id"`
+	UserIDs []int `json:"user_ids"`
+}
+
+type CancelInvitationRequest struct {
+	InvitationID int `json:"invitation_id"`
+}
+
+type GroupPost struct {
+	ID           int      `json:"id"`
+	GroupID      int      `json:"group_id"`
+	UserID       int      `json:"user_id"`
+	Title        string   `json:"title"`
+	Content      string   `json:"content"`
+	CreatedAt    string   `json:"created_at"`
+	Username     string   `json:"username"`
+	Categories   []string `json:"categories"`
+	LikeCount    int      `json:"like_count"`
+	DislikeCount int      `json:"dislike_count"` // keep only once
+	CommentCount int      `json:"comment_count"`
+	IsLiked      bool     `json:"is_liked"`
+	IsDisliked   bool     `json:"is_disliked"` // keep only once
+}
+type CreateGroupPostRequest struct {
+	GroupID    int      `json:"group_id"`
+	Title      string   `json:"title"`
+	Content    string   `json:"content"`
+	Categories []string `json:"categories"` // names
+}
+
+type CreateGroupCommentRequest struct {
+	GroupID     int    `json:"group_id"`
+	GroupPostID int    `json:"group_post_id"`
+	Content     string `json:"content"`
+}

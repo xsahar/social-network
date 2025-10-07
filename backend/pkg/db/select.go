@@ -16,7 +16,7 @@ func GetAllUserNames(db *sql.DB) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close() 
+	defer rows.Close()
 
 	// Slice to hold the results
 	var usernames []string
@@ -39,7 +39,6 @@ func GetAllUserEmails(db *sql.DB) ([]string, error) {
 		return nil, err
 	}
 	defer rows.Close()
-
 
 	var emails []string
 	for rows.Next() {
@@ -130,7 +129,7 @@ func GetCategoriesByPostID(db *sql.DB, postID int) ([]string, error) {
 
 func GetPostByPostID(db *sql.DB, postID int) ([]map[string]interface{}, error) {
 	query := `
-	SELECT p.id, u.username, p.title, p.content, p.created_at 
+	SELECT p.id, u.username, p.title, p.content,p.imgOrgif, p.created_at 
 	FROM posts p
 	JOIN users u ON p.user_id = u.id 
 	WHERE p.id = ?`
@@ -144,10 +143,10 @@ func GetPostByPostID(db *sql.DB, postID int) ([]map[string]interface{}, error) {
 	var posts []map[string]interface{}
 	for rows.Next() {
 		var postID int
-		var username, title, content string
+		var username, title, content, imgOrgif string
 		var createdAt time.Time
 
-		err := rows.Scan(&postID, &username, &title, &content, &createdAt)
+		err := rows.Scan(&postID, &username, &title, &content, &imgOrgif, &createdAt)
 		if err != nil {
 			fmt.Println(" Error scanning post:", err)
 			return nil, err
@@ -166,6 +165,7 @@ func GetPostByPostID(db *sql.DB, postID int) ([]map[string]interface{}, error) {
 			"username":   username,
 			"title":      title,
 			"content":    content,
+			"imgOrgif":   imgOrgif,
 			"categories": categories, //  Include categories
 			"createdAt":  createdAt.Format("2006-01-02 15:04:05"),
 		}
@@ -176,7 +176,7 @@ func GetPostByPostID(db *sql.DB, postID int) ([]map[string]interface{}, error) {
 
 func GetPostsByUserID(db *sql.DB, userID int) ([]map[string]interface{}, error) {
 	query := `
-	SELECT p.id, u.username, p.title, p.content, p.created_at 
+	SELECT p.id, u.username, p.title, p.content,p.imgOrgif, p.created_at 
 	FROM posts p
 	JOIN users u ON p.user_id = u.id 
 	WHERE u.id = ? 
@@ -192,10 +192,10 @@ func GetPostsByUserID(db *sql.DB, userID int) ([]map[string]interface{}, error) 
 	var posts []map[string]interface{}
 	for rows.Next() {
 		var postID int
-		var username, title, content string
+		var username, title, content, imgOrgif string
 		var createdAt time.Time
 
-		err := rows.Scan(&postID, &username, &title, &content, &createdAt)
+		err := rows.Scan(&postID, &username, &title, &content, &imgOrgif, &createdAt)
 		if err != nil {
 			fmt.Println(" Error scanning user post:", err)
 			return nil, err
@@ -212,6 +212,7 @@ func GetPostsByUserID(db *sql.DB, userID int) ([]map[string]interface{}, error) 
 			"username":   username,
 			"title":      title,
 			"content":    content,
+			"imgOrgif":   imgOrgif,
 			"categories": categories,
 			"createdAt":  createdAt.Format("2006-01-02 15:04:05"),
 		}
@@ -222,7 +223,7 @@ func GetPostsByUserID(db *sql.DB, userID int) ([]map[string]interface{}, error) 
 
 func GetPostByCategoryID(db *sql.DB, catID int) ([]map[string]interface{}, error) {
 	query := `
-	SELECT p.id, u.username, p.title, p.content, p.created_at 
+	SELECT p.id, u.username, p.title, p.content,p.imgOrgif, p.created_at 
 	FROM posts p
 	JOIN post_categories pc ON pc.post_id = p.id
 	JOIN categories c ON c.id = pc.category_id
@@ -238,10 +239,10 @@ func GetPostByCategoryID(db *sql.DB, catID int) ([]map[string]interface{}, error
 	var posts []map[string]interface{}
 	for rows.Next() {
 		var postID int
-		var username, title, content string
+		var username, title, content, imgOrgif string
 		var createdAt time.Time
 
-		err := rows.Scan(&postID, &username, &title, &content, &createdAt)
+		err := rows.Scan(&postID, &username, &title, &content, &imgOrgif, &createdAt)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning post: %w", err)
 		}
@@ -256,6 +257,7 @@ func GetPostByCategoryID(db *sql.DB, catID int) ([]map[string]interface{}, error
 			"username":   username,
 			"title":      title,
 			"content":    content,
+			"imgOrgif":   imgOrgif,
 			"categories": categories,
 			"createdAt":  createdAt.Format("2006-01-02 15:04:05"),
 		}
@@ -282,7 +284,7 @@ func GetCategoryIDByName(db *sql.DB, category string) (int, error) {
 
 func GetPostIfLiked(db *sql.DB, userID int) ([]map[string]interface{}, error) {
 	query := `
-	SELECT p.id, u.username, p.title, p.content, p.created_at 
+	SELECT p.id, u.username, p.title, p.content,p.imgOrgif, p.created_at 
 	FROM posts p
 	JOIN users u ON u.id = p.user_id
 	JOIN likes l ON l.post_id = p.id AND l.is_like = 1
@@ -297,10 +299,10 @@ func GetPostIfLiked(db *sql.DB, userID int) ([]map[string]interface{}, error) {
 	var posts []map[string]interface{}
 	for rows.Next() {
 		var postID int
-		var username, title, content string
+		var username, title, content, imgOrgif string
 		var createdAt time.Time
 
-		err := rows.Scan(&postID, &username, &title, &content, &createdAt)
+		err := rows.Scan(&postID, &username, &title, &content, &imgOrgif, &createdAt)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning post: %w", err)
 		}
@@ -315,6 +317,7 @@ func GetPostIfLiked(db *sql.DB, userID int) ([]map[string]interface{}, error) {
 			"username":   username,
 			"title":      title,
 			"content":    content,
+			"imgOrgif":   imgOrgif,
 			"categories": categories,
 			"createdAt":  createdAt.Format("2006-01-02 15:04:05"),
 		}
@@ -322,4 +325,92 @@ func GetPostIfLiked(db *sql.DB, userID int) ([]map[string]interface{}, error) {
 	}
 
 	return posts, nil
+}
+
+
+func GetUserFollowers(db *sql.DB, userID int) ([]map[string]interface{}, error) {
+    query := `
+        SELECT u.id, u.username, u.email
+        FROM users u
+        JOIN userFollow f ON u.id = f.follower_id
+        WHERE f.following_id = ?
+        ORDER BY u.username
+    `
+
+    rows, err := db.Query(query, userID)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get followers: %w", err)
+    }
+    defer rows.Close()
+
+    var followers []map[string]interface{}
+    for rows.Next() {
+        var id int
+        var username, email string
+
+        err := rows.Scan(&id, &username, &email)
+        if err != nil {
+            return nil, fmt.Errorf("failed to scan follower: %w", err)
+        }
+
+        follower := map[string]interface{}{
+            "id":       id,
+            "username": username,
+            "email":    email,
+        }
+
+        followers = append(followers, follower)
+    }
+
+    return followers, nil
+}
+
+func CheckUserCanSeePost(db *sql.DB, postID, viewerID int) (bool, error) {
+    query := `
+        SELECT p.privacy_level, p.user_id
+        FROM posts p
+        WHERE p.id = ?
+    `
+    
+    var privacyLevel, authorID int
+    err := db.QueryRow(query, postID).Scan(&privacyLevel, &authorID)
+    if err != nil {
+        return false, fmt.Errorf("failed to get post privacy: %w", err)
+    }
+
+    // If it's the author's own post
+    if authorID == viewerID {
+        return true, nil
+    }
+
+    // If it's public
+    if privacyLevel == 0 {
+        return true, nil
+    }
+
+    if privacyLevel == 1 {
+        var count int
+        err := db.QueryRow(`
+            SELECT COUNT(*) FROM userFollow 
+            WHERE follower_id = ? AND following_id = ? AND status = 'accepted'
+        `, viewerID, authorID).Scan(&count)
+        if err != nil {
+            return false, err
+        }
+        return count > 0, nil
+    }
+
+    if privacyLevel == 2 {
+        var count int
+        err := db.QueryRow(`
+            SELECT COUNT(*) FROM post_permissions 
+            WHERE post_id = ? AND user_id = ?
+        `, postID, viewerID).Scan(&count)
+        if err != nil {
+            return false, err
+        }
+        return count > 0, nil
+    }
+
+    return false, nil
 }

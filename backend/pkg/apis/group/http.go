@@ -5,6 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
+	"os"
+    "io"
+    "path/filepath"
 
 	u "socialnetwork/pkg/apis/user"
 	database "socialnetwork/pkg/db"
@@ -127,22 +131,18 @@ func GetGroupDetails(db *sql.DB, w http.ResponseWriter, r *http.Request, groupID
 		return
 	}
 
-	// Add is_creator flag to the response
-	isCreator := group["creator_id"] == userID
-
-	// Get the user's membership status
-	membershipStatus, err := database.GetGroupMemberStatus(db, groupID, userID)
-	if err != nil && err != sql.ErrNoRows {
-		fmt.Println("Error getting membership status:", err)
-		// Continue anyway, just mark as not a member
-		membershipStatus = ""
+	// Get group members
+	members, err := database.GetGroupMembers(db, groupID)
+	if err != nil {
+		fmt.Println("Error retrieving group members:", err)
+		http.Error(w, "Failed to retrieve group members", http.StatusInternalServerError)
+		return
 	}
 
 	response := map[string]interface{}{
-		"group":                  group,
-		"isMember":               isMember,
-		"is_creator":             isCreator,
-		"user_membership_status": membershipStatus,
+		"group":    group,
+		"isMember": isMember,
+		"members":  members,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -286,26 +286,64 @@ func RequestToJoinGroup(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if user is already a member or has pending request
-	existingStatus, err := database.GetGroupMemberStatus(db, joinData.GroupID, userID)
-	if err == nil && existingStatus != "" {
-		if existingStatus == "accepted" {
+	// First, check if we need to handle a special case (decline->pending)
+	var statusCount int
+	err := db.QueryRow(`SELECT COUNT(*) FROM group_members 
+		WHERE group_id = ? AND user_id = ? AND status = 'declined'`,
+		joinData.GroupID, userID).Scan(&statusCount)
+
+	if err != nil {
+		fmt.Println("Error checking declined status:", err)
+	} else if statusCount > 0 {
+		// This user was previously declined, update status to pending
+		fmt.Println("Found declined status, updating to pending")
+		_, err := db.Exec(`UPDATE group_members 
+			SET status = 'pending', joined_at = CURRENT_TIMESTAMP 
+			WHERE group_id = ? AND user_id = ?`,
+			joinData.GroupID, userID)
+		if err != nil {
+			fmt.Println("Error updating status:", err)
+			http.Error(w, "Failed to send join request", http.StatusInternalServerError)
+			return
+		}
+
+		// Success response
+		response := map[string]interface{}{
+			"success": true,
+			"message": "Join request sent successfully. Waiting for group admin approval.",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Normal flow - check existing status
+	var status string
+	err = db.QueryRow(`SELECT status FROM group_members 
+		WHERE group_id = ? AND user_id = ?`,
+		joinData.GroupID, userID).Scan(&status)
+
+	if err == nil {
+		// Record exists, handle based on current status
+		if status == "accepted" {
 			http.Error(w, "You are already a member of this group", http.StatusConflict)
 			return
-		} else if existingStatus == "pending" {
+		} else if status == "pending" {
 			http.Error(w, "You already have a pending request for this group", http.StatusConflict)
 			return
 		}
-		// If the status is "denied", allow the user to request again by continuing
+		// Any other status should have been caught by the declined check above
+	} else if err != sql.ErrNoRows {
+		// Unexpected error
+		fmt.Println("Database error:", err)
+		http.Error(w, "Error checking membership status", http.StatusInternalServerError)
+		return
 	}
 
-	// Add user as pending member (requires approval)
-	// If the user has a "denied" status, update it to "pending" instead of inserting a new record
-	if err == nil && existingStatus == "denied" {
-		err = database.UpdateGroupMemberStatus(db, joinData.GroupID, userID, "pending")
-	} else {
-		err = database.InsertGroupMember(db, joinData.GroupID, userID, "pending", false)
-	}
+	// No existing record or error was sql.ErrNoRows, create a new pending request
+	_, err = db.Exec(`INSERT INTO group_members (group_id, user_id, status, is_admin) 
+		VALUES (?, ?, 'pending', 0)`,
+		joinData.GroupID, userID)
 
 	if err != nil {
 		fmt.Println("Error creating join request:", err)
@@ -371,92 +409,46 @@ func GetGroupInvitations(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(invitations)
 }
 
-// GetPendingRequests returns pending join requests for groups owned by the user
-func GetPendingRequests(db *sql.DB, w http.ResponseWriter, r *http.Request) {
+func GetGroupPosts(db *sql.DB, w http.ResponseWriter, r *http.Request, groupIDStr string) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	userID, loggedIn := u.ValidateSession(db, r)
+	if !loggedIn {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	groupID, err := database.ParseID(groupIDStr)
+	if err != nil {
+		http.Error(w, "Invalid group ID", http.StatusBadRequest)
+		return
+	}
+	isMember, err := database.IsGroupMember(db, groupID, userID)
+	if err != nil || !isMember {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	posts, err := database.GetGroupPosts(db, groupID, userID)
+	if err != nil {
+		fmt.Println("GetGroupPosts error:", err)
+		http.Error(w, "Failed to fetch posts", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(posts)
+}
+
+func HandleGetGroupPostComments(db *sql.DB, w http.ResponseWriter, r *http.Request, groupIDStr, postIDStr string) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Validate session and get user ID
 	userID, loggedIn := u.ValidateSession(db, r)
 	if !loggedIn {
-		http.Error(w, "Unauthorized. Please log in.", http.StatusUnauthorized)
-		return
-	}
-
-	// Get pending join requests for groups owned by this user
-	requests, err := database.GetPendingJoinRequests(db, userID)
-	if err != nil {
-		fmt.Println("Error retrieving pending requests:", err)
-		http.Error(w, "Failed to retrieve pending requests", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(requests)
-}
-
-// ApproveJoinRequest handles approval/denial of join requests
-func ApproveJoinRequest(db *sql.DB, w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Validate session and get user ID
-	userID, loggedIn := u.ValidateSession(db, r)
-	if !loggedIn {
-		http.Error(w, "Unauthorized. Please log in.", http.StatusUnauthorized)
-		return
-	}
-
-	// Parse request body
-	var approvalData struct {
-		MembershipID int    `json:"membership_id"`
-		Status       string `json:"status"` // "accepted" or "denied"
-	}
-
-	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(&approvalData); err != nil {
-		fmt.Println("JSON Decoding Error:", err)
-		http.Error(w, "Failed to parse JSON", http.StatusBadRequest)
-		return
-	}
-
-	// Validate status
-	if approvalData.Status != "accepted" && approvalData.Status != "denied" {
-		http.Error(w, "Status must be 'accepted' or 'denied'", http.StatusBadRequest)
-		return
-	}
-
-	// Approve or deny the request
-	err := database.ApproveJoinRequest(db, approvalData.MembershipID, userID, approvalData.Status)
-	if err != nil {
-		fmt.Println("Error processing join request approval:", err)
-		http.Error(w, "Failed to process request", http.StatusInternalServerError)
-		return
-	}
-
-	response := map[string]interface{}{
-		"success": true,
-		"message": fmt.Sprintf("Join request %s successfully.", approvalData.Status),
-	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
-
-// GetInvitableUsers returns users who can be invited to a group
-func GetInvitableUsers(db *sql.DB, w http.ResponseWriter, r *http.Request, groupIDStr string) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Validate session and get user ID
-	userID, loggedIn := u.ValidateSession(db, r)
-	if !loggedIn {
-		http.Error(w, "Unauthorized. Please log in.", http.StatusUnauthorized)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -465,21 +457,366 @@ func GetInvitableUsers(db *sql.DB, w http.ResponseWriter, r *http.Request, group
 		http.Error(w, "Invalid group ID", http.StatusBadRequest)
 		return
 	}
-
-	// Verify the user is a member of the group
-	isMember, err := database.IsGroupMember(db, groupID, userID)
-	if err != nil || !isMember {
-		http.Error(w, "You must be a member of the group to view invitable users", http.StatusForbidden)
+	postID, err := database.ParseID(postIDStr)
+	if err != nil {
+		http.Error(w, "Invalid post ID", http.StatusBadRequest)
 		return
 	}
 
-	users, err := database.GetInvitableUsers(db, groupID)
-	if err != nil {
-		fmt.Println("Error retrieving invitable users:", err)
-		http.Error(w, "Failed to retrieve users", http.StatusInternalServerError)
+	isMember, err := database.IsGroupMember(db, groupID, userID)
+	if err != nil || !isMember {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	comments, err := database.GetGroupPostComments(db, postID)
+	if err == sql.ErrNoRows {
+		comments = []map[string]interface{}{}
+	} else if err != nil {
+		http.Error(w, "failed to load comments", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(users)
+	_ = json.NewEncoder(w).Encode(comments)
+}
+
+func ToggleGroupPostLike(db *sql.DB, w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost && r.Method != http.MethodDelete {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	userID, loggedIn := u.ValidateSession(db, r)
+	if !loggedIn {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	groupIDStr := r.URL.Query().Get("groupId")
+	postIDStr := r.URL.Query().Get("postId")
+	groupID, err := database.ParseID(groupIDStr)
+	if err != nil {
+		http.Error(w, "Invalid groupId", http.StatusBadRequest)
+		return
+	}
+	postID, err := database.ParseID(postIDStr)
+	if err != nil {
+		http.Error(w, "Invalid postId", http.StatusBadRequest)
+		return
+	}
+
+	isMember, err := database.IsGroupMember(db, groupID, userID)
+	if err != nil || !isMember {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	if r.Method == http.MethodPost {
+		if err := database.AddGroupPostLike(db, postID, userID); err != nil {
+			http.Error(w, "Failed to like", http.StatusInternalServerError)
+			return
+		}
+	} else {
+		if err := database.RemoveGroupPostLike(db, postID, userID); err != nil {
+			http.Error(w, "Failed to unlike", http.StatusInternalServerError)
+			return
+		}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{"success": true})
+}
+
+func AddGroupPostComment(db *sql.DB, w http.ResponseWriter, r *http.Request) {
+    if r.Method != http.MethodPost {
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
+
+    userID, loggedIn := u.ValidateSession(db, r)
+    if !loggedIn {
+        http.Error(w, "Unauthorized", http.StatusUnauthorized)
+        return
+    }
+
+    if err := r.ParseMultipartForm(10 << 20); err != nil {
+        http.Error(w, "Could not parse form", http.StatusBadRequest)
+        return
+    }
+
+    groupIDStr := r.FormValue("group_id")
+    groupPostIDStr := r.FormValue("group_post_id")
+    content := strings.TrimSpace(r.FormValue("content"))
+    groupID, err := database.ParseID(groupIDStr)
+    groupPostID, err2 := database.ParseID(groupPostIDStr)
+    if err != nil || err2 != nil || groupID <= 0 || groupPostID <= 0 {
+        http.Error(w, "Invalid group or post ID", http.StatusBadRequest)
+        return
+    }
+
+    isMember, err := database.IsGroupMember(db, groupID, userID)
+    if err != nil || !isMember {
+        http.Error(w, "You must be an accepted member to comment", http.StatusForbidden)
+        return
+    }
+
+    // Handle optional image/GIF upload
+    imgOrgif := ""
+    file, header, err := r.FormFile("imgOrgif")
+    if err == nil && header != nil && header.Filename != "" {
+        defer file.Close()
+        ext := strings.ToLower(filepath.Ext(header.Filename))
+        if ext != ".gif" && ext != ".png" && ext != ".jpg" && ext != ".jpeg" {
+            http.Error(w, "Image must be a GIF, PNG, or JPG.", http.StatusBadRequest)
+            return
+        }
+        uploadDir := "../frontend-next/public/img/group_comments"
+        _ = os.MkdirAll(uploadDir, os.ModePerm)
+        fname := strings.ReplaceAll(header.Filename, " ", "-")
+        dstFile, err := os.Create(filepath.Join(uploadDir, fname))
+        if err != nil {
+            http.Error(w, "Server error", http.StatusInternalServerError)
+            return
+        }
+        defer dstFile.Close()
+        if _, err := io.Copy(dstFile, file); err != nil {
+            http.Error(w, "Server error", http.StatusInternalServerError)
+            return
+        }
+        imgOrgif = "/img/group_comments/" + fname
+    }
+
+    commentID, createdAt, err := database.InsertGroupPostComment(db, groupPostID, userID, content, imgOrgif)
+    if err != nil {
+        http.Error(w, "Failed to create comment", http.StatusInternalServerError)
+        return
+    }
+
+    var username string
+    _ = db.QueryRow(`SELECT username FROM users WHERE id=?`, userID).Scan(&username)
+
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(http.StatusCreated)
+    json.NewEncoder(w).Encode(map[string]interface{}{
+        "success":       true,
+        "comment_id":    commentID,
+        "group_post_id": groupPostID,
+        "user_id":       userID,
+        "username":      username,
+        "content":       content,
+        "imgOrgif":      imgOrgif,
+        "created_at":    createdAt.Format("2006-01-02 15:04:05"),
+    })
+}
+
+func DeleteGroupPost(db *sql.DB, w http.ResponseWriter, r *http.Request, groupIDStr, postIDStr string) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	userID, loggedIn := u.ValidateSession(db, r)
+	if !loggedIn {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	groupID, err := database.ParseID(groupIDStr)
+	if err != nil {
+		http.Error(w, "Invalid group ID", http.StatusBadRequest)
+		return
+	}
+	postID, err := database.ParseID(postIDStr)
+	if err != nil {
+		http.Error(w, "Invalid post ID", http.StatusBadRequest)
+		return
+	}
+
+	// Ensure the post belongs to this group & get owner
+	postGroupID, ownerID, err := database.GetGroupPostOwnerAndGroup(db, postID)
+	if err != nil {
+		http.Error(w, "Post not found", http.StatusNotFound)
+		return
+	}
+	if postGroupID != groupID {
+		http.Error(w, "Post does not belong to this group", http.StatusBadRequest)
+		return
+	}
+
+	// Only author or group admin can delete
+	isAdmin, err := database.IsGroupAdmin(db, groupID, userID)
+	if err != nil {
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
+	}
+	if userID != ownerID && !isAdmin {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	if err := database.DeleteGroupPost(db, postID); err != nil {
+		fmt.Println("DeleteGroupPost error:", err)
+		http.Error(w, "Failed to delete", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{"success": true})
+}
+
+func CreateGroupPost(db *sql.DB, w http.ResponseWriter, r *http.Request) {
+    if r.Method != http.MethodPost {
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
+
+    userID, ok := u.ValidateSession(db, r)
+    if !ok || userID <= 0 {
+        http.Error(w, "Unauthorized. Please log in.", http.StatusUnauthorized)
+        return
+    }
+
+    if err := r.ParseMultipartForm(10 << 20); err != nil {
+        http.Error(w, "Could not parse form", http.StatusBadRequest)
+        return
+    }
+
+    groupIDStr := r.FormValue("group_id")
+    title := strings.TrimSpace(r.FormValue("title"))
+    content := strings.TrimSpace(r.FormValue("content"))
+    categories := r.Form["categories"]
+
+    groupID, err := database.ParseID(groupIDStr)
+    if err != nil || groupID <= 0 || title == "" || content == "" {
+        http.Error(w, "group_id, title and content are required", http.StatusBadRequest)
+        return
+    }
+
+    // Membership check
+    var count int
+    if err := db.QueryRow(`
+        SELECT COUNT(*) 
+        FROM group_members 
+        WHERE group_id = ? AND user_id = ? AND status = 'accepted'
+    `, groupID, userID).Scan(&count); err != nil {
+        http.Error(w, "Membership check failed", http.StatusInternalServerError)
+        return
+    }
+    if count == 0 {
+        http.Error(w, "Forbidden: not a member of this group", http.StatusForbidden)
+        return
+    }
+
+    // Handle optional image/GIF upload
+    imgOrgif := ""
+    file, header, err := r.FormFile("imgOrgif")
+    if err == nil && header != nil && header.Filename != "" {
+        defer file.Close()
+        ext := strings.ToLower(filepath.Ext(header.Filename))
+        if ext != ".gif" && ext != ".png" && ext != ".jpg" && ext != ".jpeg" {
+            http.Error(w, "Image must be a GIF, PNG, or JPG.", http.StatusBadRequest)
+            return
+        }
+        uploadDir := "../frontend-next/public/img/group_posts"
+        _ = os.MkdirAll(uploadDir, os.ModePerm)
+        fname := strings.ReplaceAll(header.Filename, " ", "-")
+        dstFile, err := os.Create(filepath.Join(uploadDir, fname))
+        if err != nil {
+            http.Error(w, "Server error", http.StatusInternalServerError)
+            return
+        }
+        defer dstFile.Close()
+        if _, err := io.Copy(dstFile, file); err != nil {
+            http.Error(w, "Server error", http.StatusInternalServerError)
+            return
+        }
+        imgOrgif = "/img/group_posts/" + fname
+    }
+
+    // Insert post with image path
+    postID64, createdAt, err := database.InsertGroupPost(db, groupID, userID, title, content, imgOrgif)
+    if err != nil {
+        http.Error(w, "Failed to create group post", http.StatusInternalServerError)
+        return
+    }
+    postID := int(postID64)
+
+    // Attach categories (optional, non-fatal per-category errors)
+    for _, raw := range categories {
+        name := strings.TrimSpace(raw)
+        if name == "" {
+            continue
+        }
+        catID, err := database.GetCategoryID(db, name)
+        if err != nil {
+            fmt.Println("GetCategoryID error:", err)
+            continue
+        }
+        if err := database.AddGroupPostCategory(db, postID, catID); err != nil {
+            fmt.Println("AddGroupPostCategory error:", err)
+            continue
+        }
+    }
+
+    resp := map[string]any{
+        "success":    true,
+        "id":         postID,
+        "group_id":   groupID,
+        "user_id":    userID,
+        "title":      title,
+        "content":    content,
+        "categories": categories,
+        "imgOrgif":   imgOrgif,
+        "created_at": createdAt.Format("2006-01-02 15:04:05"),
+    }
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(http.StatusCreated)
+    json.NewEncoder(w).Encode(resp)
+}
+
+// ToggleGroupPostDislike mirrors ToggleGroupPostLike for 👎
+func ToggleGroupPostDislike(db *sql.DB, w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost && r.Method != http.MethodDelete {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	userID, loggedIn := u.ValidateSession(db, r)
+	if !loggedIn {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	groupIDStr := r.URL.Query().Get("groupId")
+	postIDStr := r.URL.Query().Get("postId")
+
+	groupID, err := database.ParseID(groupIDStr)
+	if err != nil {
+		http.Error(w, "Invalid groupId", http.StatusBadRequest)
+		return
+	}
+	postID, err := database.ParseID(postIDStr)
+	if err != nil {
+		http.Error(w, "Invalid postId", http.StatusBadRequest)
+		return
+	}
+
+	// must be accepted member
+	isMember, err := database.IsGroupMember(db, groupID, userID)
+	if err != nil || !isMember {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	if r.Method == http.MethodPost {
+		if err := database.AddGroupPostDislike(db, postID, userID); err != nil {
+			http.Error(w, "Failed to dislike", http.StatusInternalServerError)
+			return
+		}
+	} else {
+		if err := database.RemoveGroupPostDislike(db, postID, userID); err != nil {
+			http.Error(w, "Failed to undislike", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{"success": true})
 }

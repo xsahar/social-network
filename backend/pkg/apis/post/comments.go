@@ -5,10 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	u "socialnetwork/pkg/apis/user"
 	database "socialnetwork/pkg/db"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -17,9 +21,11 @@ type Comment struct {
 	UserID    int       `json:"user_id"`
 	Username  string    `json:"username"`
 	Content   string    `json:"content"`
+	ImgOrGif  string    `json:"imgOrgif"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
+// GetComments handles GET /comments?post_id=
 func GetComments(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.Header().Set("Content-Type", "application/json")
@@ -30,7 +36,7 @@ func GetComments(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 	postIDStr := r.URL.Query().Get("post_id")
 	postID, err := strconv.Atoi(postIDStr)
 	if err != nil || postID <= 0 {
-		fmt.Println(" Invalid post ID:", postIDStr)
+		fmt.Println("Invalid post ID:", postIDStr)
 		w.Header().Set("Content-Type", "application/json")
 		http.Error(w, `{"error": "Invalid post ID"}`, http.StatusBadRequest)
 		return
@@ -38,31 +44,20 @@ func GetComments(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 
 	comments, err := GetCommentsByPostID(db, postID)
 	if err != nil {
-		fmt.Println(" Error retrieving comments:", err)
+		fmt.Println("Error retrieving comments:", err)
 		w.Header().Set("Content-Type", "application/json")
 		http.Error(w, `{"error": "Failed to retrieve comments"}`, http.StatusInternalServerError)
 		return
 	}
 
-	//  Always return a JSON array (never `nil`)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(comments)
 }
 
+// CreateComment handles POST /create-comment with multipart/form-data
 func CreateComment(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Log received Content-Type
-	contentType := r.Header.Get("Content-Type")
-	fmt.Println(" Received Content-Type:", contentType)
-
-	// Ensure the request content type is JSON
-	if contentType != "application/json" {
-		fmt.Println(" Error: Expected JSON but received:", contentType)
-		http.Error(w, "Invalid content type, expected application/json", http.StatusUnsupportedMediaType)
 		return
 	}
 
@@ -72,90 +67,120 @@ func CreateComment(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Read the request body
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		fmt.Println(" Error reading request body:", err)
-		http.Error(w, "Invalid request", http.StatusBadRequest)
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		fmt.Println("ParseMultipartForm error:", err)
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
 		return
 	}
 
-	// Parse JSON request
-	var requestData struct {
-		PostID  int    `json:"post_id"`
-		Content string `json:"content"`
-	}
-
-	err = json.Unmarshal(body, &requestData)
-	if err != nil {
-		fmt.Println(" JSON Decoding Error:", err)
-		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
-		return
-	}
-
-	fmt.Printf(" Parsed Comment Request: PostID: %d, Content: '%s'\n", requestData.PostID, requestData.Content)
-
-	// Validate inputs
-	if requestData.Content == "" {
-		http.Error(w, "Comment content cannot be empty.", http.StatusBadRequest)
-		return
-	}
-	if requestData.PostID <= 0 {
+	postIDStr := r.FormValue("post_id")
+	content := r.FormValue("comment")
+	postID, err := strconv.Atoi(postIDStr)
+	if err != nil || postID <= 0 {
 		http.Error(w, "Invalid post ID", http.StatusBadRequest)
 		return
 	}
 
-	// Insert comment into the database
-	_, _, err = database.InsertComment(db, requestData.PostID, userID, requestData.Content)
-	if err != nil {
-		fmt.Println(" Error inserting comment:", err)
+	// 4) handle optional image upload
+	imgOrGif := ""
+	file, header, err := r.FormFile("imgOrgif")
+	if err == nil {
+		defer file.Close()
+
+		// sanitize extension
+		ext := strings.ToLower(filepath.Ext(header.Filename))
+		if ext != ".gif" && ext != ".png" && ext != ".jpg" && ext != ".jpeg" {
+			http.Error(w, "Image must be a GIF, PNG, or JPG.", http.StatusBadRequest)
+			return
+		}
+
+		// generate a safe filename
+		fname := strings.ReplaceAll(header.Filename, " ", "-")
+		dstFile, err := os.Create("../frontend-next/public/img/comments/" + fname)
+		if err != nil {
+			log.Println("file create error:", err)
+			http.Error(w, "Server error", http.StatusInternalServerError)
+			return
+		}
+		defer dstFile.Close()
+
+		if _, err := io.Copy(dstFile, file); err != nil {
+			log.Println("file copy error:", err)
+			http.Error(w, "Server error", http.StatusInternalServerError)
+			return
+		}
+
+		// this is the URL your frontend can use to display the image
+		imgOrGif = "/img/comments/" + fname
+	} else if err != http.ErrMissingFile {
+		imgOrGif = "" // no file uploaded, set to empty string
+	}
+
+	if content == "" && imgOrGif == "" {
+		http.Error(w, "Comment cannot be empty", http.StatusBadRequest)
+		return
+	}
+
+	fmt.Println("Image or GIF URL:", imgOrGif)
+	if _, _, err := database.InsertComment(db, postID, userID, content, imgOrGif); err != nil {
+		fmt.Println("DB insert error:", err)
 		http.Error(w, "Failed to create comment", http.StatusInternalServerError)
 		return
 	}
 
-	// Send success response
-	response := map[string]interface{}{
-		"success": true,
-		"message": "Comment added successfully.",
-	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": "Comment added successfully",
+	})
 }
 
+// GetCommentsByPostID fetches comments and maps NULL imgOrgif to nil
 func GetCommentsByPostID(db *sql.DB, postID int) ([]Comment, error) {
-	query := `SELECT c.id, c.user_id, u.username, c.content, c.created_at 
-              FROM comments c
-              JOIN users u ON c.user_id = u.id
-              WHERE c.post_id = ?
-              ORDER BY c.created_at ASC`
+	const query = `
+SELECT
+    c.id,
+    c.user_id,
+    u.username,
+    c.content,
+    COALESCE(c.imgOrgif, '') AS imgOrgif,
+    c.created_at
+FROM comments c
+JOIN users u ON c.user_id = u.id
+WHERE c.post_id = ?
+ORDER BY c.created_at ASC
+    `
 
 	rows, err := db.Query(query, postID)
 	if err != nil {
-		fmt.Println(" Database Query Error:", err)
+		fmt.Println("Database Query Error:", err)
 		return nil, err
 	}
 	defer rows.Close()
 
 	var comments []Comment
 	for rows.Next() {
-		var comment Comment
-		err := rows.Scan(&comment.ID, &comment.UserID, &comment.Username, &comment.Content, &comment.CreatedAt)
-		if err != nil {
-			fmt.Println(" Row Scanning Error:", err)
+		var cmt Comment
+		if err := rows.Scan(
+			&cmt.ID,
+			&cmt.UserID,
+			&cmt.Username,
+			&cmt.Content,
+			&cmt.ImgOrGif,
+			&cmt.CreatedAt,
+		); err != nil {
+			fmt.Println("Row Scanning Error:", err)
 			return nil, err
 		}
-		comments = append(comments, comment)
+		fmt.Println("Comment Image:", cmt.ImgOrGif)
+		comments = append(comments, cmt)
+		fmt.Println((comments))
+		fmt.Println((cmt))
 	}
-
 	if err := rows.Err(); err != nil {
-		fmt.Println(" Iteration Error:", err)
+		fmt.Println("Iteration Error:", err)
 		return nil, err
 	}
-
-	if comments == nil {
-		comments = []Comment{}
-	}
-
 	return comments, nil
 }

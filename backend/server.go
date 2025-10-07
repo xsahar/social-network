@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"socialnetwork/pkg/db/sqlite"
@@ -10,6 +11,7 @@ import (
 )
 
 func main() {
+
 	dbPath := "data/socialnetwork.db"
 
 	if err := os.MkdirAll(filepath.Dir(dbPath), os.ModePerm); err != nil {
@@ -23,6 +25,12 @@ func main() {
 	defer db.Close()
 
 	fmt.Println("✅ Database tables checked and initialized.")
+
+	staticDir := "../frontend-next"
+	fs := http.FileServer(http.Dir(staticDir))
+	http.Handle("/", fs)
+	fmt.Printf("✅ Serving static files from %s\n", staticDir)
+
 	web.ConnectWeb(db)
 
 }

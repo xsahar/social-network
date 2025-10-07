@@ -1,15 +1,16 @@
 package user
 
 import (
-	"bytes"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"regexp"
-	"socialnetwork/pkg/db"
-	"strconv"
+	database "socialnetwork/pkg/db"
 	"strings"
 	"time"
 	"unicode"
@@ -24,6 +25,9 @@ type RegistrationResponse struct {
 
 var userData struct {
 	Username string `json:"username"`
+	Nickname string `json:"nickname"`
+	Bio      string `json:"bio"`
+	Avatar   string `json:"avatarInput"`
 	Fname    string `json:"fname"`
 	Lname    string `json:"lname"`
 	Email    string `json:"email"`
@@ -39,50 +43,90 @@ func Register(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body, _ := io.ReadAll(r.Body)
-	fmt.Println("Received Request Body:", string(body))
-	r.Body = io.NopCloser(bytes.NewReader(body)) // Reassign body so it can be used again
-
-	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(&userData); err != nil {
-		http.Error(w, "Failed to parse JSON", http.StatusBadRequest)
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		http.Error(w, "could not parse form", http.StatusBadRequest)
 		return
 	}
 
-	username := userData.Username
-	email := strings.ToLower(userData.Email)
-	password := userData.Password
-	fname := userData.Fname
-	lname := userData.Lname
-	age := strconv.Itoa(userData.Age)
-	gender := userData.Gender
+	username := r.FormValue("username")
+	email := strings.ToLower(r.FormValue("email"))
+	password := r.FormValue("password")
+	fname := r.FormValue("fname")
+	lname := r.FormValue("lname")
+	age := r.FormValue("age") // your DB uses TEXT
+	gender := r.FormValue("gender")
+	nickname := r.FormValue("nickname") // optional
+	bio := r.FormValue("bio")           // optional
 
-	// Validate user data
-	validity, errorNum := ValidateUser(username, email, password, fname, lname, gender, age, db)
-	if !validity {
-		var errorMessage string
-		switch errorNum {
-		case 1:
-			errorMessage = "You must fill all fields"
-		case 2:
-			errorMessage = "Username already exists"
-		case 3:
-			errorMessage = "Email already exists"
-		case 5:
-			errorMessage = "Invalid email format"
-		case 7:
-			errorMessage = "Invalid password format. Your password must be at least 10 characters long and contain uppercase, lowercase, numbers, and special characters."
-		default:
-			errorMessage = "Sorry, an unknown error occurred"
+	// Optional avatar
+	avatarURL := ""
+	file, header, err := r.FormFile("avatarInput")
+	if err != nil && err != http.ErrMissingFile {
+		http.Error(w, "error reading avatar", http.StatusBadRequest)
+		return
+	}
+	if err == nil && header != nil && header.Filename != "" {
+		defer file.Close()
+		base := filepath.Base(strings.ReplaceAll(header.Filename, " ", "-"))
+		ext := strings.ToLower(filepath.Ext(base))
+		if ext != ".png" && ext != ".jpg" && ext != ".jpeg" {
+			http.Error(w, "Image must be a PNG or JPG.", http.StatusBadRequest)
+			return
 		}
 
-		response := RegistrationResponse{
-			Success: false,
-			Message: errorMessage,
+		uploadDir := filepath.Join("..", "frontend-next", "public", "img", "avatars")
+		if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
+			log.Println("avatar save: MkdirAll error:", err)
+			http.Error(w, "could not save avatar", http.StatusInternalServerError)
+			return
+		}
+
+		stamp := time.Now().UTC().Format("20060102T150405")
+		nameNoExt := strings.TrimSuffix(base, ext)
+		finalName := fmt.Sprintf("%s_%s%s", nameNoExt, stamp, ext)
+
+		dstPath := filepath.Join(uploadDir, finalName)
+		dst, err := os.Create(dstPath)
+		if err != nil {
+			log.Println("avatar save: Create error:", err)
+			http.Error(w, "could not save avatar", http.StatusInternalServerError)
+			return
+		}
+		defer dst.Close()
+
+		if _, err := io.Copy(dst, file); err != nil {
+			log.Println("avatar save: Copy error:", err)
+			http.Error(w, "could not save avatar", http.StatusInternalServerError)
+			return
+		}
+		avatarURL = "/img/avatars/" + finalName
+	}
+	if avatarURL == "" {
+		// ensure a safe default (DB default only applies if column omitted)
+		avatarURL = "/img/avatars/images.png"
+	}
+
+	// Validate requireds only; nickname/bio/avatar are optional
+	validity, errorNum := ValidateUser(username, email, password, fname, lname, age, gender, db)
+	if !validity {
+		var msg string
+		switch errorNum {
+		case 1:
+			msg = "You must fill all fields"
+		case 2:
+			msg = "Username already exists"
+		case 3:
+			msg = "Email already exists"
+		case 5:
+			msg = "Invalid email format"
+		case 7:
+			msg = "Invalid password format. Your password must be at least 10 characters long and contain uppercase, lowercase, numbers, and special characters."
+		default:
+			msg = "Sorry, an unknown error occurred"
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
+		json.NewEncoder(w).Encode(RegistrationResponse{Success: false, Message: msg})
 		return
 	}
 
@@ -92,20 +136,18 @@ func Register(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create user record in the database
-	if _, err := database.InsertUser(db, username, email, fname, lname, age, gender, string(hashedPassword)); err != nil {
+	// IMPORTANT: ensure this argument order matches your InsertUser signature/columns
+	if _, err := database.InsertUser(
+		db,
+		username, nickname, email, fname, lname, age, gender, string(hashedPassword), bio, avatarURL,
+	); err != nil {
+		log.Println("InsertUser error:", err) // <— watch this in your console
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	// Send success response
-	response := RegistrationResponse{
-		Success: true,
-		Message: "User registered successfully.",
-	}
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
+	json.NewEncoder(w).Encode(RegistrationResponse{Success: true, Message: "User registered successfully."})
 }
 
 func checkIfUsernameExists(db *sql.DB, username string) bool {

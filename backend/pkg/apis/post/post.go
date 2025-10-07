@@ -1,106 +1,286 @@
 package post
 
 import (
-	"database/sql"
-	"encoding/json"
-	"fmt"
-	"net/http"
-	database "socialnetwork/pkg/db"
-	"time"
+    "database/sql"
+    "encoding/json"
+    "fmt"
+    "net/http"
+    u "socialnetwork/pkg/apis/user"
+    database "socialnetwork/pkg/db"
+    "time"
 )
 
+// GetPosts returns posts visible to the current user based on privacy settings
 func GetPosts(db *sql.DB, w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
+    if r.Method != http.MethodGet {
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
 
-	// Query posts from database
-	rows, err := db.Query(`SELECT posts.id, users.username, posts.title, posts.content, posts.created_at 
-                           FROM posts 
-                           JOIN users ON posts.user_id = users.id 
-                           ORDER BY posts.created_at DESC`)
-	if err != nil {
-		fmt.Println(" Error retrieving posts:", err)
-		http.Error(w, "Failed to retrieve posts", http.StatusInternalServerError)
-		return
-	}
-	defer rows.Close()
+    // Validate session and get user ID
+    userID, loggedIn := u.ValidateSession(db, r)
+    if !loggedIn {
+        http.Error(w, "Unauthorized. Please log in.", http.StatusUnauthorized)
+        return
+    }
 
-	// Create a slice to hold posts
-	var posts []map[string]interface{}
+    // Query that filters posts based on privacy levels
+    // Removed f.status = 'accepted' condition since status column doesn't exist in userFollow table
+    query := `
+        SELECT DISTINCT 
+            p.id, u.username, p.title, p.content, 
+            COALESCE(p.privacy_level, 0) as privacy_level, 
+            p.imgOrgif, 
+            p.created_at,
+            COALESCE(likes.count, 0) as likes_count,
+            COALESCE(dislikes.count, 0) as dislikes_count
+        FROM posts p
+        JOIN users u ON p.user_id = u.id
+        LEFT JOIN userFollow f ON p.user_id = f.following_id AND f.follower_id = ?
+        LEFT JOIN post_permissions pp ON p.id = pp.post_id AND pp.user_id = ?
+        LEFT JOIN (
+            SELECT post_id, COUNT(*) as count 
+            FROM likes 
+            WHERE is_like = 1 AND comment_id IS NULL 
+            GROUP BY post_id
+        ) likes ON p.id = likes.post_id
+        LEFT JOIN (
+            SELECT post_id, COUNT(*) as count 
+            FROM likes 
+            WHERE is_like = 0 AND comment_id IS NULL 
+            GROUP BY post_id
+        ) dislikes ON p.id = dislikes.post_id
+        WHERE 
+            COALESCE(p.privacy_level, 0) = 0 OR  -- PUBLIC posts (everyone can see)
+            p.user_id = ? OR                     -- user's own posts
+            (COALESCE(p.privacy_level, 0) = 1 AND f.follower_id IS NOT NULL) OR  -- ALMOST PRIVATE + user is follower
+            (COALESCE(p.privacy_level, 0) = 2 AND pp.user_id IS NOT NULL)        -- PRIVATE + user has permission
+        ORDER BY p.created_at DESC
+    `
 
-	for rows.Next() {
-		var postID int
-		var username, title, content string
-		var createdAt time.Time
+    rows, err := db.Query(query, userID, userID, userID)
+    if err != nil {
+        fmt.Println("Error retrieving posts:", err)
+        http.Error(w, "Failed to retrieve posts", http.StatusInternalServerError)
+        return
+    }
+    defer rows.Close()
 
-		err := rows.Scan(&postID, &username, &title, &content, &createdAt)
-		if err != nil {
-			fmt.Println(" Error scanning post:", err)
-			http.Error(w, "Failed to process posts", http.StatusInternalServerError)
-			return
-		}
+    // Create a slice to hold posts
+    var posts []map[string]interface{}
+    for rows.Next() {
+        var postID, privacyLevel, likesCount, dislikesCount int
+        var username, title, content,  imgOrgif  string
+        var createdAt time.Time
 
-		// Fetch categories for this post
-		categories, err := database.GetCategoriesByPostID(db, postID)
-		if err != nil {
-			fmt.Println(" Error retrieving categories for post:", err)
-			http.Error(w, "Failed to retrieve categories", http.StatusInternalServerError)
-			return
-		}
+        err := rows.Scan(&postID, &username, &title, &content, &privacyLevel, &imgOrgif, &createdAt, &likesCount, &dislikesCount)
+        if err != nil {
+            fmt.Println("Error scanning post:", err)
+            http.Error(w, "Failed to process posts", http.StatusInternalServerError)
+            return
+        }
 
-		// Store post in slice
-		post := map[string]interface{}{
-			"id":         postID,
-			"username":   username,
-			"title":      title,
-			"content":    content,
-			"categories": categories,
-			"createdAt":  createdAt.Format("2006-01-02 15:04:05"),
-		}
-		posts = append(posts, post)
-	}
+        // Fetch categories for this post
+        categories, err := database.GetCategoriesByPostID(db, postID)
+        if err != nil {
+            fmt.Println("Error retrieving categories for post:", err)
+            categories = []string{} // Default to empty if error
+        }
 
-	// Return posts as JSON
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(posts)
+        // Get privacy level text
+        privacyText := "Public"
+        switch privacyLevel {
+        case 1:
+            privacyText = "Almost Private"
+        case 2:
+            privacyText = "Private"
+        }
+
+        // Store post in slice
+        post := map[string]interface{}{
+            "id":             postID,
+            "username":       username,
+            "title":          title,
+            "content":        content,
+            "privacy_level":  privacyLevel,
+            "privacy_text":   privacyText,
+            "imgOrgif":       imgOrgif,
+            "categories":     categories,
+            "likes_count":    likesCount,
+            "dislikes_count": dislikesCount,
+            "createdAt":      createdAt.Format("2006-01-02 15:04:05"),
+        }
+        posts = append(posts, post)
+    }
+
+    // Return posts as JSON
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(posts)
 }
 
-func GetPostsID(db *sql.DB, w http.ResponseWriter, r *http.Request) ([]int, error) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return nil, nil
-	}
+func GetPublicPosts(db *sql.DB, w http.ResponseWriter, r *http.Request) {
+    if r.Method != http.MethodGet {
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
 
-	// Query posts from database
-	rows, err := db.Query(`SELECT posts.id, users.username, posts.title, posts.content, posts.created_at 
-                           FROM posts 
-                           JOIN users ON posts.user_id = users.id 
-                           ORDER BY posts.created_at DESC`)
-	if err != nil {
-		fmt.Println(" Error retrieving posts:", err)
-		http.Error(w, "Failed to retrieve posts", http.StatusInternalServerError)
-		return nil, nil
-	}
-	defer rows.Close()
+    _, loggedIn := u.ValidateSession(db, r)
+    if !loggedIn {
+        http.Error(w, "Unauthorized. Please log in.", http.StatusUnauthorized)
+        return
+    }
 
-	var posts []int
+    query := `
+        SELECT DISTINCT 
+            p.id, u.username, p.title, p.content, 
+            COALESCE(p.privacy_level, 0) as privacy_level, 
+            p.created_at,
+            COALESCE(likes.count, 0) as likes_count,
+            COALESCE(dislikes.count, 0) as dislikes_count
+        FROM posts p
+        JOIN users u ON p.user_id = u.id
+        LEFT JOIN (
+            SELECT post_id, COUNT(*) as count 
+            FROM likes 
+            WHERE is_like = 1 AND comment_id IS NULL 
+            GROUP BY post_id
+        ) likes ON p.id = likes.post_id
+        LEFT JOIN (
+            SELECT post_id, COUNT(*) as count 
+            FROM likes 
+            WHERE is_like = 0 AND comment_id IS NULL 
+            GROUP BY post_id
+        ) dislikes ON p.id = dislikes.post_id
+        WHERE 
+            COALESCE(p.privacy_level, 0) = 0  -- ONLY PUBLIC posts
+        ORDER BY p.created_at DESC
+    `
 
-	for rows.Next() {
-		var postID int
-		var username, title, content string
-		var createdAt time.Time
+    rows, err := db.Query(query)
+    if err != nil {
+        fmt.Println("Error retrieving public posts:", err)
+        http.Error(w, "Failed to retrieve posts", http.StatusInternalServerError)
+        return
+    }
+    defer rows.Close()
 
-		err := rows.Scan(&postID, &username, &title, &content, &createdAt)
-		if err != nil {
-			fmt.Println(" Error scanning post:", err)
-			http.Error(w, "Failed to process posts", http.StatusInternalServerError)
-			return nil, nil
-		}
-		posts = append(posts, postID)
+    var posts []map[string]interface{}
+    for rows.Next() {
+        var postID, privacyLevel, likesCount, dislikesCount int
+        var username, title, content, imgOrgif string
+        var createdAt time.Time
 
-	}
+        err := rows.Scan(&postID, &username, &title, &content, &imgOrgif, &privacyLevel ,&createdAt, &likesCount, &dislikesCount)
+        if err != nil {
+            fmt.Println("Error scanning post:", err)
+            http.Error(w, "Failed to process posts", http.StatusInternalServerError)
+            return
+        }
 
-	return posts, nil
+        // Fetch categories for this post
+        categories, err := database.GetCategoriesByPostID(db, postID)
+        if err != nil {
+            fmt.Println("Error retrieving categories for post:", err)
+            categories = []string{} // Default to empty if error
+        }
+
+        // Store post in slice
+        post := map[string]interface{}{
+            "id":         postID,
+            "username":   username,
+            "title":      title,
+            "content":    content,
+            "imgOrgif":   imgOrgif,
+            "categories": categories,
+            "createdAt":  createdAt.Format("2006-01-02 15:04:05"),
+        }
+        posts = append(posts, post)
+    }
+
+    // Return posts as JSON
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(posts)
+}
+
+func GetProfilePosts(db *sql.DB, w http.ResponseWriter, r *http.Request, username string) {
+    // who is being viewed
+    var profileUserID int
+    if err := db.QueryRow(`SELECT id FROM users WHERE username=?`, username).Scan(&profileUserID); err != nil {
+        http.Error(w, "User not found", http.StatusNotFound)
+        return
+    }
+
+    // who is viewing (0 if not logged in)
+    viewerID, loggedIn := u.ValidateSession(db, r)
+    if !loggedIn {
+        viewerID = 0
+    }
+
+
+    rows, err := db.Query(`
+        SELECT DISTINCT
+            p.id, u.username, p.title, p.content,
+            COALESCE(p.privacy_level, 0) AS privacy_level,
+            p.imgOrgif,
+            p.created_at,
+            COALESCE(likes.count, 0)    AS likes_count,
+            COALESCE(dislikes.count, 0) AS dislikes_count
+        FROM posts p
+        JOIN users u ON p.user_id = u.id
+        LEFT JOIN (
+          SELECT post_id, COUNT(*) AS count FROM likes
+          WHERE is_like = 1 AND comment_id IS NULL GROUP BY post_id
+        ) likes    ON p.id = likes.post_id
+        LEFT JOIN (
+          SELECT post_id, COUNT(*) AS count FROM likes
+          WHERE is_like = 0 AND comment_id IS NULL GROUP BY post_id
+        ) dislikes ON p.id = dislikes.post_id
+        WHERE p.user_id = ?
+          AND (
+               COALESCE(p.privacy_level,0) = 0                         -- public
+            OR (? > 0 AND ? = p.user_id)                               -- viewer is owner
+            OR (COALESCE(p.privacy_level,0) = 1 AND EXISTS (           -- followers-only
+                 SELECT 1 FROM userFollow f
+                 WHERE f.follower_id = ? AND f.following_id = p.user_id
+            ))
+            OR (COALESCE(p.privacy_level,0) = 2 AND EXISTS (           -- explicit permission
+                 SELECT 1 FROM post_permissions pp
+                 WHERE pp.post_id = p.id AND pp.user_id = ?
+            ))
+          )
+        ORDER BY p.created_at DESC
+    `, profileUserID, viewerID, viewerID, viewerID, viewerID)
+    if err != nil {
+        fmt.Println("Error retrieving profile posts:", err)
+        http.Error(w, "Failed to retrieve posts", http.StatusInternalServerError)
+        return
+    }
+    defer rows.Close()
+
+    var posts []map[string]any
+    for rows.Next() {
+        var (
+            postID, privacyLevel, likesCount, dislikesCount int
+            username, title, content, imgOrgif              string
+            createdAt                                       time.Time
+        )
+        if err := rows.Scan(&postID, &username, &title, &content, &privacyLevel, &imgOrgif, &createdAt, &likesCount, &dislikesCount); err != nil {
+            http.Error(w, "Failed to process posts", http.StatusInternalServerError)
+            return
+        }
+        categories, _ := database.GetCategoriesByPostID(db, postID)
+
+        privacyText := map[int]string{0: "Public", 1: "Followers", 2: "Private"}[privacyLevel]
+
+        posts = append(posts, map[string]any{
+            "id": postID, "username": username, "title": title, "content": content,
+            "privacy_level": privacyLevel, "privacy_text": privacyText,
+            "imgOrgif": imgOrgif, "categories": categories,
+            "likes_count": likesCount, "dislikes_count": dislikesCount,
+            "createdAt": createdAt.Format("2006-01-02 15:04:05"),
+        })
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    _ = json.NewEncoder(w).Encode(posts)
 }

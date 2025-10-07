@@ -16,6 +16,7 @@ import (
 type Frontend struct {
 	From      int       `json:"from"`
 	To        int       `json:"to"`
+	GroupID   int       `json:"group_id"`
 	Content   string    `json:"content"`
 	Timestamp time.Time `json:"timestamp"`
 	Type      string    `json:"type"`
@@ -148,10 +149,42 @@ func (c *Client) readPump(hub *Hub) {
 		if msg.Type == "new_post" || msg.Type == "new_comment" || msg.Type == "new_postLike" || msg.Type == "new_commentLike" {
 			hub.Mutex.RLock()
 			for _, client := range hub.Clients {
-
 				client.Send <- msg
 			}
 			hub.Mutex.RUnlock()
+			continue
+		}
+
+		// Group chat fan-out
+		if msg.Type == "group_message" || msg.Type == "new_groupPost" || msg.Type == "new_groupEvent" {
+			msg.Timestamp = time.Now()
+
+			if(msg.Type == "group_message"){
+				// 1) Save to DB
+			if err := hub.saveGroupMessageToDB(msg); err != nil {
+				// optional: log but don't break fan-out
+				fmt.Println("saveGroupMessageToDB error:", err)
+			}
+			}
+			
+
+			// 2) Find members of the group
+			memberIDs, err := hub.getGroupMemberIDs(msg.GroupID)
+			if err != nil {
+				fmt.Println("getGroupMemberIDs error:", err)
+				return
+			}
+
+			// 3) Send to every online member (including sender for echo)
+			hub.Mutex.RLock()
+			for _, mid := range memberIDs {
+				if cl, ok := hub.Clients[mid]; ok {
+					cl.Send <- msg
+				}
+			}
+			hub.Mutex.RUnlock()
+
+			// handled — skip the 1:1 broadcast path
 			continue
 		}
 
@@ -181,5 +214,52 @@ func (c *Client) writePump() {
 func (h *Hub) saveMessageToDB(msg Frontend) error {
 	query := `INSERT INTO messages (sender_id, receiver_id, content, created_at) VALUES (?, ?, ?, ?)`
 	_, err := h.DB.Exec(query, msg.From, msg.To, msg.Content, msg.Timestamp)
+	return err
+}
+
+// getGroupMemberIDs returns all accepted member user_ids for a group.
+func (h *Hub) getGroupMemberIDs(groupID int) ([]int, error) {
+	const q = `
+		SELECT user_id
+		FROM group_members
+		WHERE group_id = ? AND status = 'accepted'
+	`
+	rows, err := h.DB.Query(q, groupID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var ids []int
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err == nil {
+			ids = append(ids, id)
+		}
+	}
+	return ids, rows.Err()
+}
+
+func (h *Hub) saveGroupMessageToDB(msg Frontend) error {
+	// 1) Verify sender is an accepted member of the group
+	var allowed int
+	checkQ := `
+        SELECT COUNT(*) 
+        FROM group_members 
+        WHERE group_id = ? AND user_id = ? AND status = 'accepted'
+    `
+	if err := h.DB.QueryRow(checkQ, msg.GroupID, msg.From).Scan(&allowed); err != nil {
+		return fmt.Errorf("membership check failed: %w", err)
+	}
+	if allowed == 0 {
+		return fmt.Errorf("user %d is not an accepted member of group %d", msg.From, msg.GroupID)
+	}
+
+	// 2) Insert the message
+	const q = `
+        INSERT INTO group_messages (group_id, sender_id, content, created_at)
+        VALUES (?, ?, ?, ?)
+    `
+	_, err := h.DB.Exec(q, msg.GroupID, msg.From, msg.Content, msg.Timestamp)
 	return err
 }

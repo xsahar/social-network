@@ -118,4 +118,3 @@ func Login(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(response)
 	}
 }
-

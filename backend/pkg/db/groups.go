@@ -288,64 +288,34 @@ func GetUserGroupInvitations(db *sql.DB, userID int) ([]map[string]interface{}, 
 	return invitations, nil
 }
 
-// GetPendingJoinRequests returns pending join requests for groups owned by the user
-func GetPendingJoinRequests(db *sql.DB, creatorID int) ([]map[string]interface{}, error) {
+func GetGroupMembers(db *sql.DB, groupID int) ([]map[string]interface{}, error) {
 	query := `
-		SELECT gm.id, gm.group_id, gm.user_id, g.title as group_title, u.username, gm.joined_at
-		FROM group_members gm
-		JOIN groups g ON gm.group_id = g.id
+		SELECT u.id, u.username, gm.status
+		FROM group_members gm	
 		JOIN users u ON gm.user_id = u.id
-		WHERE g.creator_id = ? AND gm.status = 'pending'
-		ORDER BY gm.joined_at DESC`
-
-	rows, err := db.Query(query, creatorID)
+		WHERE gm.group_id = ? AND gm.status = 'accepted'
+		ORDER BY u.username`
+	rows, err := db.Query(query, groupID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-
-	var requests []map[string]interface{}
+	var members []map[string]interface{}
 	for rows.Next() {
-		var id, groupID, userID int
-		var groupTitle, username string
-		var joinedAt time.Time
-
-		err := rows.Scan(&id, &groupID, &userID, &groupTitle, &username, &joinedAt)
-		if err != nil {
+		var id int
+		var username, status string
+		if err := rows.Scan(&id, &username, &status); err != nil {
 			return nil, err
 		}
-
-		request := map[string]interface{}{
-			"id":           id,
-			"group_id":     groupID,
-			"user_id":      userID,
-			"group_title":  groupTitle,
-			"username":     username,
-			"requested_at": joinedAt.Format("2006-01-02 15:04:05"),
+		member := map[string]interface{}{
+			"id":       id,
+			"username": username,
+			"status":   status,
 		}
-		requests = append(requests, request)
+		members = append(members, member)
 	}
-
-	return requests, nil
-}
-
-// ApproveJoinRequest approves or denies a join request
-func ApproveJoinRequest(db *sql.DB, membershipID int, creatorID int, status string) error {
-	// First verify that the creator owns the group
-	query := `
-		SELECT g.id 
-		FROM groups g 
-		JOIN group_members gm ON g.id = gm.group_id 
-		WHERE gm.id = ? AND g.creator_id = ?`
-
-	var groupID int
-	err := db.QueryRow(query, membershipID, creatorID).Scan(&groupID)
-	if err != nil {
-		return err // Creator doesn't own this group or membership doesn't exist
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
-
-	// Update the membership status
-	updateQuery := `UPDATE group_members SET status = ? WHERE id = ?`
-	_, err = db.Exec(updateQuery, status, membershipID)
-	return err
+	return members, nil
 }
