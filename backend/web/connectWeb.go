@@ -1074,5 +1074,50 @@ func ensureEventPollTables(db *sql.DB) error {
 			return err
 		}
 	}
+
+	// Add comprehensive profile and follow endpoints
+	http.HandleFunc("/profile/complete", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
+		u.GetCompleteProfileHandler(db, w, r)
+	}))
+
+	http.HandleFunc("/follow-user", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
+		u.FollowUser(db, w, r)
+	}))
+
+	http.HandleFunc("/unfollow-user", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
+		u.UnfollowUser(db, w, r)
+	}))
+
+	http.HandleFunc("/handle-follow-request", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
+		u.HandleFollowRequest(db, w, r)
+	}))
+
+	http.HandleFunc("/all-users", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
+		u.GetAllUsers(db, w, r)
+	}))
+
+	http.HandleFunc("/follow-status", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
+		u.GetFollowStatus(db, w, r)
+	}))
+
+	http.HandleFunc("/update-profile", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
+		// Get current user from session
+		userID, loggedIn := u.ValidateSession(db, r)
+		if !loggedIn {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		
+		// Get username for the existing UpdateProfileHandler
+		var username string
+		err := db.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
+		if err != nil {
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
+		}
+		
+		u.UpdateProfileHandler(db, w, r, username)
+	}))
+
 	return nil
 }

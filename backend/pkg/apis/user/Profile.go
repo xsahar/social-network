@@ -17,17 +17,18 @@ import (
 )
 
 type UserProfile struct {
-	Username  string `json:"username"`
-	Nickname  string `json:"nickname"`
-	Fname     string `json:"fname"`
-	Lname     string `json:"lname"`
-	Email     string `json:"email"`
-	Age       int    `json:"age"`
-	Gender    string `json:"gender"`
-	Password  string `json:"password"`
-	Bio       string `json:"bio"`
-	Avatar    string `json:"avatar"`
-	IsPrivate bool   `json:"isPrivate"`
+	Username    string `json:"username"`
+	Nickname    string `json:"nickname"`
+	Fname       string `json:"fname"`
+	Lname       string `json:"lname"`
+	Email       string `json:"email"`
+	Age         int    `json:"age"`
+	Gender      string `json:"gender"`
+	Password    string `json:"password"`
+	Bio         string `json:"bio"`
+	Avatar      string `json:"avatar"`
+	IsPrivate   bool   `json:"isPrivate"`
+	DateOfBirth string `json:"dateOfBirth"`
 }
 
 func IsFollowing(db *sql.DB, followerUsername, followingUsername string) bool {
@@ -261,10 +262,11 @@ func UpdateProfileHandler(db *sql.DB, w http.ResponseWriter, r *http.Request, cu
 
 	username := get("username", existing.Username)
 	nickname := get("nickname", existing.Nickname) // <- fixed fallback
-	fname := get("fname", existing.Fname)
-	lname := get("lname", existing.Lname)
+	fname := get("firstname", existing.Fname)
+	lname := get("lastname", existing.Lname)
 	email := get("email", existing.Email)
 	gender := get("gender", existing.Gender)
+	dateOfBirth := get("dateOfBirth", existing.DateOfBirth)
 
 	bio := ""
 	if b := strings.TrimSpace(r.FormValue("bio")); b != "" {
@@ -339,8 +341,8 @@ func UpdateProfileHandler(db *sql.DB, w http.ResponseWriter, r *http.Request, cu
 
 	// 5) UPDATE by id (stable key)
 	_, err = db.Exec(`
-        UPDATE users SET username = ?, nickname = ? ,firstname = ?, lastname = ?, email = ?, password = ?, age = ?, gender = ?, bio = ?, avatar_url = ?, isPrivate = ? WHERE username = ?`,
-		username, nickname, fname, lname, email, passwordHash, age, gender, bio, avatarURL, isPrivate, currentUsername,
+        UPDATE users SET username = ?, nickname = ? ,firstname = ?, lastname = ?, email = ?, password = ?, age = ?, gender = ?, bio = ?, avatar_url = ?, isPrivate = ?, date_of_birth = ? WHERE username = ?`,
+		username, nickname, fname, lname, email, passwordHash, age, gender, bio, avatarURL, isPrivate, dateOfBirth, currentUsername,
 	)
 	if err != nil {
 		log.Println("update profile error:", err)
@@ -387,4 +389,242 @@ func GetOtherProfile(db *sql.DB, username string) (UserProfile, error) {
 	}
 
 	return profile, nil
+}
+
+// GetCompleteProfileHandler returns user profile with posts, followers, and following
+func GetCompleteProfileHandler(db *sql.DB, w http.ResponseWriter, r *http.Request) {
+	// Validate session
+	userID, loggedIn := ValidateSession(db, r)
+	if !loggedIn {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Get user profile
+	var profile UserProfile
+	var bio sql.NullString
+	var dateOfBirth sql.NullString
+
+	err := db.QueryRow(`
+		SELECT username, nickname, firstname, lastname, email, age, gender, bio, avatar_url, isPrivate, date_of_birth
+		FROM users WHERE id = ?`, userID).Scan(
+		&profile.Username,
+		&profile.Nickname,
+		&profile.Fname,
+		&profile.Lname,
+		&profile.Email,
+		&profile.Age,
+		&profile.Gender,
+		&bio,
+		&profile.Avatar,
+		&profile.IsPrivate,
+		&dateOfBirth,
+	)
+
+	if err != nil {
+		http.Error(w, "Profile not found", http.StatusNotFound)
+		return
+	}
+
+	if bio.Valid {
+		profile.Bio = bio.String
+	}
+	if dateOfBirth.Valid {
+		profile.DateOfBirth = dateOfBirth.String
+	}
+
+	// Get user's posts
+	posts, err := getUserPosts(db, userID)
+	if err != nil {
+		log.Printf("Error fetching user posts: %v", err)
+		posts = []interface{}{}
+	}
+
+	// Get followers
+	followers, err := getFollowers(db, userID)
+	if err != nil {
+		log.Printf("Error fetching followers: %v", err)
+		followers = []interface{}{}
+	}
+
+	// Get following
+	following, err := getFollowing(db, userID)
+	if err != nil {
+		log.Printf("Error fetching following: %v", err)
+		following = []interface{}{}
+	}
+
+	// Get pending follow requests
+	pendingRequests, err := getPendingFollowRequests(db, userID)
+	if err != nil {
+		log.Printf("Error fetching pending requests: %v", err)
+		pendingRequests = []interface{}{}
+	}
+
+	response := map[string]interface{}{
+		"success":         true,
+		"profile":         profile,
+		"posts":           posts,
+		"followers":       followers,
+		"following":       following,
+		"pendingRequests": pendingRequests,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func getUserPosts(db *sql.DB, userID int) ([]interface{}, error) {
+	query := `
+		SELECT p.id, p.title, p.content, p.imgOrgif, p.created_at, 
+		       COALESCE(p.privacy_level, 0) as privacy_level,
+		       COALESCE(lc.like_count, 0) as like_count,
+		       COALESCE(cc.comment_count, 0) as comment_count
+		FROM posts p
+		LEFT JOIN (
+			SELECT post_id, COUNT(*) as like_count 
+			FROM likes 
+			GROUP BY post_id
+		) lc ON p.id = lc.post_id
+		LEFT JOIN (
+			SELECT post_id, COUNT(*) as comment_count 
+			FROM comments 
+			GROUP BY post_id
+		) cc ON p.id = cc.post_id
+		WHERE p.user_id = ?
+		ORDER BY p.created_at DESC`
+
+	rows, err := db.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var posts []interface{}
+	for rows.Next() {
+		var post struct {
+			ID           int    `json:"id"`
+			Title        string `json:"title"`
+			Content      string `json:"content"`
+			ImgOrgif     string `json:"imgOrgif"`
+			CreatedAt    string `json:"created_at"`
+			PrivacyLevel int    `json:"privacy_level"`
+			LikeCount    int    `json:"like_count"`
+			CommentCount int    `json:"comment_count"`
+		}
+
+		err := rows.Scan(&post.ID, &post.Title, &post.Content, &post.ImgOrgif, 
+			&post.CreatedAt, &post.PrivacyLevel, &post.LikeCount, &post.CommentCount)
+		if err != nil {
+			continue
+		}
+
+		posts = append(posts, post)
+	}
+
+	return posts, nil
+}
+
+func getFollowers(db *sql.DB, userID int) ([]interface{}, error) {
+	query := `
+		SELECT u.id, u.username, u.firstname, u.lastname, u.avatar_url
+		FROM users u
+		INNER JOIN userFollow uf ON u.id = uf.follower_id
+		WHERE uf.following_id = ?`
+
+	rows, err := db.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var followers []interface{}
+	for rows.Next() {
+		var follower struct {
+			ID       int    `json:"id"`
+			Username string `json:"username"`
+			Fname    string `json:"firstname"`
+			Lname    string `json:"lastname"`
+			Avatar   string `json:"avatar"`
+		}
+
+		err := rows.Scan(&follower.ID, &follower.Username, &follower.Fname, &follower.Lname, &follower.Avatar)
+		if err != nil {
+			continue
+		}
+
+		followers = append(followers, follower)
+	}
+
+	return followers, nil
+}
+
+func getFollowing(db *sql.DB, userID int) ([]interface{}, error) {
+	query := `
+		SELECT u.id, u.username, u.firstname, u.lastname, u.avatar_url
+		FROM users u
+		INNER JOIN userFollow uf ON u.id = uf.following_id
+		WHERE uf.follower_id = ?`
+
+	rows, err := db.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var following []interface{}
+	for rows.Next() {
+		var user struct {
+			ID       int    `json:"id"`
+			Username string `json:"username"`
+			Fname    string `json:"firstname"`
+			Lname    string `json:"lastname"`
+			Avatar   string `json:"avatar"`
+		}
+
+		err := rows.Scan(&user.ID, &user.Username, &user.Fname, &user.Lname, &user.Avatar)
+		if err != nil {
+			continue
+		}
+
+		following = append(following, user)
+	}
+
+	return following, nil
+}
+
+func getPendingFollowRequests(db *sql.DB, userID int) ([]interface{}, error) {
+	query := `
+		SELECT u.id, u.username, u.firstname, u.lastname, u.avatar_url, fr.created_at
+		FROM users u
+		INNER JOIN follow_requests fr ON u.id = fr.requester_id
+		WHERE fr.target_id = ? AND fr.status = 'pending'
+		ORDER BY fr.created_at DESC`
+
+	rows, err := db.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var requests []interface{}
+	for rows.Next() {
+		var request struct {
+			ID        int    `json:"id"`
+			Username  string `json:"username"`
+			Fname     string `json:"firstname"`
+			Lname     string `json:"lastname"`
+			Avatar    string `json:"avatar"`
+			CreatedAt string `json:"created_at"`
+		}
+
+		err := rows.Scan(&request.ID, &request.Username, &request.Fname, &request.Lname, &request.Avatar, &request.CreatedAt)
+		if err != nil {
+			continue
+		}
+
+		requests = append(requests, request)
+	}
+
+	return requests, nil
 }

@@ -18,16 +18,15 @@ func GetPosts(db *sql.DB, w http.ResponseWriter, r *http.Request) {
     }
 
     // Validate session and get user ID
-    userID, loggedIn := u.ValidateSession(db, r)
+    _, loggedIn := u.ValidateSession(db, r)
     if !loggedIn {
         http.Error(w, "Unauthorized. Please log in.", http.StatusUnauthorized)
         return
     }
 
-    // Query that filters posts based on privacy levels
-    // Removed f.status = 'accepted' condition since status column doesn't exist in userFollow table
+    // Simplified query for debugging - get all public posts with like counts
     query := `
-        SELECT DISTINCT 
+        SELECT 
             p.id, u.username, p.title, p.content, 
             COALESCE(p.privacy_level, 0) as privacy_level, 
             p.imgOrgif, 
@@ -36,8 +35,6 @@ func GetPosts(db *sql.DB, w http.ResponseWriter, r *http.Request) {
             COALESCE(dislikes.count, 0) as dislikes_count
         FROM posts p
         JOIN users u ON p.user_id = u.id
-        LEFT JOIN userFollow f ON p.user_id = f.following_id AND f.follower_id = ?
-        LEFT JOIN post_permissions pp ON p.id = pp.post_id AND pp.user_id = ?
         LEFT JOIN (
             SELECT post_id, COUNT(*) as count 
             FROM likes 
@@ -50,15 +47,11 @@ func GetPosts(db *sql.DB, w http.ResponseWriter, r *http.Request) {
             WHERE is_like = 0 AND comment_id IS NULL 
             GROUP BY post_id
         ) dislikes ON p.id = dislikes.post_id
-        WHERE 
-            COALESCE(p.privacy_level, 0) = 0 OR  -- PUBLIC posts (everyone can see)
-            p.user_id = ? OR                     -- user's own posts
-            (COALESCE(p.privacy_level, 0) = 1 AND f.follower_id IS NOT NULL) OR  -- ALMOST PRIVATE + user is follower
-            (COALESCE(p.privacy_level, 0) = 2 AND pp.user_id IS NOT NULL)        -- PRIVATE + user has permission
+        WHERE COALESCE(p.privacy_level, 0) = 0
         ORDER BY p.created_at DESC
     `
 
-    rows, err := db.Query(query, userID, userID, userID)
+    rows, err := db.Query(query)
     if err != nil {
         fmt.Println("Error retrieving posts:", err)
         http.Error(w, "Failed to retrieve posts", http.StatusInternalServerError)

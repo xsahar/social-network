@@ -57,6 +57,7 @@ func Register(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 	gender := r.FormValue("gender")
 	nickname := r.FormValue("nickname") // optional
 	bio := r.FormValue("bio")           // optional
+	dateOfBirth := r.FormValue("dateOfBirth") // optional
 
 	// Optional avatar
 	avatarURL := ""
@@ -139,7 +140,7 @@ func Register(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 	// IMPORTANT: ensure this argument order matches your InsertUser signature/columns
 	if _, err := database.InsertUser(
 		db,
-		username, nickname, email, fname, lname, age, gender, string(hashedPassword), bio, avatarURL,
+		username, nickname, email, fname, lname, age, gender, string(hashedPassword), bio, avatarURL, dateOfBirth,
 	); err != nil {
 		log.Println("InsertUser error:", err) // <— watch this in your console
 		http.Error(w, "Internal server error", http.StatusInternalServerError)

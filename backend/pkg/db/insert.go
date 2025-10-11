@@ -8,10 +8,10 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-func InsertUser(db *sql.DB, username,nickname, email, fname, lname, age, gender, password, bio, avatar string) (int64, error) {
+func InsertUser(db *sql.DB, username,nickname, email, fname, lname, age, gender, password, bio, avatar, dateOfBirth string) (int64, error) {
 
-	query := `INSERT INTO users (username, nickname, firstname, lastname, age, gender, email, password, bio, avatar_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	result, err := db.Exec(query, username, nickname, fname, lname, age, gender, email, password, bio, avatar)
+	query := `INSERT INTO users (username, nickname, firstname, lastname, age, gender, email, password, bio, avatar_url, date_of_birth) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	result, err := db.Exec(query, username, nickname, fname, lname, age, gender, email, password, bio, avatar, dateOfBirth)
 	if err != nil {
 		return 0, err
 	}
