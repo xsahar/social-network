@@ -5,13 +5,13 @@ import Layout from '../components/Layout';
 import Chat from '../components/Chat';
 import { useSession } from '../hooks/useSession';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { useChat } from '../hooks/useChat';
 
 export default function MainPage() {
   const router = useRouter();
   const { user, loading } = useSession();
   const { onlineUsers } = useWebSocket(user?.userID);
-  const [chatOpen, setChatOpen] = useState(false);
-  const [chatWith, setChatWith] = useState(null);
+  const { chatOpen, chatWith, startChat, setChatOpen } = useChat();
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -25,16 +25,13 @@ export default function MainPage() {
     }
   }, [user, loading, router]);
 
-  const startChat = (userData) => {
-    setChatWith(userData);
-    setChatOpen(true);
-  };
+
 
   // Show loading while checking authentication
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading...</div>
+      <div className="loading-container">
+        <div className="loading-text">Loading...</div>
       </div>
     );
   }
@@ -50,65 +47,65 @@ export default function MainPage() {
         <title>Social Network - Dashboard</title>
       </Head>
       
-      <div className="min-h-screen bg-white">
+      <div className="dashboard-container">
         {/* Main Dashboard Content */}
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome back, {user.username}!</h1>
-            <p className="text-gray-600">Stay connected with your friends and discover what's happening.</p>
+        <div className="container">
+          <div className="dashboard-header">
+            <h1>Welcome back, {user.username}!</h1>
+            <p>Stay connected with your friends and discover what's happening.</p>
           </div>
 
           {/* Quick Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="dashboard-grid">
             <button 
               onClick={() => router.push('/posts')}
-              className="bg-blue-500 hover:bg-blue-600 text-white p-6 rounded-lg text-center transition-colors"
+              className="dashboard-card dashboard-card-blue"
             >
-              <h3 className="text-lg font-semibold mb-2">View Posts</h3>
-              <p className="text-blue-100">See what's happening in your network</p>
+              <h3>View Posts</h3>
+              <p>See what's happening in your network</p>
             </button>
             
             <button 
               onClick={() => router.push('/createPost')}
-              className="bg-green-500 hover:bg-green-600 text-white p-6 rounded-lg text-center transition-colors"
+              className="dashboard-card dashboard-card-green"
             >
-              <h3 className="text-lg font-semibold mb-2">Create Post</h3>
-              <p className="text-green-100">Share your thoughts with others</p>
+              <h3>Create Post</h3>
+              <p>Share your thoughts with others</p>
             </button>
             
             <button 
               onClick={() => router.push('/groups')}
-              className="bg-purple-500 hover:bg-purple-600 text-white p-6 rounded-lg text-center transition-colors"
+              className="dashboard-card dashboard-card-purple"
             >
-              <h3 className="text-lg font-semibold mb-2">Browse Groups</h3>
-              <p className="text-purple-100">Join communities that interest you</p>
+              <h3>Browse Groups</h3>
+              <p>Join communities that interest you</p>
             </button>
           </div>
 
           {/* Online Users Sidebar */}
-          <div className="bg-gray-50 rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Online Users ({onlineUsers.length})</h2>
+          <div className="online-users-section">
+            <h2>Online Users ({onlineUsers.length})</h2>
             {onlineUsers.length === 0 ? (
-              <p className="text-gray-500">No users online right now</p>
+              <p>No users online right now</p>
             ) : (
-              <div className="space-y-3">
+              <div className="online-users-list">
                 {onlineUsers.map((userData) => (
                   <div 
                     key={userData.id} 
-                    className="flex items-center justify-between p-3 bg-white rounded-lg"
+                    className="online-user-item"
                   >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                        <span className="text-white text-sm font-medium">
+                    <div className="user-info">
+                      <div className="user-avatar-small">
+                        <span>
                           {userData.username?.charAt(0)?.toUpperCase() || 'U'}
                         </span>
                       </div>
-                      <span className="font-medium text-gray-900">{userData.username}</span>
+                      <span className="username">{userData.username}</span>
                     </div>
                     
                     <button 
                       onClick={() => startChat(userData)}
-                      className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors"
+                      className="chat-btn"
                     >
                       Chat
                     </button>

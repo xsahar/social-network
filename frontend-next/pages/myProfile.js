@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
 import { useSession } from '../hooks/useSession';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { useChat } from '../hooks/useChat';
 import Chat from '../components/Chat';
 
 export default function MyProfile() {
@@ -14,8 +15,6 @@ export default function MyProfile() {
   const [pendingRequests, setPendingRequests] = useState([]);
   const [isPrivate, setIsPrivate] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [chatOpen, setChatOpen] = useState(false);
-  const [chatWith, setChatWith] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [editForm, setEditForm] = useState({
     firstname: '',
@@ -30,6 +29,7 @@ export default function MyProfile() {
   });
   const { user, loading: sessionLoading } = useSession();
   const { onlineUsers } = useWebSocket(user?.userID);
+  const { chatOpen, chatWith, startChat, setChatOpen } = useChat();
   const router = useRouter();
 
   const fetchProfile = async () => {
@@ -77,10 +77,7 @@ export default function MyProfile() {
     }
   }, [user?.userID]);
 
-  const startChat = (user) => {
-    setChatWith(user);
-    setChatOpen(true);
-  };
+
 
   const handleEditProfile = () => {
     setEditForm({
@@ -99,23 +96,36 @@ export default function MyProfile() {
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     try {
-      const formData = new FormData();
+      // If there's a file, use FormData, otherwise use JSON
+      let requestBody;
+      let headers = {};
       
-      // Add all form fields to FormData
-      Object.keys(editForm).forEach(key => {
-        if (key !== 'avatarFile' && editForm[key] !== null && editForm[key] !== '') {
-          formData.append(key, editForm[key]);
-        }
-      });
-      
-      // Add file if present
-      if (editForm.avatarFile) {
+      if (editForm.avatarFile && editForm.avatarFile.size > 0) {
+        // Use FormData for file upload
+        const formData = new FormData();
+        Object.keys(editForm).forEach(key => {
+          if (key !== 'avatarFile' && editForm[key] !== null && editForm[key] !== '') {
+            formData.append(key, editForm[key]);
+          }
+        });
         formData.append('avatarInput', editForm.avatarFile);
+        requestBody = formData;
+      } else {
+        // Use JSON for text-only updates
+        const profileData = {};
+        Object.keys(editForm).forEach(key => {
+          if (key !== 'avatarFile' && editForm[key] !== null && editForm[key] !== '') {
+            profileData[key] = editForm[key];
+          }
+        });
+        requestBody = JSON.stringify(profileData);
+        headers['Content-Type'] = 'application/json';
       }
       
       const response = await fetch('/api/update-profile', {
         method: 'POST',
-        body: formData,
+        headers: headers,
+        body: requestBody,
         credentials: 'include'
       });
 

@@ -124,11 +124,41 @@ func GetProfileHandler(db *sql.DB, w http.ResponseWriter, r *http.Request, usern
 }
 
 func UpdateProfileHandler(db *sql.DB, w http.ResponseWriter, r *http.Request, currentUsername string) {
-	// 1) parse multipart form (limit memory + total size)
-	const maxMem = 10 << 20 // 10MB
-	if err := r.ParseMultipartForm(maxMem); err != nil {
-		http.Error(w, "could not parse form", http.StatusBadRequest)
-		return
+	// Handle both JSON and multipart form data
+	contentType := r.Header.Get("Content-Type")
+	
+	var formValues map[string]string
+	
+	if strings.Contains(contentType, "application/json") {
+		// Parse JSON request
+		var jsonData map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&jsonData); err != nil {
+			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			return
+		}
+		
+		// Convert to string map
+		formValues = make(map[string]string)
+		for key, value := range jsonData {
+			if value != nil {
+				formValues[key] = fmt.Sprintf("%v", value)
+			}
+		}
+	} else {
+		// Try multipart form (for file uploads)
+		const maxMem = 10 << 20 // 10MB
+		if err := r.ParseMultipartForm(maxMem); err != nil {
+			http.Error(w, "could not parse form", http.StatusBadRequest)
+			return
+		}
+		
+		// Convert form values to map
+		formValues = make(map[string]string)
+		for key, values := range r.PostForm {
+			if len(values) > 0 {
+				formValues[key] = values[0]
+			}
+		}
 	}
 
 	// 2) load existing user (include id + password hash)
@@ -160,7 +190,7 @@ func UpdateProfileHandler(db *sql.DB, w http.ResponseWriter, r *http.Request, cu
 
 	// 3) avatar handling (reset, upload, or keep)
 	avatarURL := existing.Avatar
-	if r.FormValue("resetAvatar") == "true" {
+	if formValues["resetAvatar"] == "true" {
 		avatarURL = "/img/avatars/images.png"
 	} else {
 		file, header, err := r.FormFile("avatarInput")
@@ -227,7 +257,7 @@ func UpdateProfileHandler(db *sql.DB, w http.ResponseWriter, r *http.Request, cu
 
 	// helpers
 	get := func(key, old string) string {
-		v := strings.TrimSpace(r.FormValue(key))
+		v := strings.TrimSpace(formValues[key])
 		if v == "" {
 			return old
 		}
@@ -257,8 +287,8 @@ func UpdateProfileHandler(db *sql.DB, w http.ResponseWriter, r *http.Request, cu
 	}
 
 	// 4) read text fields with fallbacks
-	age := parseInt(r.FormValue("age"), existing.Age)
-	isPrivate := parseBool(r.FormValue("isPrivate"), existing.IsPrivate)
+	age := parseInt(formValues["age"], existing.Age)
+	isPrivate := parseBool(formValues["isPrivate"], existing.IsPrivate)
 
 	username := get("username", existing.Username)
 	nickname := get("nickname", existing.Nickname) // <- fixed fallback
@@ -269,12 +299,12 @@ func UpdateProfileHandler(db *sql.DB, w http.ResponseWriter, r *http.Request, cu
 	dateOfBirth := get("dateOfBirth", existing.DateOfBirth)
 
 	bio := ""
-	if b := strings.TrimSpace(r.FormValue("bio")); b != "" {
+	if b := strings.TrimSpace(formValues["bio"]); b != "" {
 		bio = b
 	}
 
-	oldPassword := r.FormValue("password")
-	newPassword := r.FormValue("newPassword")
+	oldPassword := formValues["password"]
+	newPassword := formValues["newPassword"]
 	passwordHash := existing.Password // default: unchanged
 
 	fmt.Println("New password: ", newPassword)
@@ -627,4 +657,62 @@ func getPendingFollowRequests(db *sql.DB, userID int) ([]interface{}, error) {
 	}
 
 	return requests, nil
+}
+
+// UpdateProfileJSONHandler handles profile updates via JSON (simpler than multipart)
+func UpdateProfileJSONHandler(db *sql.DB, w http.ResponseWriter, r *http.Request, currentUsername string) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse JSON request body
+	var updateData struct {
+		Fname        string `json:"fname"`
+		Lname        string `json:"lname"`
+		Nickname     string `json:"nickname"`
+		Email        string `json:"email"`
+		Age          int    `json:"age"`
+		Gender       string `json:"gender"`
+		DateOfBirth  string `json:"dateOfBirth"`
+		Bio          string `json:"bio"`
+		IsPrivate    bool   `json:"isPrivate"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&updateData); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	// Update the user profile
+	query := `
+		UPDATE users SET 
+			username = ?, nickname = ?, firstname = ?, lastname = ?, email = ?, 
+			age = ?, gender = ?, bio = ?, isPrivate = ?, date_of_birth = ?
+		WHERE username = ?`
+
+	_, err := db.Exec(query,
+		currentUsername,  // keep same username
+		updateData.Nickname,
+		updateData.Fname,
+		updateData.Lname,
+		updateData.Email,
+		updateData.Age,
+		updateData.Gender,
+		updateData.Bio,
+		updateData.IsPrivate,
+		updateData.DateOfBirth,
+		currentUsername,
+	)
+
+	if err != nil {
+		http.Error(w, "Failed to update profile", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": "Profile updated successfully",
+	})
 }

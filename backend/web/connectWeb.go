@@ -1119,5 +1119,8 @@ func ensureEventPollTables(db *sql.DB) error {
 		u.UpdateProfileHandler(db, w, r, username)
 	}))
 
+	// JSON version of update profile (simpler and more reliable)
+
+
 	return nil
 }

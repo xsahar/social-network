@@ -5,15 +5,15 @@ import Layout from '../components/Layout';
 import Chat from '../components/Chat';
 import { useSession } from '../hooks/useSession';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { useChat } from '../hooks/useChat';
 
 export default function Posts() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [chatOpen, setChatOpen] = useState(false);
-  const [chatWith, setChatWith] = useState(null);
   const { user, loading: sessionLoading } = useSession();
   const { onlineUsers } = useWebSocket(user?.userID);
+  const { chatOpen, chatWith, startChat, setChatOpen } = useChat();
   const router = useRouter();
 
   const handleCategoryClick = (value) => {
@@ -100,16 +100,13 @@ export default function Posts() {
     }
   }, [router.query]);
 
-  const startChat = (user) => {
-    setChatWith(user);
-    setChatOpen(true);
-  };
+
 
   if (sessionLoading) {
     return (
       <Layout>
-        <div className="flex justify-center items-center min-h-screen">
-          <div className="text-lg">Loading...</div>
+        <div className="loading-container">
+          <div className="loading-text">Loading...</div>
         </div>
       </Layout>
     );
@@ -121,22 +118,22 @@ export default function Posts() {
         <title>Posts - Social Network</title>
       </Head>
       
-      <div className="flex gap-6">
+      <div className="posts-layout">
         {/* Left Sidebar - Categories */}
-        <div className="w-64 bg-white rounded-lg shadow-lg p-6 h-fit">
-          <h2 className="text-xl font-semibold mb-4 text-gray-800">Filter Posts</h2>
+        <div className="sidebar-post left-sidebar">
+          <h2>Filter Posts</h2>
           
-          <div className="space-y-2">
+          <div className="category-list">
             <button 
               onClick={() => handleCategoryClick('')}
-              className={`w-full px-4 py-2 text-left rounded-md transition-colors ${selectedCategory === '' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-blue-50'}`}
+              className={`button-side ${selectedCategory === '' ? 'active' : ''}`}
             >
               All Posts
             </button>
             {['Travel', 'Sport', 'Food', 'Nature'].map((category) => (
               <button 
                 key={category} 
-                className={`w-full px-4 py-2 text-left rounded-md transition-colors ${selectedCategory === category ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-blue-50'}`}
+                className={`button-side ${selectedCategory === category ? 'active' : ''}`}
                 onClick={() => handleCategoryClick(category)}
               >
                 {category}
@@ -144,15 +141,15 @@ export default function Posts() {
             ))}
           </div>
           
-          <div className="mt-6 space-y-2">
+          <div className="sidebar-actions">
             <button 
-              className="w-full px-4 py-2 text-left rounded-md transition-colors text-gray-700 hover:bg-blue-50"
+              className="button-side"
               onClick={() => router.push('/myProfile')}
             >
               My Profile
             </button>
             <button 
-              className="w-full px-4 py-2 text-left rounded-md transition-colors text-gray-700 hover:bg-blue-50"
+              className="button-side"
               onClick={() => router.push('/createPost')}
             >
               Create Post
@@ -161,10 +158,10 @@ export default function Posts() {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1">
-          <div className="mb-6">
+        <div className="posts-main-content">
+          <div className="posts-header">
             <button 
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              className="button-create"
               onClick={() => router.push('/createPost')}
             >
               Create New Post
@@ -172,78 +169,73 @@ export default function Posts() {
           </div>
 
           {/* Posts Container */}
-          <div className="space-y-6">
+          <div className="posts-container">
             {loading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="mt-2 text-gray-600">Loading posts...</p>
+              <div className="loading-message">
+                <p>Loading posts...</p>
               </div>
             ) : posts.length === 0 ? (
-              <div className="text-center py-8 bg-white rounded-lg shadow">
-                <p className="text-gray-600">No posts found</p>
+              <div className="no-posts-message">
+                <p>No posts found</p>
                 {selectedCategory && (
-                  <p className="text-sm text-gray-500 mt-2">
-                    Try selecting a different category or create a new post
-                  </p>
+                  <p>Try selecting a different category or create a new post</p>
                 )}
               </div>
             ) : (
               posts.map((post) => (
-                <div key={post.id} className="bg-white rounded-lg shadow-lg p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-3">
+                <div key={post.id} className="post-card">
+                  <div className="post-header">
+                    <div className="post-author">
                       <img
                         src={post.userAvatar || '/css/icon.png'}
                         alt={`${post.username}'s avatar`}
-                        className="w-10 h-10 rounded-full"
+                        className="post-avatar"
                       />
-                      <div>
-                        <h3 className="font-semibold text-gray-900">{post.username}</h3>
-                        <p className="text-sm text-gray-500">
+                      <div className="post-author-info">
+                        <h3>{post.username}</h3>
+                        <p className="post-meta">
                           {new Date(post.createdAt).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
                     {post.category && (
-                      <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm">
+                      <span className="post-category">
                         {post.category}
                       </span>
                     )}
                   </div>
 
-                  <h2 className="text-xl font-semibold text-gray-900 mb-2">{post.title}</h2>
-                  <p className="text-gray-700 mb-4">{post.content}</p>
+                  <h2>{post.title}</h2>
+                  <p className="post-content">{post.content}</p>
 
                   {post.image && (
-                    <img
-                      src={post.image}
-                      alt="Post image"
-                      className="w-full max-w-lg rounded-lg mb-4"
-                    />
+                    <div className="post-image-container">
+                      <img
+                        src={post.image}
+                        alt="Post image"
+                      />
+                    </div>
                   )}
 
-                  <div className="flex items-center justify-between pt-4 border-t">
-                    <div className="flex items-center space-x-4">
+                  <div className="post-actions">
+                    <div className="like-buttons">
                       <button
                         onClick={() => handleLike(post.id)}
-                        className="flex items-center space-x-2 text-gray-600 hover:text-green-600 transition-colors px-3 py-1 rounded-md hover:bg-green-50"
+                        className="icon-btn like-btn"
                       >
-                        <span>👍 Like</span>
-                        <span>({post.likes_count || 0})</span>
+                        👍 Like ({post.likes_count || 0})
                       </button>
                       <button
                         onClick={() => handleDislike(post.id)}
-                        className="flex items-center space-x-2 text-gray-600 hover:text-red-600 transition-colors px-3 py-1 rounded-md hover:bg-red-50"
+                        className="icon-btn dislike-btn"
                       >
-                        <span>👎 Dislike</span>
-                        <span>({post.dislikes_count || 0})</span>
+                        👎 Dislike ({post.dislikes_count || 0})
                       </button>
                       <button
                         onClick={() => router.push(`/comments?postId=${post.id}`)}
-                        className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors px-3 py-1 rounded-md hover:bg-blue-50"
+                        className="icon-btn comment-btn"
                       >
-                        <span>💬 Comments</span>
-                        <span>({post.comments || 0})</span>
+                        💬 Comments ({post.comments || 0})
                       </button>
                     </div>
                   </div>

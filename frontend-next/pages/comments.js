@@ -109,11 +109,21 @@ export default function Comments() {
     }
   };
 
-  if (sessionLoading || loading) {
+  if (loading || userLoading) {
     return (
       <Layout>
-        <div className="flex justify-center items-center min-h-screen">
-          <div className="text-lg">Loading...</div>
+        <div className="loading-container">
+          <div className="loading-text">Loading comments...</div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error) {
+    return (
+      <Layout>
+        <div className="loading-container">
+          <div className="error-text">{error}</div>
         </div>
       </Layout>
     );
@@ -122,16 +132,8 @@ export default function Comments() {
   if (!post) {
     return (
       <Layout>
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Post not found</h1>
-            <button 
-              onClick={() => router.back()}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-            >
-              Go Back
-            </button>
-          </div>
+        <div className="loading-container">
+          <div className="loading-text">Post not found</div>
         </div>
       </Layout>
     );
@@ -143,38 +145,38 @@ export default function Comments() {
         <title>Comments - {post.title}</title>
       </Head>
       
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="comments-container">
         <button 
           onClick={() => router.back()}
-          className="mb-6 text-blue-600 hover:text-blue-800 flex items-center gap-2"
+          className="back-button"
         >
           ← Back to Posts
         </button>
 
         {/* Original Post */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-          <div className="flex items-center space-x-3 mb-4">
+        <div className="post-detail">
+          <div className="post-header">
             <img
               src={post.userAvatar || '/css/icon.png'}
               alt={`${post.username}'s avatar`}
-              className="w-10 h-10 rounded-full"
+              className="post-avatar"
             />
-            <div>
-              <h3 className="font-semibold text-gray-900">{post.username}</h3>
-              <p className="text-sm text-gray-500">
+            <div className="post-user-info">
+              <h3>{post.username}</h3>
+              <p className="post-date">
                 {new Date(post.createdAt).toLocaleDateString()}
               </p>
             </div>
           </div>
           
-          <h1 className="text-2xl font-bold text-gray-900 mb-3">{post.title}</h1>
-          <p className="text-gray-700 mb-4">{post.content}</p>
+          <h1 className="post-title">{post.title}</h1>
+          <p className="post-content">{post.content}</p>
           
           {post.image && (
             <img
               src={post.image}
               alt="Post image"
-              className="w-full max-w-lg rounded-lg mb-4"
+              className="post-image"
             />
           )}
         </div>

@@ -3,26 +3,20 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
 import { useSession } from '../hooks/useSession';
+import { useChat } from '../hooks/useChat';
 import Chat from '../components/Chat';
 
 export default function Users() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [chatOpen, setChatOpen] = useState(false);
-  const [chatWith, setChatWith] = useState(null);
   const { user, loading: sessionLoading } = useSession();
+  const { chatOpen, chatWith, startChat, setChatOpen } = useChat();
   const router = useRouter();
 
-  const fetchUsers = async (search = '') => {
+  const fetchUsers = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (search) {
-        params.append('search', search);
-      }
-      
-      const response = await fetch(`/api/users?${params}`, {
+      const response = await fetch('/api/users', {
         credentials: 'include'
       });
       
@@ -42,15 +36,12 @@ export default function Users() {
   };
 
   useEffect(() => {
-    if (!sessionLoading && user?.id) {
+    if (!sessionLoading && user?.userID) {
       fetchUsers();
     }
-  }, [sessionLoading, user?.id]);
+  }, [sessionLoading, user?.userID]);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    fetchUsers(searchQuery);
-  };
+
 
   const handleFollow = async (username) => {
     try {
@@ -94,10 +85,7 @@ export default function Users() {
     }
   };
 
-  const startChat = (user) => {
-    setChatWith(user);
-    setChatOpen(true);
-  };
+
 
   if (sessionLoading) {
     return (
@@ -141,34 +129,7 @@ export default function Users() {
             </button>
           </div>
           
-          {/* Search Form */}
-          <form onSubmit={handleSearch} className="mb-6">
-            <div className="flex gap-3">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search users by name or username..."
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <button
-                type="submit"
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
-              >
-                Search
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchQuery('');
-                  fetchUsers('');
-                }}
-                className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400"
-              >
-                Clear
-              </button>
-            </div>
-          </form>
+
 
           {/* Users List */}
           {loading ? (
