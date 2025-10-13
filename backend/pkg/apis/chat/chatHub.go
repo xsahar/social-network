@@ -64,10 +64,18 @@ func (h *Hub) Run() {
 			h.Mutex.Lock()
 			h.Clients[client.UserID] = client
 			h.Mutex.Unlock()
+
+			// Broadcast updated online users list to all clients
+			h.broadcastOnlineUsers()
+
 		case client := <-h.Offline:
 			h.Mutex.Lock()
 			delete(h.Clients, client.UserID)
 			h.Mutex.Unlock()
+
+			// Broadcast updated online users list to all clients
+			h.broadcastOnlineUsers()
+
 		case msg := <-h.Broadcast:
 			key := chatKey(msg.From, msg.To)
 			h.Mutex.Lock()
@@ -92,6 +100,50 @@ func (h *Hub) GetOnlineUserIDs() []int {
 	return userIDs
 }
 
+// broadcastOnlineUsers sends the updated list of online users to all connected clients
+func (h *Hub) broadcastOnlineUsers() {
+	h.Mutex.RLock()
+	defer h.Mutex.RUnlock()
+
+	// Get list of online user IDs with usernames
+	type OnlineUser struct {
+		ID       int    `json:"id"`
+		Username string `json:"username"`
+	}
+
+	var onlineUsers []OnlineUser
+	for userID := range h.Clients {
+		// Fetch username from database
+		var username string
+		err := h.DB.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
+		if err == nil {
+			onlineUsers = append(onlineUsers, OnlineUser{ID: userID, Username: username})
+		}
+	}
+
+	// Create a custom message with the users array
+	type OnlineUsersMessage struct {
+		Type      string       `json:"type"`
+		Users     []OnlineUser `json:"users"`
+		Timestamp time.Time    `json:"timestamp"`
+	}
+
+	msg := OnlineUsersMessage{
+		Type:      "online_users",
+		Users:     onlineUsers,
+		Timestamp: time.Now(),
+	}
+
+	// Send to all connected clients
+	for _, client := range h.Clients {
+		// Convert to JSON and send directly
+		data, err := json.Marshal(msg)
+		if err == nil {
+			client.Conn.WriteMessage(websocket.TextMessage, data)
+		}
+	}
+}
+
 func chatKey(a, b int) string {
 	if a < b {
 		return fmt.Sprintf("%d-%d", a, b)
@@ -103,10 +155,10 @@ func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("[WebSocket] ServeWs called from %s\n", r.RemoteAddr)
 	fmt.Printf("[WebSocket] Request URL: %s\n", r.URL.String())
 	fmt.Printf("[WebSocket] Request Headers: %v\n", r.Header)
-	
+
 	userIDStr := r.URL.Query().Get("user_id")
 	fmt.Printf("[WebSocket] userIDStr from query: '%s'\n", userIDStr)
-	
+
 	userID, err := strconv.Atoi(userIDStr)
 	if err != nil || userID <= 0 {
 		fmt.Printf("[WebSocket] Invalid user ID: userIDStr='%s', err=%v, userID=%d\n", userIDStr, err, userID)
@@ -120,7 +172,7 @@ func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("[WebSocket] Upgrade Error: %v\n", err)
 		return
 	}
-	
+
 	fmt.Printf("[WebSocket] Successfully upgraded connection for user %d\n", userID)
 
 	client := &Client{UserID: userID, Conn: conn, Send: make(chan Frontend)}
@@ -147,6 +199,12 @@ func (c *Client) readPump(hub *Hub) {
 			continue
 		}
 
+		// Handle request for online users list
+		if msg.Type == "get_online_users" {
+			hub.broadcastOnlineUsers()
+			continue
+		}
+
 		// Handle typing signal separately
 		if msg.Type == "typing" {
 			hub.Mutex.RLock()
@@ -170,14 +228,13 @@ func (c *Client) readPump(hub *Hub) {
 		if msg.Type == "group_message" || msg.Type == "new_groupPost" || msg.Type == "new_groupEvent" {
 			msg.Timestamp = time.Now()
 
-			if(msg.Type == "group_message"){
+			if msg.Type == "group_message" {
 				// 1) Save to DB
-			if err := hub.saveGroupMessageToDB(msg); err != nil {
-				// optional: log but don't break fan-out
-				fmt.Println("saveGroupMessageToDB error:", err)
+				if err := hub.saveGroupMessageToDB(msg); err != nil {
+					// optional: log but don't break fan-out
+					fmt.Println("saveGroupMessageToDB error:", err)
+				}
 			}
-			}
-			
 
 			// 2) Find members of the group
 			memberIDs, err := hub.getGroupMemberIDs(msg.GroupID)
@@ -199,7 +256,7 @@ func (c *Client) readPump(hub *Hub) {
 			continue
 		}
 
-		//todo: Notifications
+		// todo: Notifications
 		if msg.Type == "notif" {
 			hub.Mutex.RLock()
 			for _, client := range hub.Clients {

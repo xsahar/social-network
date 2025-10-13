@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
 import Chat from '../components/Chat';
 import { useSession } from '../hooks/useSession';
-import { useWebSocket } from '../hooks/useWebSocket';
+import { useWebSocketContext } from '../contexts/WebSocketContext';
 import { useChat } from '../hooks/useChat';
 
 export default function Posts() {
@@ -12,7 +12,7 @@ export default function Posts() {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('');
   const { user, loading: sessionLoading } = useSession();
-  const { onlineUsers } = useWebSocket(user?.userID);
+  const { onlineUsers, subscribe } = useWebSocketContext();
   const { chatOpen, chatWith, startChat, setChatOpen } = useChat();
   const router = useRouter();
 
@@ -43,6 +43,59 @@ export default function Posts() {
       setLoading(false);
     }
   };
+
+  // Listen for real-time post updates
+  useEffect(() => {
+    if (!user) return;
+
+    const unsubscribe = subscribe((message) => {
+      console.log('[Posts] Received WebSocket message:', message);
+      
+      if (message.type === 'new_post') {
+        // Parse the post data from the message content
+        try {
+          const postData = JSON.parse(message.content);
+          console.log('[Posts] New post data:', postData);
+          
+          // Add new post to the top of the feed
+          setPosts(prev => {
+            // Avoid duplicates
+            if (prev.some(p => p.id === postData.id)) {
+              return prev;
+            }
+            return [postData, ...prev];
+          });
+          
+          // Show notification
+          if (message.username && message.from !== user.userID) {
+            console.log(`✨ New post from ${message.username}: ${postData.title}`);
+          }
+        } catch (e) {
+          console.error('[Posts] Failed to parse post data:', e);
+        }
+      } else if (message.type === 'new_postLike' && message.post_id) {
+        // Update like count for specific post
+        setPosts(prev => prev.map(post => 
+          post.id === message.post_id 
+            ? { 
+                ...post, 
+                likes_count: message.likes_count,
+                dislikes_count: message.dislikes_count 
+              }
+            : post
+        ));
+      } else if (message.type === 'new_comment' && message.post_id) {
+        // Update comment count for specific post
+        setPosts(prev => prev.map(post => 
+          post.id === message.post_id 
+            ? { ...post, comments: (post.comments || 0) + 1 }
+            : post
+        ));
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user, subscribe]);
 
   const handleLike = async (postId) => {
     try {

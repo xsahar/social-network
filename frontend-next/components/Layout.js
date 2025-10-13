@@ -1,12 +1,12 @@
 import { useSession } from '../hooks/useSession';
-import { useWebSocket } from '../hooks/useWebSocket';
+import { useWebSocketContext } from '../contexts/WebSocketContext';
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 
 const Layout = ({ children }) => {
   const { user, loading, logout } = useSession();
-  const { onlineUsers, connected } = useWebSocket(user?.userID);
+  const { onlineUsers, connected } = useWebSocketContext();
   const [showNotifications, setShowNotifications] = useState(false);
   const router = useRouter();
 

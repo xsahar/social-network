@@ -9,11 +9,13 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	u "socialnetwork/pkg/apis/user"
-	database "socialnetwork/pkg/db"
 	"strconv"
 	"strings"
 	"time"
+
+	"socialnetwork/pkg/apis/chat"
+	u "socialnetwork/pkg/apis/user"
+	database "socialnetwork/pkg/db"
 )
 
 type Comment struct {
@@ -55,7 +57,7 @@ func GetComments(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 }
 
 // CreateComment handles POST /create-comment with multipart/form-data
-func CreateComment(db *sql.DB, w http.ResponseWriter, r *http.Request) {
+func CreateComment(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -126,6 +128,32 @@ func CreateComment(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 		fmt.Println("DB insert error:", err)
 		http.Error(w, "Failed to create comment", http.StatusInternalServerError)
 		return
+	}
+
+	// Get username for WebSocket broadcast
+	var username string
+	db.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
+
+	// Broadcast new comment notification via WebSocket
+	if hub != nil {
+		commentNotification := chat.Frontend{
+			Type:      "new_comment",
+			From:      userID,
+			Username:  username,
+			PostId:    postID,
+			Content:   content,
+			Timestamp: time.Now(),
+		}
+
+		hub.Mutex.RLock()
+		for _, client := range hub.Clients {
+			select {
+			case client.Send <- commentNotification:
+			default:
+				// Skip if buffer full
+			}
+		}
+		hub.Mutex.RUnlock()
 	}
 
 	w.Header().Set("Content-Type", "application/json")

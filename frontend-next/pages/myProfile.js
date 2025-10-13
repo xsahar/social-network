@@ -3,7 +3,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
 import { useSession } from '../hooks/useSession';
-import { useWebSocket } from '../hooks/useWebSocket';
+import { useWebSocketContext } from '../contexts/WebSocketContext';
 import { useChat } from '../hooks/useChat';
 import Chat from '../components/Chat';
 
@@ -28,7 +28,7 @@ export default function MyProfile() {
     avatarFile: null
   });
   const { user, loading: sessionLoading } = useSession();
-  const { onlineUsers } = useWebSocket(user?.userID);
+  const { onlineUsers } = useWebSocketContext();
   const { chatOpen, chatWith, startChat, setChatOpen } = useChat();
   const router = useRouter();
 

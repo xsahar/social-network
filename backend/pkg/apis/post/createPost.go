@@ -9,10 +9,13 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	u "socialnetwork/pkg/apis/user"
-	database "socialnetwork/pkg/db"
 	"strconv"
 	"strings"
+	"time"
+
+	"socialnetwork/pkg/apis/chat"
+	u "socialnetwork/pkg/apis/user"
+	database "socialnetwork/pkg/db"
 )
 
 // Post structure with privacy
@@ -26,7 +29,7 @@ type Post struct {
 }
 
 // CreatePost handles post submission with privacy
-func CreatePost(db *sql.DB, w http.ResponseWriter, r *http.Request) {
+func CreatePost(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -144,6 +147,58 @@ func CreatePost(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Failed to set post permissions", http.StatusInternalServerError)
 			return
 		}
+	}
+
+	// Get username for WebSocket broadcast
+	var username string
+	err = db.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
+	if err != nil {
+		username = "Unknown"
+	}
+
+	// Broadcast new post notification via WebSocket to all connected users
+	if hub != nil {
+		// Fetch the complete post data to send to clients
+		var avatar sql.NullString
+		postData := map[string]interface{}{
+			"id":         postID,
+			"title":      title,
+			"content":    content,
+			"image":      imgOrGif,
+			"username":   username,
+			"userID":     userID,
+			"createdAt":  createdAt,
+			"categories": cats,
+		}
+
+		// Get user avatar if exists
+		db.QueryRow("SELECT profile_picture FROM users WHERE id = ?", userID).Scan(&avatar)
+		if avatar.Valid {
+			postData["userAvatar"] = avatar.String
+		}
+
+		postNotification := chat.Frontend{
+			Type:      "new_post",
+			From:      userID,
+			Username:  username,
+			PostId:    int(postID),
+			Content:   content,
+			Timestamp: time.Now(),
+		}
+
+		// Send to all connected clients with the post data encoded in Content as JSON
+		postJSON, _ := json.Marshal(postData)
+		postNotification.Content = string(postJSON)
+
+		hub.Mutex.RLock()
+		for _, client := range hub.Clients {
+			select {
+			case client.Send <- postNotification:
+			default:
+				// Skip if client buffer is full
+			}
+		}
+		hub.Mutex.RUnlock()
 	}
 
 	// Send success response

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
 import { useSession } from '../hooks/useSession';
-import { useWebSocket } from '../hooks/useWebSocket';
+import { useWebSocketContext } from '../contexts/WebSocketContext';
 import GroupPostsSection from '../components/GroupPostsSection';
 import GroupChat from '../components/GroupChat';
 import GroupEvents from '../components/GroupEvents';
@@ -170,14 +170,13 @@ export default function GroupDetails() {
   const [showGroupChat, setShowGroupChat] = useState(false);
   const [activeTab, setActiveTab] = useState('posts');
   
-  // Use WebSocket hook for real-time chat - fix field name consistency
+  // Use WebSocket context for real-time chat
   const { 
     connected, 
     messages, 
-    sendMessage, 
-    connectWebSocket, 
-    disconnect 
-  } = useWebSocket(user?.userID || user?.id);
+    sendMessage,
+    subscribe
+  } = useWebSocketContext();
 
   useEffect(() => {
     if (id) {
@@ -185,7 +184,28 @@ export default function GroupDetails() {
     }
   }, [id]);
 
-  // WebSocket connection is handled automatically by the useWebSocket hook
+  // Listen for real-time group updates (posts and events)
+  useEffect(() => {
+    if (!user || !id) return;
+
+    const unsubscribe = subscribe((message) => {
+      console.log('[GroupDetails] WebSocket message:', message);
+      
+      if (message.group_id == id) {
+        if (message.type === 'new_groupPost') {
+          console.log('New group post received, refreshing...');
+          // Refresh group details to get new post
+          fetchGroupDetails(id);
+        } else if (message.type === 'new_groupEvent') {
+          console.log('New group event received, refreshing...');
+          // Refresh group details to get new event
+          fetchGroupDetails(id);
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user, id, subscribe]);
 
   const fetchGroupDetails = async (groupId) => {
     try {

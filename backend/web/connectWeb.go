@@ -30,6 +30,10 @@ func isAuthenticated(db *sql.DB, r *http.Request) bool {
 }
 
 func ConnectWeb(db *sql.DB) {
+	// Initialize WebSocket hub first so it can be used by other handlers
+	chatHub := chat.NewHub(db)
+	go chatHub.Run()
+
 	// // Optionally clear all tables if needed
 	// if err := clearAllTables(db); err != nil {
 	// 	fmt.Println("Error clearing tables:", err)
@@ -369,7 +373,7 @@ func ConnectWeb(db *sql.DB) {
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
-		p.CreatePost(db, w, r) //  This is the API to save posts
+		p.CreatePost(db, chatHub, w, r) //  This is the API to save posts with WebSocket support
 	}))
 
 	// Add this after your /create-post handler
@@ -451,7 +455,7 @@ func ConnectWeb(db *sql.DB) {
 	}))
 
 	http.HandleFunc("/create-comment", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
-		p.CreateComment(db, w, r) // Ensure this handles comment creation
+		p.CreateComment(db, chatHub, w, r) // Pass hub for real-time updates
 	}))
 
 	http.HandleFunc("/category/", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
@@ -547,7 +551,7 @@ func ConnectWeb(db *sql.DB) {
 	}))
 
 	http.HandleFunc("/groups/create-post", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
-		g.CreateGroupPost(db, w, r)
+		g.CreateGroupPost(db, chatHub, w, r)
 	}))
 
 	http.HandleFunc("/groups/comments", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
@@ -607,6 +611,50 @@ func ConnectWeb(db *sql.DB) {
 			return
 		}
 		id, _ := res.LastInsertId()
+
+		// Get username for WebSocket broadcast
+		var username string
+		db.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
+
+		// Broadcast new event to all group members via WebSocket
+		eventNotification := chat.Frontend{
+			Type:      "new_groupEvent",
+			From:      userID,
+			Username:  username,
+			GroupID:   req.GroupID,
+			PostId:    int(id),
+			Content:   req.Title + ": " + req.Description,
+			Timestamp: time.Now(),
+		}
+
+		// Get group member IDs
+		rows, err := db.Query(`
+			SELECT user_id 
+			FROM group_members 
+			WHERE group_id = ? AND status = 'accepted'
+		`, req.GroupID)
+		if err == nil {
+			defer rows.Close()
+			var memberIDs []int
+			for rows.Next() {
+				var memberID int
+				if rows.Scan(&memberID) == nil {
+					memberIDs = append(memberIDs, memberID)
+				}
+			}
+
+			chatHub.Mutex.RLock()
+			for _, memberID := range memberIDs {
+				if client, ok := chatHub.Clients[memberID]; ok {
+					select {
+					case client.Send <- eventNotification:
+					default:
+						// Skip if buffer full
+					}
+				}
+			}
+			chatHub.Mutex.RUnlock()
+		}
 
 		// Success
 		w.Header().Set("Content-Type", "application/json")
@@ -798,9 +846,7 @@ func ConnectWeb(db *sql.DB) {
 		json.NewEncoder(w).Encode(response)
 	}))
 
-	chatHub := chat.NewHub(db)
-	go chatHub.Run()
-
+	// WebSocket endpoint (chatHub already initialized at the top of ConnectWeb)
 	http.HandleFunc("/ws", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
 		chat.ServeWs(chatHub, w, r)
 	}))
@@ -1108,7 +1154,7 @@ func ensureEventPollTables(db *sql.DB) error {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
-		
+
 		// Get username for the existing UpdateProfileHandler
 		var username string
 		err := db.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
@@ -1116,12 +1162,11 @@ func ensureEventPollTables(db *sql.DB) error {
 			http.Error(w, "User not found", http.StatusNotFound)
 			return
 		}
-		
+
 		u.UpdateProfileHandler(db, w, r, username)
 	}))
 
 	// JSON version of update profile (simpler and more reliable)
-
 
 	return nil
 }

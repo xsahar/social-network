@@ -4,13 +4,13 @@ import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
 import Chat from '../components/Chat';
 import { useSession } from '../hooks/useSession';
-import { useWebSocket } from '../hooks/useWebSocket';
+import { useWebSocketContext } from '../contexts/WebSocketContext';
 import { useChat } from '../hooks/useChat';
 
 export default function MainPage() {
   const router = useRouter();
   const { user, loading } = useSession();
-  const { onlineUsers } = useWebSocket(user?.userID);
+  const { onlineUsers } = useWebSocketContext();
   const { chatOpen, chatWith, startChat, setChatOpen } = useChat();
 
   // Redirect to login if not authenticated

@@ -1,22 +1,40 @@
 import { useState, useRef, useEffect } from 'react';
-import { useWebSocket } from '../hooks/useWebSocket';
+import { useWebSocketContext } from '../contexts/WebSocketContext';
 
 const Chat = ({ isOpen, onClose, chatWith, userID }) => {
   const [messageInput, setMessageInput] = useState('');
   const [chatMessages, setChatMessages] = useState([]);
-  const { sendMessage, messages } = useWebSocket(userID);
+  const { sendMessage, subscribe } = useWebSocketContext();
   const chatWindowRef = useRef(null);
 
-  // Filter messages for this specific chat
+  // Filter and listen for messages for this specific chat
   useEffect(() => {
-    if (chatWith) {
-      const filteredMessages = messages.filter(msg => 
-        (msg.from === userID && msg.to === chatWith.id) || 
-        (msg.from === chatWith.id && msg.to === userID)
-      );
-      setChatMessages(filteredMessages);
-    }
-  }, [messages, chatWith, userID]);
+    if (!chatWith || !userID) return;
+
+    const unsubscribe = subscribe((message) => {
+      // Only handle private messages
+      if (message.type === 'private_message' || message.type === 'message') {
+        // Check if message is between current user and chat partner
+        if (
+          (message.from === userID && message.to === chatWith.id) || 
+          (message.from === chatWith.id && message.to === userID)
+        ) {
+          setChatMessages(prev => {
+            // Avoid duplicates
+            const isDuplicate = prev.some(msg => 
+              msg.timestamp === message.timestamp && 
+              msg.content === message.content &&
+              msg.from === message.from
+            );
+            if (isDuplicate) return prev;
+            return [...prev, message];
+          });
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [chatWith, userID, subscribe]);
 
   // Auto scroll to bottom when new messages arrive
   useEffect(() => {
@@ -34,7 +52,7 @@ const Chat = ({ isOpen, onClose, chatWith, userID }) => {
       type: 'private_message',
       from: userID,
       to: chatWith.id,
-      message: messageInput,
+      content: messageInput,
       timestamp: new Date().toISOString()
     };
 
@@ -44,7 +62,7 @@ const Chat = ({ isOpen, onClose, chatWith, userID }) => {
       // Add message to local chat immediately for better UX
       setChatMessages(prev => [...prev, {
         ...messageData,
-        fromName: 'You'
+        username: 'You'
       }]);
       setMessageInput('');
     } else {
@@ -62,7 +80,7 @@ const Chat = ({ isOpen, onClose, chatWith, userID }) => {
   return (
     <div className="fixed bottom-4 right-4 w-80 h-96 bg-white border border-gray-300 rounded-lg shadow-lg z-50 flex flex-col">
       {/* Chat Header */}
-            <div className="bg-blue-600 text-white p-3 rounded-t-lg flex justify-between items-center">
+      <div className="bg-blue-600 text-white p-3 rounded-t-lg flex justify-between items-center">
         <h3 className="font-semibold">Chat with {chatWith?.username || 'User'}</h3>
         <button
           onClick={onClose}
@@ -84,18 +102,18 @@ const Chat = ({ isOpen, onClose, chatWith, userID }) => {
         ) : (
           chatMessages.map((msg, index) => (
             <div
-              key={index}
+              key={`${msg.timestamp}-${index}`}
               className={`flex ${msg.from === userID ? 'justify-end' : 'justify-start'}`}
             >
               <div className="flex flex-col max-w-xs">
-                                <div 
+                <div 
                   className={`p-2 rounded-lg max-w-xs ${
                     msg.from === userID 
                       ? 'bg-blue-600 text-white ml-auto' 
                       : 'bg-gray-100 text-gray-800'
                   }`}
                 >
-                  {msg.message}
+                  {msg.content || msg.message}
                 </div>
                 <div className={`text-xs text-gray-400 mt-1 ${
                   msg.from === userID ? 'text-right' : 'text-left'
@@ -111,7 +129,7 @@ const Chat = ({ isOpen, onClose, chatWith, userID }) => {
       {/* Chat Input */}
       <form onSubmit={handleSendMessage} className="p-3 border-t bg-white rounded-b-lg">
         <div className="flex gap-2">
-                    <input
+          <input
             type="text"
             value={messageInput}
             onChange={(e) => setMessageInput(e.target.value)}
@@ -127,7 +145,6 @@ const Chat = ({ isOpen, onClose, chatWith, userID }) => {
             Send
           </button>
         </div>
-
       </form>
     </div>
   );

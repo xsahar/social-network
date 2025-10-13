@@ -3,11 +3,13 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Layout from '../components/Layout';
 import { useSession } from '../hooks/useSession';
+import { useWebSocketContext } from '../contexts/WebSocketContext';
 
 export default function Comments() {
   const router = useRouter();
   const { postId, type, groupId } = router.query;
   const { user, loading: sessionLoading } = useSession();
+  const { subscribe } = useWebSocketContext();
   const isGroupPost = type === 'group';
   const [post, setPost] = useState(null);
   const [comments, setComments] = useState([]);
@@ -20,6 +22,20 @@ export default function Comments() {
       fetchCommentsAndPost();
     }
   }, [postId]);
+
+  // Listen for real-time comment updates
+  useEffect(() => {
+    if (!user || !postId) return;
+
+    const unsubscribe = subscribe((message) => {
+      if (message.type === 'new_comment' && message.post_id == postId) {
+        // Refresh comments when a new comment is added to this post
+        fetchCommentsAndPost();
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user, postId, subscribe]);
 
   const fetchCommentsAndPost = async () => {
     try {

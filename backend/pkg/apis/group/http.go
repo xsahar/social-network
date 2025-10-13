@@ -4,12 +4,14 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
-	"strings"
 	"os"
-    "io"
-    "path/filepath"
+	"path/filepath"
+	"strings"
+	"time"
 
+	"socialnetwork/pkg/apis/chat"
 	u "socialnetwork/pkg/apis/user"
 	database "socialnetwork/pkg/db"
 )
@@ -527,85 +529,85 @@ func ToggleGroupPostLike(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 }
 
 func AddGroupPostComment(db *sql.DB, w http.ResponseWriter, r *http.Request) {
-    if r.Method != http.MethodPost {
-        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-        return
-    }
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 
-    userID, loggedIn := u.ValidateSession(db, r)
-    if !loggedIn {
-        http.Error(w, "Unauthorized", http.StatusUnauthorized)
-        return
-    }
+	userID, loggedIn := u.ValidateSession(db, r)
+	if !loggedIn {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 
-    if err := r.ParseMultipartForm(10 << 20); err != nil {
-        http.Error(w, "Could not parse form", http.StatusBadRequest)
-        return
-    }
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		http.Error(w, "Could not parse form", http.StatusBadRequest)
+		return
+	}
 
-    groupIDStr := r.FormValue("group_id")
-    groupPostIDStr := r.FormValue("group_post_id")
-    content := strings.TrimSpace(r.FormValue("content"))
-    groupID, err := database.ParseID(groupIDStr)
-    groupPostID, err2 := database.ParseID(groupPostIDStr)
-    if err != nil || err2 != nil || groupID <= 0 || groupPostID <= 0 {
-        http.Error(w, "Invalid group or post ID", http.StatusBadRequest)
-        return
-    }
+	groupIDStr := r.FormValue("group_id")
+	groupPostIDStr := r.FormValue("group_post_id")
+	content := strings.TrimSpace(r.FormValue("content"))
+	groupID, err := database.ParseID(groupIDStr)
+	groupPostID, err2 := database.ParseID(groupPostIDStr)
+	if err != nil || err2 != nil || groupID <= 0 || groupPostID <= 0 {
+		http.Error(w, "Invalid group or post ID", http.StatusBadRequest)
+		return
+	}
 
-    isMember, err := database.IsGroupMember(db, groupID, userID)
-    if err != nil || !isMember {
-        http.Error(w, "You must be an accepted member to comment", http.StatusForbidden)
-        return
-    }
+	isMember, err := database.IsGroupMember(db, groupID, userID)
+	if err != nil || !isMember {
+		http.Error(w, "You must be an accepted member to comment", http.StatusForbidden)
+		return
+	}
 
-    // Handle optional image/GIF upload
-    imgOrgif := ""
-    file, header, err := r.FormFile("imgOrgif")
-    if err == nil && header != nil && header.Filename != "" {
-        defer file.Close()
-        ext := strings.ToLower(filepath.Ext(header.Filename))
-        if ext != ".gif" && ext != ".png" && ext != ".jpg" && ext != ".jpeg" {
-            http.Error(w, "Image must be a GIF, PNG, or JPG.", http.StatusBadRequest)
-            return
-        }
-        uploadDir := "../frontend-next/public/img/group_comments"
-        _ = os.MkdirAll(uploadDir, os.ModePerm)
-        fname := strings.ReplaceAll(header.Filename, " ", "-")
-        dstFile, err := os.Create(filepath.Join(uploadDir, fname))
-        if err != nil {
-            http.Error(w, "Server error", http.StatusInternalServerError)
-            return
-        }
-        defer dstFile.Close()
-        if _, err := io.Copy(dstFile, file); err != nil {
-            http.Error(w, "Server error", http.StatusInternalServerError)
-            return
-        }
-        imgOrgif = "/img/group_comments/" + fname
-    }
+	// Handle optional image/GIF upload
+	imgOrgif := ""
+	file, header, err := r.FormFile("imgOrgif")
+	if err == nil && header != nil && header.Filename != "" {
+		defer file.Close()
+		ext := strings.ToLower(filepath.Ext(header.Filename))
+		if ext != ".gif" && ext != ".png" && ext != ".jpg" && ext != ".jpeg" {
+			http.Error(w, "Image must be a GIF, PNG, or JPG.", http.StatusBadRequest)
+			return
+		}
+		uploadDir := "../frontend-next/public/img/group_comments"
+		_ = os.MkdirAll(uploadDir, os.ModePerm)
+		fname := strings.ReplaceAll(header.Filename, " ", "-")
+		dstFile, err := os.Create(filepath.Join(uploadDir, fname))
+		if err != nil {
+			http.Error(w, "Server error", http.StatusInternalServerError)
+			return
+		}
+		defer dstFile.Close()
+		if _, err := io.Copy(dstFile, file); err != nil {
+			http.Error(w, "Server error", http.StatusInternalServerError)
+			return
+		}
+		imgOrgif = "/img/group_comments/" + fname
+	}
 
-    commentID, createdAt, err := database.InsertGroupPostComment(db, groupPostID, userID, content, imgOrgif)
-    if err != nil {
-        http.Error(w, "Failed to create comment", http.StatusInternalServerError)
-        return
-    }
+	commentID, createdAt, err := database.InsertGroupPostComment(db, groupPostID, userID, content, imgOrgif)
+	if err != nil {
+		http.Error(w, "Failed to create comment", http.StatusInternalServerError)
+		return
+	}
 
-    var username string
-    _ = db.QueryRow(`SELECT username FROM users WHERE id=?`, userID).Scan(&username)
+	var username string
+	_ = db.QueryRow(`SELECT username FROM users WHERE id=?`, userID).Scan(&username)
 
-    w.Header().Set("Content-Type", "application/json")
-    w.WriteHeader(http.StatusCreated)
-    json.NewEncoder(w).Encode(map[string]interface{}{
-        "success":       true,
-        "comment_id":    commentID,
-        "group_post_id": groupPostID,
-        "user_id":       userID,
-        "username":      username,
-        "content":       content,
-        "imgOrgif":      imgOrgif,
-        "created_at":    createdAt.Format("2006-01-02 15:04:05"),
-    })
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":       true,
+		"comment_id":    commentID,
+		"group_post_id": groupPostID,
+		"user_id":       userID,
+		"username":      username,
+		"content":       content,
+		"imgOrgif":      imgOrgif,
+		"created_at":    createdAt.Format("2006-01-02 15:04:05"),
+	})
 }
 
 func DeleteGroupPost(db *sql.DB, w http.ResponseWriter, r *http.Request, groupIDStr, postIDStr string) {
@@ -662,114 +664,169 @@ func DeleteGroupPost(db *sql.DB, w http.ResponseWriter, r *http.Request, groupID
 	json.NewEncoder(w).Encode(map[string]any{"success": true})
 }
 
-func CreateGroupPost(db *sql.DB, w http.ResponseWriter, r *http.Request) {
-    if r.Method != http.MethodPost {
-        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-        return
-    }
+func CreateGroupPost(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 
-    userID, ok := u.ValidateSession(db, r)
-    if !ok || userID <= 0 {
-        http.Error(w, "Unauthorized. Please log in.", http.StatusUnauthorized)
-        return
-    }
+	userID, ok := u.ValidateSession(db, r)
+	if !ok || userID <= 0 {
+		http.Error(w, "Unauthorized. Please log in.", http.StatusUnauthorized)
+		return
+	}
 
-    if err := r.ParseMultipartForm(10 << 20); err != nil {
-        http.Error(w, "Could not parse form", http.StatusBadRequest)
-        return
-    }
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		http.Error(w, "Could not parse form", http.StatusBadRequest)
+		return
+	}
 
-    groupIDStr := r.FormValue("group_id")
-    title := strings.TrimSpace(r.FormValue("title"))
-    content := strings.TrimSpace(r.FormValue("content"))
-    categories := r.Form["categories"]
+	groupIDStr := r.FormValue("group_id")
+	title := strings.TrimSpace(r.FormValue("title"))
+	content := strings.TrimSpace(r.FormValue("content"))
+	categories := r.Form["categories"]
 
-    groupID, err := database.ParseID(groupIDStr)
-    if err != nil || groupID <= 0 || title == "" || content == "" {
-        http.Error(w, "group_id, title and content are required", http.StatusBadRequest)
-        return
-    }
+	groupID, err := database.ParseID(groupIDStr)
+	if err != nil || groupID <= 0 || title == "" || content == "" {
+		http.Error(w, "group_id, title and content are required", http.StatusBadRequest)
+		return
+	}
 
-    // Membership check
-    var count int
-    if err := db.QueryRow(`
+	// Membership check
+	var count int
+	if err := db.QueryRow(`
         SELECT COUNT(*) 
         FROM group_members 
         WHERE group_id = ? AND user_id = ? AND status = 'accepted'
     `, groupID, userID).Scan(&count); err != nil {
-        http.Error(w, "Membership check failed", http.StatusInternalServerError)
-        return
-    }
-    if count == 0 {
-        http.Error(w, "Forbidden: not a member of this group", http.StatusForbidden)
-        return
-    }
+		http.Error(w, "Membership check failed", http.StatusInternalServerError)
+		return
+	}
+	if count == 0 {
+		http.Error(w, "Forbidden: not a member of this group", http.StatusForbidden)
+		return
+	}
 
-    // Handle optional image/GIF upload
-    imgOrgif := ""
-    file, header, err := r.FormFile("imgOrgif")
-    if err == nil && header != nil && header.Filename != "" {
-        defer file.Close()
-        ext := strings.ToLower(filepath.Ext(header.Filename))
-        if ext != ".gif" && ext != ".png" && ext != ".jpg" && ext != ".jpeg" {
-            http.Error(w, "Image must be a GIF, PNG, or JPG.", http.StatusBadRequest)
-            return
-        }
-        uploadDir := "../frontend-next/public/img/group_posts"
-        _ = os.MkdirAll(uploadDir, os.ModePerm)
-        fname := strings.ReplaceAll(header.Filename, " ", "-")
-        dstFile, err := os.Create(filepath.Join(uploadDir, fname))
-        if err != nil {
-            http.Error(w, "Server error", http.StatusInternalServerError)
-            return
-        }
-        defer dstFile.Close()
-        if _, err := io.Copy(dstFile, file); err != nil {
-            http.Error(w, "Server error", http.StatusInternalServerError)
-            return
-        }
-        imgOrgif = "/img/group_posts/" + fname
-    }
+	// Handle optional image/GIF upload
+	imgOrgif := ""
+	file, header, err := r.FormFile("imgOrgif")
+	if err == nil && header != nil && header.Filename != "" {
+		defer file.Close()
+		ext := strings.ToLower(filepath.Ext(header.Filename))
+		if ext != ".gif" && ext != ".png" && ext != ".jpg" && ext != ".jpeg" {
+			http.Error(w, "Image must be a GIF, PNG, or JPG.", http.StatusBadRequest)
+			return
+		}
+		uploadDir := "../frontend-next/public/img/group_posts"
+		_ = os.MkdirAll(uploadDir, os.ModePerm)
+		fname := strings.ReplaceAll(header.Filename, " ", "-")
+		dstFile, err := os.Create(filepath.Join(uploadDir, fname))
+		if err != nil {
+			http.Error(w, "Server error", http.StatusInternalServerError)
+			return
+		}
+		defer dstFile.Close()
+		if _, err := io.Copy(dstFile, file); err != nil {
+			http.Error(w, "Server error", http.StatusInternalServerError)
+			return
+		}
+		imgOrgif = "/img/group_posts/" + fname
+	}
 
-    // Insert post with image path
-    postID64, createdAt, err := database.InsertGroupPost(db, groupID, userID, title, content, imgOrgif)
-    if err != nil {
-        http.Error(w, "Failed to create group post", http.StatusInternalServerError)
-        return
-    }
-    postID := int(postID64)
+	// Insert post with image path
+	postID64, createdAt, err := database.InsertGroupPost(db, groupID, userID, title, content, imgOrgif)
+	if err != nil {
+		http.Error(w, "Failed to create group post", http.StatusInternalServerError)
+		return
+	}
+	postID := int(postID64)
 
-    // Attach categories (optional, non-fatal per-category errors)
-    for _, raw := range categories {
-        name := strings.TrimSpace(raw)
-        if name == "" {
-            continue
-        }
-        catID, err := database.GetCategoryID(db, name)
-        if err != nil {
-            fmt.Println("GetCategoryID error:", err)
-            continue
-        }
-        if err := database.AddGroupPostCategory(db, postID, catID); err != nil {
-            fmt.Println("AddGroupPostCategory error:", err)
-            continue
-        }
-    }
+	// Attach categories (optional, non-fatal per-category errors)
+	for _, raw := range categories {
+		name := strings.TrimSpace(raw)
+		if name == "" {
+			continue
+		}
+		catID, err := database.GetCategoryID(db, name)
+		if err != nil {
+			fmt.Println("GetCategoryID error:", err)
+			continue
+		}
+		if err := database.AddGroupPostCategory(db, postID, catID); err != nil {
+			fmt.Println("AddGroupPostCategory error:", err)
+			continue
+		}
+	}
 
-    resp := map[string]any{
-        "success":    true,
-        "id":         postID,
-        "group_id":   groupID,
-        "user_id":    userID,
-        "title":      title,
-        "content":    content,
-        "categories": categories,
-        "imgOrgif":   imgOrgif,
-        "created_at": createdAt.Format("2006-01-02 15:04:05"),
-    }
-    w.Header().Set("Content-Type", "application/json")
-    w.WriteHeader(http.StatusCreated)
-    json.NewEncoder(w).Encode(resp)
+	// Get username for WebSocket broadcast
+	var username string
+	db.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
+
+	// Broadcast new group post to all group members via WebSocket
+	if hub != nil {
+		postNotification := chat.Frontend{
+			Type:      "new_groupPost",
+			From:      userID,
+			Username:  username,
+			GroupID:   groupID,
+			PostId:    postID,
+			Content:   content,
+			Timestamp: time.Now(),
+		}
+
+		// Get group member IDs
+		memberIDs, err := getGroupMemberIDs(db, groupID)
+		if err == nil {
+			hub.Mutex.RLock()
+			for _, memberID := range memberIDs {
+				if client, ok := hub.Clients[memberID]; ok {
+					select {
+					case client.Send <- postNotification:
+					default:
+						// Skip if buffer full
+					}
+				}
+			}
+			hub.Mutex.RUnlock()
+		}
+	}
+
+	resp := map[string]any{
+		"success":    true,
+		"id":         postID,
+		"group_id":   groupID,
+		"user_id":    userID,
+		"title":      title,
+		"content":    content,
+		"categories": categories,
+		"imgOrgif":   imgOrgif,
+		"created_at": createdAt.Format("2006-01-02 15:04:05"),
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(resp)
+}
+
+// Helper function to get group member IDs
+func getGroupMemberIDs(db *sql.DB, groupID int) ([]int, error) {
+	rows, err := db.Query(`
+        SELECT user_id 
+        FROM group_members 
+        WHERE group_id = ? AND status = 'accepted'
+    `, groupID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var ids []int
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err == nil {
+			ids = append(ids, id)
+		}
+	}
+	return ids, rows.Err()
 }
 
 // ToggleGroupPostDislike mirrors ToggleGroupPostLike for 👎
