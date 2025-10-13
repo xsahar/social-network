@@ -18,6 +18,7 @@ type Frontend struct {
 	To        int       `json:"to"`
 	GroupID   int       `json:"group_id"`
 	Content   string    `json:"content"`
+	Username  string    `json:"username"`
 	Timestamp time.Time `json:"timestamp"`
 	Type      string    `json:"type"`
 	PostId    int       `json:"post_id"`

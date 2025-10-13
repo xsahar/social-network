@@ -14,8 +14,17 @@ export const useWebSocket = (userID) => {
     const testUserId = userId || 1;
     console.log('[useWebSocket] Using userId for connection:', testUserId);
 
-    // Clean up existing connection
-    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+    // Prevent duplicate connections
+    if (socketRef.current && (
+      socketRef.current.readyState === WebSocket.CONNECTING || 
+      socketRef.current.readyState === WebSocket.OPEN
+    )) {
+      console.log('[useWebSocket] Connection already exists, skipping');
+      return;
+    }
+
+    // Clean up existing connection if any
+    if (socketRef.current) {
       console.log('[useWebSocket] Closing existing connection');
       socketRef.current.close();
     }

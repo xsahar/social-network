@@ -960,10 +960,11 @@ func ConnectWeb(db *sql.DB) {
 		}
 
 		const q = `
-		SELECT sender_id, content, created_at
-		FROM group_messages
-		WHERE group_id = ?
-		ORDER BY created_at DESC
+		SELECT gm.sender_id, u.username, gm.content, gm.created_at
+		FROM group_messages gm
+		JOIN users u ON gm.sender_id = u.id
+		WHERE gm.group_id = ?
+		ORDER BY gm.created_at DESC
 		LIMIT 30 OFFSET ?
 	`
 		rows, err := db.Query(q, groupID, offset)
@@ -978,7 +979,7 @@ func ConnectWeb(db *sql.DB) {
 			var m chat.Frontend
 			m.Type = "group_message"
 			m.GroupID = groupID
-			if err := rows.Scan(&m.From, &m.Content, &m.Timestamp); err == nil {
+			if err := rows.Scan(&m.From, &m.Username, &m.Content, &m.Timestamp); err == nil {
 				messages = append(messages, m)
 			}
 		}

@@ -7,6 +7,158 @@ import GroupPostsSection from '../components/GroupPostsSection';
 import GroupChat from '../components/GroupChat';
 import GroupEvents from '../components/GroupEvents';
 
+// Inline InviteMembers component
+function InviteMembers({ groupId }) {
+  const [invitableUsers, setInvitableUsers] = useState([]);
+  const [selectedUsers, setSelectedUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    if (groupId) {
+      fetchInvitableUsers();
+    }
+  }, [groupId]);
+
+  const fetchInvitableUsers = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/groups/invitable-users?groupId=${groupId}`, {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setInvitableUsers(data.users || []);
+      } else {
+        console.error('Failed to fetch invitable users:', response.status);
+        setInvitableUsers([]);
+      }
+    } catch (error) {
+      console.error('Error fetching invitable users:', error);
+      setInvitableUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUserToggle = (userId) => {
+    setSelectedUsers(prev => 
+      prev.includes(userId) 
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    );
+  };
+
+  const handleSendInvitations = async () => {
+    if (selectedUsers.length === 0) return;
+    
+    setSending(true);
+    try {
+      const response = await fetch('/api/groups/send-invitations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          groupId: groupId,
+          userIds: selectedUsers
+        })
+      });
+
+      if (response.ok) {
+        alert(`Invitations sent to ${selectedUsers.length} user(s)!`);
+        setSelectedUsers([]);
+        fetchInvitableUsers(); // Refresh the list
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to send invitations');
+      }
+    } catch (error) {
+      console.error('Error sending invitations:', error);
+      alert('Failed to send invitations');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="invite-section">
+      <h3 style={{ marginBottom: '16px' }}>Invite Members</h3>
+      
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '20px', color: '#65676b' }}>
+          Loading users...
+        </div>
+      ) : invitableUsers.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '20px', color: '#65676b' }}>
+          No users available to invite
+        </div>
+      ) : (
+        <>
+          <div style={{ marginBottom: '16px' }}>
+            <p style={{ color: '#65676b', fontSize: '14px', marginBottom: '12px' }}>
+              Select users to invite to this group:
+            </p>
+            
+            <div style={{ 
+              maxHeight: '300px', 
+              overflowY: 'auto', 
+              border: '1px solid #e4e6ea', 
+              borderRadius: '6px',
+              padding: '8px'
+            }}>
+              {invitableUsers.map(user => (
+                <div 
+                  key={user.id}
+                  onClick={() => handleUserToggle(user.id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    backgroundColor: selectedUsers.includes(user.id) ? '#e3f2fd' : 'transparent',
+                    border: selectedUsers.includes(user.id) ? '1px solid #4267B2' : '1px solid transparent'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedUsers.includes(user.id)}
+                    onChange={() => {}} // Handled by div onClick
+                    style={{ pointerEvents: 'none' }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: '500' }}>{user.fname} {user.lname}</div>
+                    <div style={{ fontSize: '12px', color: '#65676b' }}>@{user.username}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {selectedUsers.length > 0 && (
+            <button
+              onClick={handleSendInvitations}
+              disabled={sending}
+              className="btn"
+              style={{
+                backgroundColor: sending ? '#e4e6ea' : '#4267B2',
+                color: sending ? '#65676b' : 'white',
+                cursor: sending ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {sending ? 'Sending...' : `Send ${selectedUsers.length} Invitation${selectedUsers.length > 1 ? 's' : ''}`}
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function GroupDetails() {
   const router = useRouter();
   const { user, loading: userLoading } = useSession();
@@ -170,10 +322,7 @@ export default function GroupDetails() {
             )}
             
             {activeTab === 'invite' && (
-              <div className="invite-section">
-                <h3>Invite Members</h3>
-                <p>Invite functionality coming soon...</p>
-              </div>
+              <InviteMembers groupId={group.id} />
             )}
           </div>
         )}
