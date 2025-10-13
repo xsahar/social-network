@@ -9,6 +9,8 @@ export default function Groups() {
   const router = useRouter();
   const [groups, setGroups] = useState([]);
   const [userGroups, setUserGroups] = useState([]);
+  const [invitations, setInvitations] = useState([]);
+  const [pendingApprovals, setPendingApprovals] = useState([]);
   const [loadingGroups, setLoadingGroups] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -17,6 +19,9 @@ export default function Groups() {
   useEffect(() => {
     if (user && user.userID) {
       fetchGroups();
+      fetchUserGroups();
+      fetchInvitations();
+      fetchPendingApprovals();
     }
   }, [user?.userID]);
 
@@ -40,6 +45,59 @@ export default function Groups() {
     setLoadingGroups(false);
   };
 
+  const fetchUserGroups = async () => {
+    try {
+      const response = await fetch('/api/user-groups', {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUserGroups(data?.groups || []);
+      } else {
+        console.error('Failed to fetch user groups:', response.status);
+        setUserGroups([]);
+      }
+    } catch (error) {
+      console.error('Error fetching user groups:', error);
+      setUserGroups([]);
+    }
+  };
+
+  const fetchInvitations = async () => {
+    try {
+      const response = await fetch('/api/groups/invitations', {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setInvitations(data?.invitations || []);
+      } else {
+        console.error('Failed to fetch invitations:', response.status);
+        setInvitations([]);
+      }
+    } catch (error) {
+      console.error('Error fetching invitations:', error);
+      setInvitations([]);
+    }
+  };
+
+  const fetchPendingApprovals = async () => {
+    try {
+      const response = await fetch('/api/groups/pending-approvals', {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setPendingApprovals(data?.requests || []);
+      } else {
+        console.error('Failed to fetch pending approvals:', response.status);
+        setPendingApprovals([]);
+      }
+    } catch (error) {
+      console.error('Error fetching pending approvals:', error);
+      setPendingApprovals([]);
+    }
+  };
 
   const handleCreateGroup = async (e) => {
     e.preventDefault();
@@ -110,6 +168,60 @@ export default function Groups() {
     }
   };
 
+  const handleApproveRequest = async (requestId, action) => {
+    try {
+      const response = await fetch('/api/groups/respond-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          request_id: requestId, 
+          action: action // 'accept' or 'decline'
+        }),
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        // Refresh pending approvals
+        fetchPendingApprovals();
+        alert(`Request ${action}ed successfully!`);
+      } else {
+        console.error(`Failed to ${action} request:`, response.status);
+        alert(`Failed to ${action} request`);
+      }
+    } catch (error) {
+      console.error(`Error ${action}ing request:`, error);
+      alert(`Error ${action}ing request`);
+    }
+  };
+
+  const handleRespondToInvitation = async (invitationId, action) => {
+    try {
+      const response = await fetch('/api/groups/respond-invitation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          invitation_id: invitationId, 
+          action: action // 'accept' or 'decline'
+        }),
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        // Refresh invitations and groups
+        fetchInvitations();
+        fetchGroups();
+        fetchUserGroups();
+        alert(`Invitation ${action}ed successfully!`);
+      } else {
+        console.error(`Failed to ${action} invitation:`, response.status);
+        alert(`Failed to ${action} invitation`);
+      }
+    } catch (error) {
+      console.error(`Error ${action}ing invitation:`, error);
+      alert(`Error ${action}ing invitation`);
+    }
+  };
+
   const viewGroupDetails = (groupId) => {
     router.push(`/groupDetails?id=${groupId}`);
   };
@@ -121,7 +233,9 @@ export default function Groups() {
       case 'my':
         return userGroups;
       case 'invitations':
-        return []; // Would need to fetch invitations
+        return invitations;
+      case 'pending':
+        return pendingApprovals;
       default:
         return groups;
     }
@@ -196,13 +310,16 @@ export default function Groups() {
 
           {/* Tabs */}
           <div className="tabs">
-            {['all', 'my', 'invitations'].map((tab) => (
+            {['all', 'my', 'invitations', 'pending'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`tab-button ${activeTab === tab ? 'active' : ''}`}
               >
-                {tab === 'all' ? 'All Groups' : tab === 'my' ? 'My Groups' : 'Invitations'}
+                {tab === 'all' ? 'All Groups' : 
+                 tab === 'my' ? 'My Groups' : 
+                 tab === 'invitations' ? 'Invitations' : 
+                 'Pending Approvals'}
               </button>
             ))}
           </div>
@@ -211,18 +328,64 @@ export default function Groups() {
           <div className="groups-grid">
             {getCurrentGroups().map((group) => (
               <div key={group.id} className="group-card">
-                <div className="group-header">
-                  <h3>{group.title}</h3>
-                  <span className="member-count">{group.member_count || 0} members</span>
-                </div>
-                <p className="group-description">{group.description}</p>
-                <div className="group-meta">
-                  <span>Created by {group.creator_name || group.creator}</span>
-                  <span>{new Date(group.created_at).toLocaleDateString()}</span>
+                <div className="group-info">
+                  <div className="group-header">
+                    <h3>{group.title}</h3>
+                    {group.member_count !== undefined && (
+                      <span className="member-count">{group.member_count || 0} members</span>
+                    )}
+                  </div>
+                  <p className="group-description">{group.description}</p>
+                  <div className="group-meta">
+                    <span>Created by {group.creator_name || group.creator || group.username}</span>
+                    {group.created_at && <span>{new Date(group.created_at).toLocaleDateString()}</span>}
+                  </div>
                 </div>
                     
                 <div className="group-actions">
                   {(() => {
+                    // Handle different tab types
+                    if (activeTab === 'pending') {
+                      // For pending approvals tab - show approve/decline buttons
+                      return (
+                        <div className="approval-actions">
+                          <button
+                            onClick={() => handleApproveRequest(group.id, 'accept')}
+                            className="btn btn-success"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => handleApproveRequest(group.id, 'decline')}
+                            className="btn btn-danger"
+                          >
+                            Decline
+                          </button>
+                        </div>
+                      );
+                    }
+
+                    if (activeTab === 'invitations') {
+                      // For invitations tab - show accept/decline buttons
+                      return (
+                        <div className="invitation-actions">
+                          <button
+                            onClick={() => handleRespondToInvitation(group.id, 'accept')}
+                            className="btn btn-success"
+                          >
+                            Accept
+                          </button>
+                          <button
+                            onClick={() => handleRespondToInvitation(group.id, 'decline')}
+                            className="btn btn-danger"
+                          >
+                            Decline
+                          </button>
+                        </div>
+                      );
+                    }
+
+                    // Regular group actions for 'all' and 'my' tabs
                     const isCreator = user?.userID === group.creator_id;
                     const membershipStatus = group.user_membership_status;
                     const isMember = membershipStatus === 'accepted';
@@ -234,7 +397,7 @@ export default function Groups() {
                           onClick={() => viewGroupDetails(group.id)}
                           className="btn btn-primary"
                         >
-                          Manage Group
+                          Enter Group
                         </button>
                       );
                     } else if (isMember) {
@@ -244,7 +407,7 @@ export default function Groups() {
                             onClick={() => viewGroupDetails(group.id)}
                             className="btn btn-primary"
                           >
-                            View Group
+                            Enter Group
                           </button>
                           <button
                             onClick={() => handleLeaveGroup(group.id)}
@@ -297,7 +460,8 @@ export default function Groups() {
               <p>
                 {activeTab === 'all' ? 'No groups available' : 
                  activeTab === 'my' ? 'You haven\'t joined any groups yet' : 
-                 'No invitations'}
+                 activeTab === 'invitations' ? 'No invitations' :
+                 'No pending approvals'}
               </p>
             </div>
           )}

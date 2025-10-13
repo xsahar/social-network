@@ -99,18 +99,28 @@ func chatKey(a, b int) string {
 }
 
 func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
+	fmt.Printf("[WebSocket] ServeWs called from %s\n", r.RemoteAddr)
+	fmt.Printf("[WebSocket] Request URL: %s\n", r.URL.String())
+	fmt.Printf("[WebSocket] Request Headers: %v\n", r.Header)
+	
 	userIDStr := r.URL.Query().Get("user_id")
+	fmt.Printf("[WebSocket] userIDStr from query: '%s'\n", userIDStr)
+	
 	userID, err := strconv.Atoi(userIDStr)
 	if err != nil || userID <= 0 {
+		fmt.Printf("[WebSocket] Invalid user ID: userIDStr='%s', err=%v, userID=%d\n", userIDStr, err, userID)
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
 
+	fmt.Printf("[WebSocket] Valid userID: %d, attempting upgrade\n", userID)
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		fmt.Println("WebSocket Upgrade Error:", err)
+		fmt.Printf("[WebSocket] Upgrade Error: %v\n", err)
 		return
 	}
+	
+	fmt.Printf("[WebSocket] Successfully upgraded connection for user %d\n", userID)
 
 	client := &Client{UserID: userID, Conn: conn, Send: make(chan Frontend)}
 	hub.Online <- client

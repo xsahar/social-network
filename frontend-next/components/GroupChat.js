@@ -4,15 +4,27 @@ import { useWebSocket } from '../hooks/useWebSocket';
 export default function GroupChat({ groupId, user, isOpen, onClose }) {
   const [messageInput, setMessageInput] = useState('');
   const [groupMessages, setGroupMessages] = useState([]);
-  const { sendMessage, messages, connected } = useWebSocket(user?.id);
+  
+  // Debug user object to check field names
+  console.log('👤 GroupChat user object:', user);
+  console.log('👤 user?.id:', user?.id, 'user?.userID:', user?.userID);
+  
+  // Try different possible field names for user ID
+  const userId = user?.id || user?.userID || user?.user_id;
+  console.log('👤 Final userId for WebSocket:', userId);
+  
+  const { sendMessage, messages, connected } = useWebSocket(userId);
   const chatWindowRef = useRef(null);
 
   // Filter messages for this specific group
   useEffect(() => {
     if (groupId && messages) {
-      const filteredMessages = messages.filter(msg => 
-        msg.type === 'group' && msg.groupId === parseInt(groupId)
-      );
+      console.log('🔍 Filtering messages for groupId:', groupId, 'Total messages:', messages.length);
+      const filteredMessages = messages.filter(msg => {
+        console.log('📩 Message:', msg);
+        return msg.type === 'group_message' && msg.group_id === parseInt(groupId);
+      });
+      console.log('✅ Filtered messages for group:', filteredMessages);
       setGroupMessages(filteredMessages);
     }
   }, [messages, groupId]);
@@ -32,7 +44,7 @@ export default function GroupChat({ groupId, user, isOpen, onClose }) {
     const messageData = {
       type: 'group_message',
       group_id: parseInt(groupId),
-      from: user.id,
+      from: userId, // Use the consistent userId we defined above
       content: messageInput.trim(),
       timestamp: new Date().toISOString()
     };
@@ -45,17 +57,32 @@ export default function GroupChat({ groupId, user, isOpen, onClose }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-10 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white max-h-[80vh] flex flex-col">
+    <div className="modal">
+      <div className="modal-content" style={{maxWidth: '400px', maxHeight: '80vh', display: 'flex', flexDirection: 'column'}}>
         {/* Header */}
-        <div className="flex justify-between items-center mb-4 border-b pb-3">
-          <h3 className="text-lg font-medium text-gray-900">Group Chat</h3>
-          <div className="flex items-center space-x-2">
-            <span className={`inline-block w-2 h-2 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`}></span>
-            <span className="text-xs text-gray-500">{connected ? 'Connected' : 'Disconnected'}</span>
+        <div className="chat-header" style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '16px',
+          borderBottom: '1px solid #e4e6ea',
+          paddingBottom: '12px'
+        }}>
+          <h3 style={{fontSize: '18px', fontWeight: '500', color: '#1c1e21'}}>Group Chat</h3>
+          <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+            <span 
+              style={{
+                display: 'inline-block',
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: connected ? '#42b883' : '#e0245e'
+              }}
+            ></span>
+            <span style={{fontSize: '12px', color: '#65676b'}}>{connected ? 'Connected' : 'Disconnected'}</span>
             <button 
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 text-xl font-semibold ml-2"
+              className="close"
             >
               ×
             </button>
@@ -65,35 +92,27 @@ export default function GroupChat({ groupId, user, isOpen, onClose }) {
         {/* Messages */}
         <div 
           ref={chatWindowRef}
-          className="flex-1 overflow-y-auto mb-4 space-y-2 min-h-[300px] max-h-[400px] border rounded p-3 bg-gray-50"
+          className="group-chat-window"
         >
           {groupMessages.length === 0 ? (
-            <div className="text-center text-gray-500 py-8">
+            <div style={{textAlign: 'center', color: '#65676b', padding: '32px'}}>
               <p>No messages yet. Start the conversation!</p>
             </div>
           ) : (
             groupMessages.map((msg, index) => (
               <div
                 key={index}
-                className={`flex ${msg.from === user.id ? 'justify-end' : 'justify-start'}`}
+                className={`group-chat-message ${msg.from === user.id ? 'my-message' : 'other-message'}`}
               >
-                <div
-                  className={`max-w-xs px-3 py-2 rounded-lg text-sm ${
-                    msg.from === user.id
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-white text-gray-800 border'
-                  }`}
-                >
+                <div className="bubble">
                   {msg.from !== user.id && (
-                    <div className="text-xs font-medium mb-1 opacity-75">
-                      {msg.fromName || `User ${msg.from}`}
+                    <div className="meta">
+                      <span style={{fontWeight: '500'}}>{msg.fromName || `User ${msg.from}`}</span>
                     </div>
                   )}
-                  <div>{msg.message}</div>
-                  <div className={`text-xs mt-1 opacity-75 ${
-                    msg.from === user.id ? 'text-blue-100' : 'text-gray-500'
-                  }`}>
-                    {new Date(msg.timestamp).toLocaleTimeString()}
+                  <div className="text">{msg.message}</div>
+                  <div className="meta" style={{justifyContent: msg.from === user.id ? 'flex-end' : 'flex-start'}}>
+                    <span>{new Date(msg.timestamp).toLocaleTimeString()}</span>
                   </div>
                 </div>
               </div>
@@ -102,19 +121,29 @@ export default function GroupChat({ groupId, user, isOpen, onClose }) {
         </div>
 
         {/* Message Input */}
-        <form onSubmit={handleSendMessage} className="flex space-x-2">
+        <form onSubmit={handleSendMessage} style={{display: 'flex', gap: '8px'}}>
           <input
             type="text"
             value={messageInput}
             onChange={(e) => setMessageInput(e.target.value)}
             placeholder={connected ? "Type your message..." : "Connecting..."}
             disabled={!connected}
-            className="flex-1 p-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+            style={{
+              flex: 1,
+              padding: '8px 12px',
+              border: '1px solid #dddfe2',
+              borderRadius: '6px',
+              fontSize: '14px',
+              backgroundColor: !connected ? '#f0f0f0' : 'white'
+            }}
           />
           <button
             type="submit"
             disabled={!connected || !messageInput.trim()}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+            className="btn btn-primary"
+            style={{
+              backgroundColor: (!connected || !messageInput.trim()) ? '#bec3c9' : '#4267B2'
+            }}
           >
             Send
           </button>

@@ -95,68 +95,52 @@ export default function GroupEvents({ groupId }) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="group-events-list">
       {/* Create Event Button */}
-      <div className="bg-white rounded-lg shadow-sm border p-4">
+      <div className="create-event-prompt">
         <button
           onClick={() => setShowCreateEvent(true)}
-          className="w-full text-left p-3 bg-gradient-to-r from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 rounded-lg border-2 border-dashed border-purple-300 transition-colors"
+          className="create-event-button"
         >
-          <span className="text-purple-600">🎉 Plan a group event! Create something exciting...</span>
+          <span>🎉 Plan a group event! Create something exciting...</span>
         </button>
       </div>
 
       {/* Create Event Modal */}
       {showCreateEvent && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-[500px] shadow-lg rounded-md bg-white">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Create New Group Event</h3>
-              <button 
-                onClick={() => setShowCreateEvent(false)}
-                className="text-gray-400 hover:text-gray-600 text-xl font-semibold"
-              >
-                ×
-              </button>
-            </div>
+        <div className="modal">
+          <div className="modal-content">
+            <span className="close" onClick={() => setShowCreateEvent(false)}>&times;</span>
+            <h2>Create New Group Event</h2>
             
-            <form onSubmit={handleCreateEvent} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Event Title</label>
+            <form onSubmit={handleCreateEvent}>
+              <div className="form-group">
+                <label>Event Title</label>
                 <input
                   type="text"
                   value={newEvent.title}
                   onChange={(e) => setNewEvent({...newEvent, title: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   placeholder="What's the event about?"
                   required
                 />
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+              <div className="form-group">
+                <label>Description</label>
                 <textarea
                   value={newEvent.description}
                   onChange={(e) => setNewEvent({...newEvent, description: e.target.value})}
                   rows="4"
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   placeholder="Describe the event details..."
                   required
                 />
               </div>
               
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateEvent(false)}
-                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
+              <div className="form-group">
+                <button type="button" onClick={() => setShowCreateEvent(false)} className="btn btn-secondary">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                >
+                <button type="submit" className="btn btn-primary">
                   Create Event
                 </button>
               </div>
@@ -165,88 +149,88 @@ export default function GroupEvents({ groupId }) {
         </div>
       )}
 
-      {/* Events List */}
+            {/* Events List */}
       {loadingEvents ? (
-        <div className="bg-white rounded-lg shadow-sm border p-8 text-center">
-          <div className="animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-1/4 mx-auto mb-4"></div>
-            <div className="space-y-3">
-              <div className="h-4 bg-gray-200 rounded"></div>
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-            </div>
-          </div>
-          <p className="text-gray-500 mt-4">Loading events...</p>
+        <div className="loading-container">
+          <div className="loading-text">Loading events...</div>
         </div>
       ) : events.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-sm border p-8 text-center">
-          <div className="text-gray-400 text-6xl mb-4">🎉</div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No events yet</h3>
-          <p className="text-gray-500 mb-4">Create your first group event and get everyone involved!</p>
+        <div className="no-posts-message">
+          <div style={{fontSize: '3rem', marginBottom: '1rem'}}>🎉</div>
+          <h3>No events yet</h3>
+          <p>Be the first to plan something awesome for your group!</p>
           <button
             onClick={() => setShowCreateEvent(true)}
-            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
+            className="btn btn-primary"
           >
             Create First Event
           </button>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="events-container">
           {events.map(event => (
-            <div key={event.id} className="bg-white rounded-lg shadow-sm border border-l-4 border-l-purple-500">
-              <div className="p-6">
-                {/* Event Header */}
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center">
-                      <span className="text-white font-medium">🎉</span>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{event.title}</h3>
-                      <p className="text-sm text-gray-500">
-                        Created {new Date(event.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
+            <div key={event.id} className="event-card">
+              {/* Event Header */}
+              <div className="event-header">
+                <div>
+                  <h3 className="event-title">{event.title}</h3>
+                  <div className="event-date">
+                    Created {new Date(event.created_at).toLocaleDateString()}
                   </div>
                 </div>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '20px'
+                }}>
+                  🎉
+                </div>
+              </div>
 
-                {/* Event Content */}
-                <p className="text-gray-700 mb-6 leading-relaxed">{event.description}</p>
+              {/* Event Content */}
+              <p className="event-description">{event.description}</p>
 
-                {/* Voting Section */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h4 className="font-medium text-gray-900 mb-3">Will you attend this event?</h4>
-                  <div className="flex items-center space-x-4">
-                    <button
-                      onClick={() => handleVote(event.id, 'yes')}
-                      className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-colors ${
-                        event.user_vote === 'yes'
-                          ? 'bg-green-100 text-green-700 border border-green-300'
-                          : 'bg-white text-gray-600 border border-gray-300 hover:bg-green-50 hover:text-green-600'
-                      }`}
-                    >
-                      <span>✅ Yes</span>
-                      <span>({event.yes_count || 0})</span>
-                    </button>
-                    
-                    <button
-                      onClick={() => handleVote(event.id, 'no')}
-                      className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-colors ${
-                        event.user_vote === 'no'
-                          ? 'bg-red-100 text-red-700 border border-red-300'
-                          : 'bg-white text-gray-600 border border-gray-300 hover:bg-red-50 hover:text-red-600'
-                      }`}
-                    >
-                      <span>❌ No</span>
-                      <span>({event.no_count || 0})</span>
-                    </button>
-                  </div>
+              {/* Voting Section */}
+              <div style={{
+                background: '#f7f8fa',
+                borderRadius: '8px',
+                padding: '16px'
+              }}>
+                <h4 style={{fontWeight: '500', marginBottom: '12px'}}>Will you attend this event?</h4>
+                <div className="event-actions">
+                  <button
+                    onClick={() => handleVote(event.id, 'yes')}
+                    className={`btn ${event.user_vote === 'yes' ? 'btn-success' : 'btn-secondary'}`}
+                    style={{
+                      background: event.user_vote === 'yes' ? '#17bf63' : '#f8f9fa',
+                      color: event.user_vote === 'yes' ? 'white' : '#65676b'
+                    }}
+                  >
+                    ✅ Yes ({event.yes_count || 0})
+                  </button>
                   
-                  {event.user_vote && (
-                    <p className="text-sm text-gray-500 mt-2">
-                      You voted: <span className="font-medium">{event.user_vote === 'yes' ? 'Yes' : 'No'}</span>
-                    </p>
-                  )}
+                  <button
+                    onClick={() => handleVote(event.id, 'no')}
+                    className={`btn ${event.user_vote === 'no' ? 'btn-danger' : 'btn-secondary'}`}
+                    style={{
+                      background: event.user_vote === 'no' ? '#e0245e' : '#f8f9fa',
+                      color: event.user_vote === 'no' ? 'white' : '#65676b'
+                    }}
+                  >
+                    ❌ No ({event.no_count || 0})
+                  </button>
                 </div>
+                
+                {event.user_vote && (
+                  <p style={{fontSize: '14px', color: '#65676b', marginTop: '8px'}}>
+                    You voted: <span style={{fontWeight: '500'}}>{event.user_vote === 'yes' ? 'Yes' : 'No'}</span>
+                  </p>
+                )}
               </div>
             </div>
           ))}

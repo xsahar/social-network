@@ -13,6 +13,7 @@ export default function Comments() {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (postId) {
@@ -23,6 +24,7 @@ export default function Comments() {
   const fetchCommentsAndPost = async () => {
     try {
       setLoading(true);
+      setError(null);
       
       if (isGroupPost && groupId) {
         // For group posts, fetch directly from backend
@@ -38,10 +40,12 @@ export default function Comments() {
             id: postId,
             title: 'Group Post',
             content: 'Loading post details...',
-            type: 'group'
+            type: 'group',
+            username: 'Group Member',
+            createdAt: new Date().toISOString()
           });
         } else {
-          console.error('Failed to fetch group comments');
+          setError('Failed to fetch group comments');
         }
       } else {
         // Regular posts
@@ -54,11 +58,12 @@ export default function Comments() {
           setPost(data.post);
           setComments(data.comments || []);
         } else {
-          console.error('Failed to fetch comments');
+          setError('Failed to fetch comments');
         }
       }
     } catch (error) {
       console.error('Error fetching comments:', error);
+      setError('Error loading comments');
     } finally {
       setLoading(false);
     }
@@ -109,7 +114,7 @@ export default function Comments() {
     }
   };
 
-  if (loading || userLoading) {
+  if (loading || sessionLoading) {
     return (
       <Layout>
         <div className="loading-container">
@@ -158,19 +163,19 @@ export default function Comments() {
           <div className="post-header">
             <img
               src={post.userAvatar || '/css/icon.png'}
-              alt={`${post.username}'s avatar`}
+              alt={`${post.username || 'User'}'s avatar`}
               className="post-avatar"
             />
             <div className="post-user-info">
-              <h3>{post.username}</h3>
+              <h3>{post.username || 'Anonymous'}</h3>
               <p className="post-date">
-                {new Date(post.createdAt).toLocaleDateString()}
+                {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : 'Unknown date'}
               </p>
             </div>
           </div>
           
-          <h1 className="post-title">{post.title}</h1>
-          <p className="post-content">{post.content}</p>
+          <h1 className="post-title">{post.title || 'Untitled Post'}</h1>
+          <p className="post-content">{post.content || 'No content available'}</p>
           
           {post.image && (
             <img
@@ -182,21 +187,21 @@ export default function Comments() {
         </div>
 
         {/* Add Comment Form */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Add a Comment</h2>
+        <div className="comment-form">
+          <h2>Add a Comment</h2>
           <form onSubmit={handleSubmitComment}>
             <textarea
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="Write your comment here..."
-              className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="comment-textarea"
               rows={3}
               required
             />
-            <div className="mt-4 flex justify-end">
+            <div className="comment-form-actions">
               <button
                 type="submit"
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                className="btn btn-primary"
               >
                 Post Comment
               </button>
@@ -205,32 +210,32 @@ export default function Comments() {
         </div>
 
         {/* Comments List */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold text-gray-900">
+        <div className="comments-list">
+          <h2 className="comments-section-title">
             Comments ({comments.length})
           </h2>
           
           {comments.length === 0 ? (
-            <div className="text-center py-8 bg-white rounded-lg shadow">
-              <p className="text-gray-600">No comments yet. Be the first to comment!</p>
+            <div className="no-comments">
+              <p>No comments yet. Be the first to comment!</p>
             </div>
           ) : (
             comments.map((comment) => (
-              <div key={comment.id} className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center space-x-3 mb-3">
+              <div key={comment.id} className="comment-card">
+                <div className="comment-header">
                   <img
                     src={comment.userAvatar || '/css/icon.png'}
                     alt={`${comment.username}'s avatar`}
-                    className="w-8 h-8 rounded-full"
+                    className="comment-avatar"
                   />
-                  <div>
-                    <h4 className="font-semibold text-gray-900">{comment.username}</h4>
-                    <p className="text-sm text-gray-500">
-                      {new Date(comment.createdAt).toLocaleDateString()}
+                  <div className="comment-user-info">
+                    <h4>{comment.username || 'Anonymous'}</h4>
+                    <p className="post-date">
+                      {comment.createdAt ? new Date(comment.createdAt).toLocaleDateString() : 'Unknown date'}
                     </p>
                   </div>
                 </div>
-                <p className="text-gray-700">{comment.content}</p>
+                <p className="comment-content">{comment.content}</p>
               </div>
             ))
           )}

@@ -8,109 +8,88 @@ export const useWebSocket = (userID) => {
   const socketRef = useRef(null);
 
   const connectWebSocket = useCallback((userId) => {
-    // Temporarily disable WebSocket due to connection issues
-    console.log('WebSocket temporarily disabled to fix profile functionality');
-    return;
+    console.log('[useWebSocket] connectWebSocket called with userId:', userId);
     
-    if (!userId || socketRef.current) return;
+    // For testing, try with a hardcoded user ID if none provided
+    const testUserId = userId || 1;
+    console.log('[useWebSocket] Using userId for connection:', testUserId);
 
-    try {
-      // Use the backend URL directly for WebSocket since it can't go through Next.js proxy
-      const wsUrl = process.env.NODE_ENV === 'production' 
-        ? `wss://${window.location.hostname}/ws?userID=${userId}`
-        : `ws://localhost:8080/ws?userID=${userId}`;
-      
-      const ws = new WebSocket(wsUrl);
-      
-      ws.onopen = () => {
-        console.log('Connected to WebSocket server');
-        setConnected(true);
-        setSocket(ws);
-        socketRef.current = ws;
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          console.log('Received WebSocket message:', data);
-          
-          switch (data.type) {
-            case 'user_list':
-              setOnlineUsers(data.users || []);
-              break;
-            case 'private_message':
-              setMessages(prev => [...prev, {
-                id: Date.now(),
-                from: data.from,
-                to: data.to,
-                message: data.message,
-                timestamp: data.timestamp || new Date().toISOString(),
-                fromName: data.fromName,
-                type: 'private'
-              }]);
-              break;
-            case 'group_message':
-              setMessages(prev => [...prev, {
-                id: Date.now(),
-                from: data.from,
-                groupId: data.group_id,
-                message: data.content,
-                timestamp: data.timestamp || new Date().toISOString(),
-                fromName: data.fromName,
-                type: 'group'
-              }]);
-              break;
-            case 'notification':
-              // Handle notifications
-              console.log('Notification received:', data);
-              break;
-            default:
-              console.log('Unknown message type:', data.type);
-          }
-        } catch (error) {
-          console.error('Error parsing WebSocket message:', error);
-        }
-      };
-
-      ws.onclose = (event) => {
-        console.log('WebSocket connection closed:', event.code, event.reason);
-        setConnected(false);
-        setSocket(null);
-        socketRef.current = null;
-        
-        // Attempt to reconnect after 3 seconds if it wasn't intentional
-        if (event.code !== 1000 && userId) {
-          setTimeout(() => {
-            console.log('Attempting to reconnect...');
-            connectWebSocket(userId);
-          }, 3000);
-        }
-      };
-
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        setConnected(false);
-      };
-
-    } catch (error) {
-      console.error('Failed to create WebSocket connection:', error);
+    // Clean up existing connection
+    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+      console.log('[useWebSocket] Closing existing connection');
+      socketRef.current.close();
     }
+
+    const url = `ws://localhost:8080/ws?user_id=${testUserId}`;
+    console.log('[useWebSocket] Attempting to connect to:', url);
+    
+    const newSocket = new WebSocket(url);
+    
+    newSocket.onopen = (event) => {
+      console.log('[useWebSocket] WebSocket connected successfully:', event);
+      console.log('[useWebSocket] Connection readyState:', newSocket.readyState);
+      console.log('[useWebSocket] Connection URL:', newSocket.url);
+      console.log('[useWebSocket] Connection protocol:', newSocket.protocol);
+      setConnected(true);
+      
+      // Send a test message immediately after connecting to keep connection alive
+      setTimeout(() => {
+        if (newSocket.readyState === WebSocket.OPEN) {
+          console.log('[useWebSocket] Sending keepalive ping...');
+          newSocket.send(JSON.stringify({ type: 'ping', from: testUserId }));
+        }
+      }, 100);
+    };
+    
+    newSocket.onclose = (event) => {
+      console.log('[useWebSocket] WebSocket closed. Code:', event.code, 'Reason:', event.reason, 'URL:', event.target?.url);
+      console.log('[useWebSocket] wasClean:', event.wasClean);
+      setConnected(false);
+      
+      // Don't auto-reconnect to prevent infinite loops
+      console.log('[useWebSocket] Auto-reconnect disabled');
+    };
+    
+    newSocket.onerror = (event) => {
+      console.error('[useWebSocket] WebSocket error:', event);
+      console.error('[useWebSocket] Error target:', event.target);
+      setConnected(false);
+    };
+
+    newSocket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log('[useWebSocket] Message received:', data);
+        setMessages(prev => [...prev, data]);
+      } catch (error) {
+        console.error('[useWebSocket] Failed to parse message:', error);
+      }
+    };
+
+    // Save socket to ref and state
+    socketRef.current = newSocket;
+    setSocket(newSocket);
   }, []);
 
   const sendMessage = useCallback((messageData) => {
-    if (socketRef.current && connected) {
+    console.log('[useWebSocket] Attempting to send message:', messageData);
+    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       try {
         socketRef.current.send(JSON.stringify(messageData));
+        console.log('[useWebSocket] Message sent successfully');
         return true;
       } catch (error) {
-        console.error('Failed to send message:', error);
+        console.error('[useWebSocket] Failed to send message:', error);
         return false;
       }
+    } else {
+      console.error('[useWebSocket] Cannot send message - WebSocket not connected');
+      return false;
     }
-    return false;
-  }, [connected]);
+  }, []);
 
   const disconnect = useCallback(() => {
+    console.log('[useWebSocket] Manual disconnect called');
     if (socketRef.current) {
       socketRef.current.close(1000, 'User initiated disconnect');
     }
@@ -118,16 +97,18 @@ export const useWebSocket = (userID) => {
 
   // Connect when userID is available
   useEffect(() => {
-    if (userID && !socketRef.current) {
+    if (userID && (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN)) {
+      console.log('[useWebSocket] Auto-connecting with userID:', userID);
       connectWebSocket(userID);
     }
     
     return () => {
-      if (socketRef.current) {
+      if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+        console.log('[useWebSocket] Cleanup: closing WebSocket');
         socketRef.current.close();
       }
     };
-  }, [userID, connectWebSocket]);
+  }, [userID]); // Remove connectWebSocket from deps to prevent loops
 
   return {
     socket,
@@ -136,6 +117,7 @@ export const useWebSocket = (userID) => {
     onlineUsers,
     sendMessage,
     disconnect,
+    connectWebSocket,
     reconnect: () => connectWebSocket(userID)
   };
 };
