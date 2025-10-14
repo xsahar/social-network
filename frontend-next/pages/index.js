@@ -1,7 +1,6 @@
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Layout from '../components/Layout';
 import Chat from '../components/Chat';
 import { useSession } from '../hooks/useSession';
 import { useWebSocketContext } from '../contexts/WebSocketContext';
@@ -9,7 +8,7 @@ import { useChat } from '../hooks/useChat';
 
 export default function MainPage() {
   const router = useRouter();
-  const { user, loading } = useSession();
+  const { user, loading, logout } = useSession();
   const { onlineUsers } = useWebSocketContext();
   const { chatOpen, chatWith, startChat, setChatOpen } = useChat();
 
@@ -25,7 +24,12 @@ export default function MainPage() {
     }
   }, [user, loading, router]);
 
-
+  const handleLogout = async () => {
+    const success = await logout();
+    if (success) {
+      router.push('/login');
+    }
+  };
 
   // Show loading while checking authentication
   if (loading) {
@@ -42,19 +46,36 @@ export default function MainPage() {
   }
 
   return (
-    <Layout>
+    <div className="layout-container">
       <Head>
         <title>Social Network - Dashboard</title>
       </Head>
       
-      <div className="dashboard-container">
-        {/* Main Dashboard Content */}
-        <div className="container">
-          <div className="dashboard-header">
-            <h1>Welcome back, {user.username}!</h1>
-            <p>Stay connected with your friends and discover what's happening.</p>
+      {/* Simple Header for Home Page Only */}
+      <nav className="navbar">
+        <div className="nav-container">
+          <div className="nav-logo">
+            <span style={{ cursor: 'default' }}>SocialNet</span>
           </div>
+          
+          <div className="nav-menu">
+            <div className="nav-user-menu">
+              <span className="nav-welcome">Welcome, {user.username}</span>
+              <button
+                onClick={handleLogout}
+                className="logout-btn"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
 
+      <main className="main-content">
+        <div className="dashboard-container">
+          {/* Main Dashboard Content */}
+          <div className="container">
           {/* Quick Actions */}
           <div className="dashboard-grid">
             <button 
@@ -84,46 +105,49 @@ export default function MainPage() {
 
           {/* Online Users Sidebar */}
           <div className="online-users-section">
-            <h2>Online Users ({onlineUsers.length})</h2>
-            {onlineUsers.length === 0 ? (
-              <p>No users online right now</p>
+            <h2>Online Users ({onlineUsers.filter(u => u.id !== user?.userID).length})</h2>
+            {onlineUsers.filter(u => u.id !== user?.userID).length === 0 ? (
+              <p>No other users online right now</p>
             ) : (
               <div className="online-users-list">
-                {onlineUsers.map((userData) => (
-                  <div 
-                    key={userData.id} 
-                    className="online-user-item"
-                  >
-                    <div className="user-info">
-                      <div className="user-avatar-small">
-                        <span>
-                          {userData.username?.charAt(0)?.toUpperCase() || 'U'}
-                        </span>
-                      </div>
-                      <span className="username">{userData.username}</span>
-                    </div>
-                    
-                    <button 
-                      onClick={() => startChat(userData)}
-                      className="chat-btn"
+                {onlineUsers
+                  .filter(u => u.id !== user?.userID)
+                  .map((userData) => (
+                    <div 
+                      key={userData.id} 
+                      className="online-user-item"
                     >
-                      Chat
-                    </button>
-                  </div>
-                ))}
+                      <div className="user-info">
+                        <div className="user-avatar-small">
+                          <span>
+                            {userData.username?.charAt(0)?.toUpperCase() || 'U'}
+                          </span>
+                        </div>
+                        <span className="username">{userData.username}</span>
+                      </div>
+                      
+                      <button 
+                        onClick={() => startChat(userData)}
+                        className="chat-btn"
+                      >
+                        Chat
+                      </button>
+                    </div>
+                  ))}
               </div>
             )}
           </div>
         </div>
-      </div>
+        </div>
 
-      {/* Chat Component */}
-      {chatOpen && chatWith && (
-        <Chat
-          targetUser={chatWith}
-          onClose={() => setChatOpen(false)}
-        />
-      )}
-    </Layout>
+        {/* Chat Component */}
+        {chatOpen && chatWith && (
+          <Chat
+            targetUser={chatWith}
+            onClose={() => setChatOpen(false)}
+          />
+        )}
+      </main>
+    </div>
   );
 }

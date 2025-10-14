@@ -382,19 +382,17 @@ export default function Groups() {
                 </div>
                 
                 {/* Card body with white background */}
-                <div className="group-info">
-                  <p className="group-description">{group.description}</p>
-                  <div className="group-meta">
-                    <span>
-                      {activeTab === 'invitations' 
-                        ? `Invited by ${group.inviter}` 
-                        : `Created by ${group.creator_name || group.creator || group.username}`}
-                    </span>
-                    {group.created_at && <span>{new Date(group.created_at).toLocaleDateString()}</span>}
-                  </div>
-                </div>
-                    
-                <div className="group-actions">
+                  <div className="group-info">
+                    <p className="group-description">{group.description}</p>
+                    <div className="group-meta">
+                      <span>
+                        {activeTab === 'invitations' 
+                          ? `Invited by ${group.inviter_name || group.inviter}` 
+                          : `Created by ${group.creator_name || group.creator || group.username}`}
+                      </span>
+                      {group.created_at && <span>{new Date(group.created_at).toLocaleDateString()}</span>}
+                    </div>
+                  </div>                <div className="group-actions">
                   {(() => {
                     // Handle different tab types
                     if (activeTab === 'pending') {

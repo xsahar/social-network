@@ -112,6 +112,7 @@ html {
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 1.5rem;
   margin-bottom: 2rem;
+  margin-top: 2rem;
 }
 
 .dashboard-card {
@@ -142,42 +143,45 @@ html {
 }
 
 .dashboard-card-blue {
-  background-color: #3b82f6;
+  background: linear-gradient(135deg, #4a76a8 0%, #5b8fc4 100%);
 }
 
 .dashboard-card-blue:hover {
-  background-color: #2563eb;
+  background: linear-gradient(135deg, #3d6290 0%, #4a76a8 100%);
 }
 
 .dashboard-card-green {
-  background-color: #10b981;
+  background: linear-gradient(135deg, #4a76a8 0%, #5b8fc4 100%);
 }
 
 .dashboard-card-green:hover {
-  background-color: #059669;
+  background: linear-gradient(135deg, #3d6290 0%, #4a76a8 100%);
 }
 
 .dashboard-card-purple {
-  background-color: #8b5cf6;
+  background: linear-gradient(135deg, #4a76a8 0%, #5b8fc4 100%);
 }
 
 .dashboard-card-purple:hover {
-  background-color: #7c3aed;
+  background: linear-gradient(135deg, #3d6290 0%, #4a76a8 100%);
 }
 
 /* Online Users Section */
 .online-users-section {
-  background-color: #f8f9fa;
-  border-radius: 8px;
+  background-color: white;
+  border-radius: 12px;
   padding: 1.5rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
 }
 
 .online-users-section h2 {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #333;
+  color: #4a76a8;
   margin-bottom: 1rem;
+  border-bottom: 2px solid #4a76a8;
+  padding-bottom: 0.5rem;
 }
 
 .online-users-section p {
@@ -196,10 +200,17 @@ html {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem;
-  background-color: white;
+  padding: 1rem;
+  background-color: #f9fafb;
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s ease;
+}
+
+.online-user-item:hover {
+  background-color: #f3f4f6;
+  border-color: #4a76a8;
+  transform: translateX(2px);
 }
 
 .online-user-item .user-info {
@@ -211,7 +222,7 @@ html {
 .user-avatar-small {
   width: 32px;
   height: 32px;
-  background-color: #10b981;
+  background: linear-gradient(135deg, #4a76a8 0%, #5b8fc4 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -221,12 +232,12 @@ html {
 .user-avatar-small span {
   color: white;
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .online-user-item .username {
   font-weight: 500;
-  color: #333;
+  color: #1f2937;
 }
 
 /* No Groups Message */
@@ -1770,12 +1781,21 @@ input[type="submit"]:active {
 }
 
 .chat-btn {
-    background-color: #2196F3;
+    background: linear-gradient(135deg, #4a76a8 0%, #5b8fc4 100%);
     color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    border: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
 }
 
 .chat-btn:hover {
-    background-color: #1976D2;
+    background: linear-gradient(135deg, #3d6290 0%, #4a76a8 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(74, 118, 168, 0.3);
 }
 
 .search-container {
