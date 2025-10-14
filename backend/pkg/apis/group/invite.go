@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
+	"socialnetwork/pkg/apis/chat"
 	u "socialnetwork/pkg/apis/user"
 	database "socialnetwork/pkg/db"
 )
@@ -61,12 +63,17 @@ func GetInvitableUsers(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Send response with proper structure
+	response := map[string]interface{}{
+		"users": users,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(users)
+	json.NewEncoder(w).Encode(response)
 }
 
 // SendBulkInvitations allows sending invitations to multiple users at once
-func SendBulkInvitations(db *sql.DB, w http.ResponseWriter, r *http.Request) {
+func SendBulkInvitations(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -201,6 +208,44 @@ func SendBulkInvitations(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 			fmt.Println("Error committing transaction:", err)
 			http.Error(w, "Failed to save invitations", http.StatusInternalServerError)
 			return
+		}
+
+		// Send WebSocket notifications to invited users
+		if hub != nil {
+			var inviterUsername string
+			db.QueryRow("SELECT username FROM users WHERE id = ?", inviterID).Scan(&inviterUsername)
+
+			for _, userID := range inviteData.UserIDs {
+				// Only notify successfully invited users
+				wasSuccessful := true
+				for _, failed := range failedInvitations {
+					if failed["user_id"] == userID {
+						wasSuccessful = false
+						break
+					}
+				}
+
+				if wasSuccessful {
+					notification := chat.Frontend{
+						Type:      "group_invitation",
+						From:      inviterID,
+						To:        userID,
+						Username:  inviterUsername,
+						GroupID:   inviteData.GroupID,
+						Content:   fmt.Sprintf("%s invited you to join a group", inviterUsername),
+						Timestamp: time.Now(),
+					}
+
+					hub.Mutex.RLock()
+					if client, ok := hub.Clients[userID]; ok {
+						select {
+						case client.Send <- notification:
+						default:
+						}
+					}
+					hub.Mutex.RUnlock()
+				}
+			}
 		}
 	} else {
 		if err := tx.Rollback(); err != nil {

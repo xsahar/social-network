@@ -273,14 +273,25 @@ export default function GroupDetails() {
     <Layout>
       <div className="group-details-container">
         <div className="group-header">
-          <h1 className="group-title">{group.title}</h1>
-          <p className="group-description">{group.description}</p>
-          <div className="group-meta">
-            <div className="group-meta-item">
-              <span className="group-meta-label">Members:</span> {group.member_count}
+          <div className="group-header-content">
+            <div className="group-title-section">
+              <h1 className="group-title">{group.title}</h1>
+              <span className="member-count-badge">{group.member_count} members</span>
             </div>
-            <div className="group-meta-item">
-              <span className="group-meta-label">Created by:</span> {group.creator_username}
+            <p className="group-description">{group.description}</p>
+            <div className="group-meta">
+              <div className="group-meta-item">
+                <span className="group-meta-icon">👤</span>
+                <span>Created by <strong>{group.creator || group.creator_username || 'Unknown'}</strong></span>
+              </div>
+              <div className="group-meta-item">
+                <span className="group-meta-icon">📅</span>
+                <span>{new Date(group.created_at).toLocaleDateString('en-US', { 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                })}</span>
+              </div>
             </div>
           </div>
         </div>

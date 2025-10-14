@@ -41,6 +41,8 @@ export default function Groups() {
           message.type === 'new_group_created' ||
           message.type === 'group_request' ||
           message.type === 'group_member_update' ||
+          message.type === 'group_member_left' ||
+          message.type === 'invitation_response' ||
           message.type === 'group_request_response') {
         console.log('[Groups] Refreshing group data...');
         fetchGroups();
@@ -98,6 +100,8 @@ export default function Groups() {
       });
       if (response.ok) {
         const data = await response.json();
+        console.log('[fetchInvitations] Received data:', data);
+        console.log('[fetchInvitations] Invitations array:', data?.invitations);
         setInvitations(data?.invitations || []);
       } else {
         console.error('Failed to fetch invitations:', response.status);
@@ -177,6 +181,10 @@ export default function Groups() {
   };
 
   const handleLeaveGroup = async (groupId) => {
+    if (!confirm('Are you sure you want to leave this group?')) {
+      return;
+    }
+
     try {
       const response = await fetch('/api/leave-group', {
         method: 'POST',
@@ -186,13 +194,18 @@ export default function Groups() {
       });
       
       if (response.ok) {
-        // Refresh data to get updated membership status
+        alert('Successfully left the group');
+        // Refresh all group data
         fetchGroups();
+        fetchUserGroups();
       } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to leave group');
         console.error('Failed to leave group:', response.status);
       }
     } catch (error) {
       console.error('Error leaving group:', error);
+      alert('Error leaving group');
     }
   };
 
@@ -354,11 +367,15 @@ export default function Groups() {
 
           {/* Groups List */}
           <div className="groups-grid">
-            {getCurrentGroups().map((group) => (
+            {getCurrentGroups().map((group) => {
+              if (activeTab === 'invitations') {
+                console.log('[Render] Invitation group:', group);
+              }
+              return (
               <div key={group.id} className="group-card">
                 {/* Header with gradient background */}
                 <div className="group-header">
-                  <h3>{group.title}</h3>
+                  <h3>{group.title || group.group_name}</h3>
                   {group.member_count !== undefined && (
                     <span className="member-count">{group.member_count || 0} members</span>
                   )}
@@ -368,7 +385,11 @@ export default function Groups() {
                 <div className="group-info">
                   <p className="group-description">{group.description}</p>
                   <div className="group-meta">
-                    <span>Created by {group.creator_name || group.creator || group.username}</span>
+                    <span>
+                      {activeTab === 'invitations' 
+                        ? `Invited by ${group.inviter}` 
+                        : `Created by ${group.creator_name || group.creator || group.username}`}
+                    </span>
                     {group.created_at && <span>{new Date(group.created_at).toLocaleDateString()}</span>}
                   </div>
                 </div>
@@ -398,6 +419,7 @@ export default function Groups() {
 
                     if (activeTab === 'invitations') {
                       // For invitations tab - show accept/decline buttons
+                      // Note: group.id here is actually the invitation ID from the invitations array
                       return (
                         <div className="invitation-actions">
                           <button
@@ -419,17 +441,27 @@ export default function Groups() {
                     // Regular group actions for 'all' and 'my' tabs
                     const isCreator = user?.userID === group.creator_id;
                     const membershipStatus = group.user_membership_status;
-                    const isMember = membershipStatus === 'accepted';
+                    
+                    // If we're in "My Groups" tab, user is always a member
+                    const isMember = activeTab === 'my' || membershipStatus === 'accepted';
                     const isPending = membershipStatus === 'pending';
 
                     if (isCreator) {
                       return (
-                        <button
-                          onClick={() => viewGroupDetails(group.id)}
-                          className="btn btn-primary"
-                        >
-                          Enter Group
-                        </button>
+                        <>
+                          <button
+                            onClick={() => viewGroupDetails(group.id)}
+                            className="btn btn-primary"
+                          >
+                            Enter Group
+                          </button>
+                          <button
+                            onClick={() => viewGroupDetails(group.id)}
+                            className="btn btn-secondary"
+                          >
+                            Manage Group
+                          </button>
+                        </>
                       );
                     } else if (isMember) {
                       return (
@@ -483,7 +515,8 @@ export default function Groups() {
                   })()}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
 
           {getCurrentGroups().length === 0 && (

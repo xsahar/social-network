@@ -232,7 +232,7 @@ func InviteUserToGroup(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 }
 
 // RespondToGroupInvitation handles accepting/declining group invitations
-func RespondToGroupInvitation(db *sql.DB, w http.ResponseWriter, r *http.Request) {
+func RespondToGroupInvitation(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -259,8 +259,17 @@ func RespondToGroupInvitation(db *sql.DB, w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// Get group ID and inviter ID before updating
+	var groupID, inviterID int
+	err := db.QueryRow("SELECT group_id, inviter_id FROM group_invitations WHERE id = ?", responseData.InvitationID).Scan(&groupID, &inviterID)
+	if err != nil {
+		fmt.Println("Error getting invitation details:", err)
+		http.Error(w, "Invitation not found", http.StatusNotFound)
+		return
+	}
+
 	// Update invitation status
-	err := database.UpdateGroupInvitationStatus(db, responseData.InvitationID, userID, responseData.Status)
+	err = database.UpdateGroupInvitationStatus(db, responseData.InvitationID, userID, responseData.Status)
 	if err != nil {
 		fmt.Println("Error updating invitation:", err)
 		http.Error(w, "Failed to respond to invitation", http.StatusInternalServerError)
@@ -269,18 +278,79 @@ func RespondToGroupInvitation(db *sql.DB, w http.ResponseWriter, r *http.Request
 
 	// If accepted, add user to group members
 	if responseData.Status == "accepted" {
-		groupID, err := database.GetGroupIDFromInvitation(db, responseData.InvitationID)
-		if err != nil {
-			fmt.Println("Error getting group ID:", err)
-			http.Error(w, "Failed to process invitation", http.StatusInternalServerError)
-			return
-		}
-
 		err = database.InsertGroupMember(db, groupID, userID, "accepted", false)
 		if err != nil {
 			fmt.Println("Error adding user to group:", err)
 			http.Error(w, "Failed to join group", http.StatusInternalServerError)
 			return
+		}
+	}
+
+	// Broadcast WebSocket notification
+	if hub != nil {
+		var username string
+		db.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
+
+		// Notify the user who responded
+		userNotif := chat.Frontend{
+			Type:      "invitation_response",
+			From:      userID,
+			To:        userID,
+			Username:  username,
+			GroupID:   groupID,
+			Content:   fmt.Sprintf("You %s the group invitation", responseData.Status),
+			Timestamp: time.Now(),
+		}
+
+		hub.Mutex.RLock()
+		if client, ok := hub.Clients[userID]; ok {
+			select {
+			case client.Send <- userNotif:
+			default:
+			}
+		}
+		hub.Mutex.RUnlock()
+
+		// Notify the inviter
+		inviterNotif := chat.Frontend{
+			Type:      "invitation_response",
+			From:      userID,
+			To:        inviterID,
+			Username:  username,
+			GroupID:   groupID,
+			Content:   fmt.Sprintf("%s %s your group invitation", username, responseData.Status),
+			Timestamp: time.Now(),
+		}
+
+		hub.Mutex.RLock()
+		if client, ok := hub.Clients[inviterID]; ok {
+			select {
+			case client.Send <- inviterNotif:
+			default:
+			}
+		}
+		hub.Mutex.RUnlock()
+
+		// If accepted, broadcast to all group members
+		if responseData.Status == "accepted" {
+			memberNotif := chat.Frontend{
+				Type:      "group_member_update",
+				From:      userID,
+				Username:  username,
+				GroupID:   groupID,
+				Content:   fmt.Sprintf("%s joined the group", username),
+				Timestamp: time.Now(),
+			}
+
+			// Broadcast to ALL connected users
+			hub.Mutex.RLock()
+			for _, client := range hub.Clients {
+				select {
+				case client.Send <- memberNotif:
+				default:
+				}
+			}
+			hub.Mutex.RUnlock()
 		}
 	}
 
@@ -389,6 +459,92 @@ func RequestToJoinGroup(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *htt
 	response := map[string]interface{}{
 		"success": true,
 		"message": "Join request sent successfully. Waiting for group admin approval.",
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// LeaveGroup handles a user leaving a group
+func LeaveGroup(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Validate session and get user ID
+	userID, loggedIn := u.ValidateSession(db, r)
+	if !loggedIn {
+		http.Error(w, "Unauthorized. Please log in.", http.StatusUnauthorized)
+		return
+	}
+
+	// Parse request body
+	var leaveData struct {
+		GroupID int `json:"group_id"`
+	}
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&leaveData); err != nil {
+		fmt.Println("JSON Decoding Error:", err)
+		http.Error(w, "Failed to parse JSON", http.StatusBadRequest)
+		return
+	}
+
+	// Check if user is the group creator
+	var creatorID int
+	err := db.QueryRow("SELECT creator_id FROM groups WHERE id = ?", leaveData.GroupID).Scan(&creatorID)
+	if err != nil {
+		fmt.Println("Error checking group creator:", err)
+		http.Error(w, "Group not found", http.StatusNotFound)
+		return
+	}
+
+	if creatorID == userID {
+		http.Error(w, "Group creator cannot leave the group", http.StatusForbidden)
+		return
+	}
+
+	// Remove user from group_members
+	result, err := db.Exec("DELETE FROM group_members WHERE group_id = ? AND user_id = ?", leaveData.GroupID, userID)
+	if err != nil {
+		fmt.Println("Error leaving group:", err)
+		http.Error(w, "Failed to leave group", http.StatusInternalServerError)
+		return
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		http.Error(w, "You are not a member of this group", http.StatusBadRequest)
+		return
+	}
+
+	// Broadcast WebSocket notification to all users
+	if hub != nil {
+		var username string
+		db.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
+
+		notification := chat.Frontend{
+			Type:      "group_member_left",
+			From:      userID,
+			Username:  username,
+			GroupID:   leaveData.GroupID,
+			Content:   fmt.Sprintf("%s left the group", username),
+			Timestamp: time.Now(),
+		}
+
+		// Broadcast to ALL connected users
+		hub.Mutex.RLock()
+		for _, client := range hub.Clients {
+			select {
+			case client.Send <- notification:
+			default:
+			}
+		}
+		hub.Mutex.RUnlock()
+	}
+
+	response := map[string]interface{}{
+		"success": true,
+		"message": "Successfully left the group",
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)

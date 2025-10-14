@@ -510,11 +510,15 @@ func ConnectWeb(db *sql.DB) {
 	}))
 
 	http.HandleFunc("/respond-group-invitation", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
-		g.RespondToGroupInvitation(db, w, r)
+		g.RespondToGroupInvitation(db, chatHub, w, r)
 	}))
 
 	http.HandleFunc("/request-join-group", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
 		g.RequestToJoinGroup(db, chatHub, w, r)
+	}))
+
+	http.HandleFunc("/leave-group", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
+		g.LeaveGroup(db, chatHub, w, r)
 	}))
 
 	http.HandleFunc("/get-group-invitations", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
@@ -526,7 +530,7 @@ func ConnectWeb(db *sql.DB) {
 	}))
 
 	http.HandleFunc("/send-bulk-invitations", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
-		g.SendBulkInvitations(db, w, r)
+		g.SendBulkInvitations(db, chatHub, w, r)
 	}))
 
 	http.HandleFunc("/get-sent-invitations", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
