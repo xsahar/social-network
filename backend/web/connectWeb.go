@@ -489,7 +489,7 @@ func ConnectWeb(db *sql.DB) {
 
 	// Group API endpoints
 	http.HandleFunc("/create-group", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
-		g.CreateGroup(db, w, r)
+		g.CreateGroup(db, chatHub, w, r)
 	}))
 
 	http.HandleFunc("/get-groups", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
@@ -514,7 +514,7 @@ func ConnectWeb(db *sql.DB) {
 	}))
 
 	http.HandleFunc("/request-join-group", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
-		g.RequestToJoinGroup(db, w, r)
+		g.RequestToJoinGroup(db, chatHub, w, r)
 	}))
 
 	http.HandleFunc("/get-group-invitations", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
@@ -547,7 +547,7 @@ func ConnectWeb(db *sql.DB) {
 	}))
 
 	http.HandleFunc("/respond-join-request", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
-		g.RespondToJoinRequest(db, w, r)
+		g.RespondToJoinRequest(db, chatHub, w, r)
 	}))
 
 	http.HandleFunc("/groups/create-post", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
@@ -555,11 +555,11 @@ func ConnectWeb(db *sql.DB) {
 	}))
 
 	http.HandleFunc("/groups/comments", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
-		g.AddGroupPostComment(db, w, r)
+		g.AddGroupPostComment(db, chatHub, w, r)
 	}))
 
 	http.HandleFunc("/groups/likes", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
-		g.ToggleGroupPostLike(db, w, r)
+		g.ToggleGroupPostLike(db, chatHub, w, r)
 	}))
 
 	http.HandleFunc("/groups/dislikes", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
@@ -800,6 +800,51 @@ func ConnectWeb(db *sql.DB) {
 				http.Error(w, "DB error", http.StatusInternalServerError)
 				return
 			}
+
+			// Get username for WebSocket broadcast
+			var username string
+			db.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
+
+			// Broadcast event vote update to all group members
+			voteNotification := chat.Frontend{
+				Type:      "event_vote_update",
+				From:      userID,
+				Username:  username,
+				GroupID:   groupID,
+				PostId:    eventID,
+				Content:   choice,
+				Timestamp: time.Now(),
+			}
+
+			// Get group member IDs
+			memberRows, err := db.Query(`
+				SELECT user_id 
+				FROM group_members 
+				WHERE group_id = ? AND status = 'accepted'
+			`, groupID)
+			if err == nil {
+				defer memberRows.Close()
+				var memberIDs []int
+				for memberRows.Next() {
+					var memberID int
+					if memberRows.Scan(&memberID) == nil {
+						memberIDs = append(memberIDs, memberID)
+					}
+				}
+
+				chatHub.Mutex.RLock()
+				for _, memberID := range memberIDs {
+					if client, ok := chatHub.Clients[memberID]; ok {
+						select {
+						case client.Send <- voteNotification:
+						default:
+							// Skip if buffer full
+						}
+					}
+				}
+				chatHub.Mutex.RUnlock()
+			}
+
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(map[string]any{"success": true})
 			return

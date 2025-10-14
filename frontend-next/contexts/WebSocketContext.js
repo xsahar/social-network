@@ -183,23 +183,25 @@ export const WebSocketProvider = ({ children, userID }) => {
     }
 
     // Check if already connected for this user
-    if (socketRef.current && 
-        (socketRef.current.readyState === WebSocket.OPEN || 
-         socketRef.current.readyState === WebSocket.CONNECTING)) {
-      console.log('[WebSocketProvider] Already connected, skipping');
-      return;
+    if (socketRef.current) {
+      const state = socketRef.current.readyState;
+      if (state === WebSocket.OPEN || state === WebSocket.CONNECTING) {
+        console.log('[WebSocketProvider] Already connected, skipping');
+        return;
+      }
     }
 
     console.log('[WebSocketProvider] Connecting for userID:', userID);
     connectWebSocket(userID);
     
     return () => {
+      // Only clear reconnect timeout, don't close connection on component updates
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
       }
     };
-  }, [userID]); // Remove connectWebSocket from deps to prevent re-runs
+  }, [userID, connectWebSocket]); // Keep connectWebSocket for initial connection only
 
   const value = {
     connected,

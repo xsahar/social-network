@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
+	"socialnetwork/pkg/apis/chat"
 	u "socialnetwork/pkg/apis/user"
 	database "socialnetwork/pkg/db"
 )
@@ -42,7 +44,7 @@ type RespondJoinRequestBody struct {
 	Status    string `json:"status"` // "accepted" or "declined"
 }
 
-func RespondToJoinRequest(db *sql.DB, w http.ResponseWriter, r *http.Request) {
+func RespondToJoinRequest(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -69,16 +71,77 @@ func RespondToJoinRequest(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Update the status
-	err := database.UpdateGroupMemberStatus(db, requestData.RequestID, adminUserID, requestData.Status)
+	// Get the user_id and group_id from the membership record before updating
+	var targetUserID, groupID int
+	err := db.QueryRow(`
+		SELECT gm.user_id, gm.group_id 
+		FROM group_members gm
+		JOIN groups g ON gm.group_id = g.id
+		WHERE gm.id = ? AND g.creator_id = ? AND gm.status = 'pending'
+	`, requestData.RequestID, adminUserID).Scan(&targetUserID, &groupID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			http.Error(w, "Not authorized or request not found", http.StatusForbidden)
 		} else {
-			fmt.Println("Error updating join request status:", err)
-			http.Error(w, "Failed to update join request", http.StatusInternalServerError)
+			fmt.Println("Error fetching request details:", err)
+			http.Error(w, "Failed to process request", http.StatusInternalServerError)
 		}
 		return
+	}
+
+	// Update the status
+	err = database.UpdateGroupMemberStatus(db, requestData.RequestID, adminUserID, requestData.Status)
+	if err != nil {
+		fmt.Println("Error updating join request status:", err)
+		http.Error(w, "Failed to update join request", http.StatusInternalServerError)
+		return
+	}
+
+	// Get admin username for WebSocket notification
+	var adminUsername string
+	db.QueryRow("SELECT username FROM users WHERE id = ?", adminUserID).Scan(&adminUsername)
+
+	// Broadcast notification to the user whose request was approved/declined
+	if hub != nil && targetUserID > 0 {
+		notification := chat.Frontend{
+			Type:      "group_request_response",
+			From:      adminUserID,
+			To:        targetUserID,
+			Username:  adminUsername,
+			GroupID:   groupID,
+			Content:   fmt.Sprintf("Your group join request has been %s", requestData.Status),
+			Timestamp: time.Now(),
+		}
+
+		hub.Mutex.RLock()
+		if client, ok := hub.Clients[targetUserID]; ok {
+			select {
+			case client.Send <- notification:
+			default:
+				// Skip if buffer full
+			}
+		}
+		hub.Mutex.RUnlock()
+
+		// Also notify the admin (refresh their pending list)
+		adminNotif := chat.Frontend{
+			Type:      "group_member_update",
+			From:      targetUserID,
+			To:        adminUserID,
+			Username:  adminUsername,
+			GroupID:   groupID,
+			Content:   fmt.Sprintf("Join request %s", requestData.Status),
+			Timestamp: time.Now(),
+		}
+
+		hub.Mutex.RLock()
+		if client, ok := hub.Clients[adminUserID]; ok {
+			select {
+			case client.Send <- adminNotif:
+			default:
+			}
+		}
+		hub.Mutex.RUnlock()
 	}
 
 	response := map[string]interface{}{

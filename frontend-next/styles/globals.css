@@ -1324,7 +1324,7 @@ input[type="submit"]:active {
     background: white;
     border: 1px solid #dddfe2;
     border-radius: 8px;
-    padding: 16px;
+    overflow: hidden;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
     transition: box-shadow 0.2s ease;
 }
@@ -1334,32 +1334,43 @@ input[type="submit"]:active {
 }
 
 .group-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 16px;
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 12px;
+    align-items: center;
+    margin-bottom: 0;
 }
 
 .group-header h3 {
     margin: 0;
-    color: #1c1e21;
-    font-size: 16px;
+    color: white;
+    font-size: 18px;
     font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .member-count {
-    background: #4267B2;
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(10px);
     color: white;
-    padding: 2px 8px;
-    border-radius: 4px;
+    padding: 4px 12px;
+    border-radius: 20px;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.group-info {
+    padding: 16px;
+    background: white;
 }
 
 .group-description {
     color: #657786;
     margin-bottom: 15px;
     line-height: 1.4;
+    font-size: 14px;
 }
 
 .group-meta {
@@ -1367,13 +1378,15 @@ input[type="submit"]:active {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 15px;
-    font-size: 14px;
+    font-size: 13px;
     color: #657786;
 }
 
 .group-actions {
     display: flex;
     gap: 10px;
+    padding: 0 16px 16px 16px;
+    background: white;
 }
 
 .group-actions .btn {
@@ -2322,31 +2335,35 @@ input[type="submit"]:active {
     background: white;
 }
 
-.group-header {
-    background: linear-gradient(135deg, #4267B2 0%, #365899 100%);
+.group-details-container .group-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     padding: 32px;
-    border-radius: 8px;
+    border-radius: 12px;
     margin-bottom: 32px;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 .group-title {
     font-size: 32px;
     font-weight: 700;
     margin-bottom: 16px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.group-description {
-    color: rgba(255, 255, 255, 0.9);
+.group-details-container .group-description {
+    color: rgba(255, 255, 255, 0.95);
     margin-bottom: 16px;
-    line-height: 1.5;
+    line-height: 1.6;
+    font-size: 16px;
 }
 
-.group-meta {
+.group-details-container .group-meta {
     display: flex;
     align-items: center;
     gap: 24px;
     font-size: 14px;
+    color: rgba(255, 255, 255, 0.9);
 }
 
 .group-meta-item {

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { useWebSocketContext } from '../contexts/WebSocketContext';
 
 export default function GroupPostsSection({ groupId, user }) {
   const [posts, setPosts] = useState([]);
@@ -7,6 +8,7 @@ export default function GroupPostsSection({ groupId, user }) {
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [newPost, setNewPost] = useState({ title: '', content: '' });
   const router = useRouter();
+  const { subscribe } = useWebSocketContext();
 
   // Debug log to check groupId
   console.log('GroupPostsSection received groupId:', groupId, 'type:', typeof groupId);
@@ -16,6 +18,30 @@ export default function GroupPostsSection({ groupId, user }) {
       fetchGroupPosts();
     }
   }, [groupId]);
+
+  // Listen for real-time post updates
+  useEffect(() => {
+    if (!user || !groupId) return;
+
+    const unsubscribe = subscribe((message) => {
+      console.log('[GroupPostsSection] Received WebSocket message:', message);
+      
+      if (message.group_id == groupId) {
+        if (message.type === 'new_groupPost') {
+          console.log('[GroupPostsSection] New group post detected, refreshing...');
+          fetchGroupPosts();
+        } else if (message.type === 'group_post_like_update') {
+          console.log('[GroupPostsSection] Post like update detected, refreshing...');
+          fetchGroupPosts();
+        } else if (message.type === 'group_post_comment') {
+          console.log('[GroupPostsSection] New comment detected, refreshing post list...');
+          fetchGroupPosts();
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user, groupId, subscribe]);
 
   const fetchGroupPosts = async () => {
     if (!groupId) return;

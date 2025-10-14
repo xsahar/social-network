@@ -35,10 +35,12 @@ export default function Posts() {
       
       if (response.ok) {
         const data = await response.json();
-        setPosts(data.posts || []);
+        // Handle null or undefined data gracefully
+        setPosts(data?.posts || []);
       }
     } catch (error) {
       console.error('Failed to fetch posts:', error);
+      setPosts([]); // Set empty array on error
     } finally {
       setLoading(false);
     }

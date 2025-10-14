@@ -3,10 +3,12 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Layout from '../components/Layout';
 import { useSession } from '../hooks/useSession';
+import { useWebSocketContext } from '../contexts/WebSocketContext';
 
 export default function Groups() {
   const { user, loading } = useSession();
   const router = useRouter();
+  const { subscribe } = useWebSocketContext();
   const [groups, setGroups] = useState([]);
   const [userGroups, setUserGroups] = useState([]);
   const [invitations, setInvitations] = useState([]);
@@ -24,6 +26,32 @@ export default function Groups() {
       fetchPendingApprovals();
     }
   }, [user?.userID]);
+
+  // Listen for real-time group updates
+  useEffect(() => {
+    if (!user) return;
+
+    const unsubscribe = subscribe((message) => {
+      console.log('[Groups] Received WebSocket message:', message);
+      
+      // Refresh group lists when relevant events occur
+      if (message.type === 'group_invitation' || 
+          message.type === 'group_join_request' ||
+          message.type === 'join_request_sent' ||
+          message.type === 'new_group_created' ||
+          message.type === 'group_request' ||
+          message.type === 'group_member_update' ||
+          message.type === 'group_request_response') {
+        console.log('[Groups] Refreshing group data...');
+        fetchGroups();
+        fetchUserGroups();
+        fetchInvitations();
+        fetchPendingApprovals();
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user, subscribe]);
 
   const fetchGroups = async () => {
     try {
@@ -328,13 +356,16 @@ export default function Groups() {
           <div className="groups-grid">
             {getCurrentGroups().map((group) => (
               <div key={group.id} className="group-card">
+                {/* Header with gradient background */}
+                <div className="group-header">
+                  <h3>{group.title}</h3>
+                  {group.member_count !== undefined && (
+                    <span className="member-count">{group.member_count || 0} members</span>
+                  )}
+                </div>
+                
+                {/* Card body with white background */}
                 <div className="group-info">
-                  <div className="group-header">
-                    <h3>{group.title}</h3>
-                    {group.member_count !== undefined && (
-                      <span className="member-count">{group.member_count || 0} members</span>
-                    )}
-                  </div>
                   <p className="group-description">{group.description}</p>
                   <div className="group-meta">
                     <span>Created by {group.creator_name || group.creator || group.username}</span>

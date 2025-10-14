@@ -28,8 +28,13 @@ export default function Comments() {
     if (!user || !postId) return;
 
     const unsubscribe = subscribe((message) => {
+      // Listen for both regular and group post comments
       if (message.type === 'new_comment' && message.post_id == postId) {
         // Refresh comments when a new comment is added to this post
+        fetchCommentsAndPost();
+      } else if (message.type === 'group_post_comment' && message.post_id == postId) {
+        // Refresh comments when a new group post comment is added
+        console.log('[Comments] Group post comment received, refreshing...');
         fetchCommentsAndPost();
       }
     });

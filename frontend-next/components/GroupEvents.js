@@ -1,16 +1,39 @@
 import { useState, useEffect } from 'react';
+import { useWebSocketContext } from '../contexts/WebSocketContext';
 
-export default function GroupEvents({ groupId }) {
+export default function GroupEvents({ groupId, user }) {
   const [events, setEvents] = useState([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [newEvent, setNewEvent] = useState({ title: '', description: '' });
+  const { subscribe } = useWebSocketContext();
 
   useEffect(() => {
     if (groupId) {
       fetchGroupEvents();
     }
   }, [groupId]);
+
+  // Listen for real-time event updates
+  useEffect(() => {
+    if (!user || !groupId) return;
+
+    const unsubscribe = subscribe((message) => {
+      console.log('[GroupEvents] Received WebSocket message:', message);
+      
+      if (message.group_id == groupId) {
+        if (message.type === 'new_groupEvent') {
+          console.log('[GroupEvents] New group event detected, refreshing...');
+          fetchGroupEvents();
+        } else if (message.type === 'event_vote_update') {
+          console.log('[GroupEvents] Event vote update detected, refreshing...');
+          fetchGroupEvents();
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user, groupId, subscribe]);
 
   const fetchGroupEvents = async () => {
     if (!groupId) return;

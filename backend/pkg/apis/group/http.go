@@ -17,7 +17,7 @@ import (
 )
 
 // CreateGroup handles group creation
-func CreateGroup(db *sql.DB, w http.ResponseWriter, r *http.Request) {
+func CreateGroup(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -59,6 +59,33 @@ func CreateGroup(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Error adding creator as group admin:", err)
 		http.Error(w, "Failed to add creator to group", http.StatusInternalServerError)
 		return
+	}
+
+	// Get username for WebSocket broadcast
+	var username string
+	db.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
+
+	// Broadcast new group creation notification to ALL online users
+	if hub != nil {
+		notification := chat.Frontend{
+			Type:      "new_group_created",
+			From:      userID,
+			Username:  username,
+			GroupID:   int(groupID),
+			Content:   groupData.Title,
+			Timestamp: time.Now(),
+		}
+
+		// Broadcast to ALL connected users so everyone sees the new group
+		hub.Mutex.RLock()
+		for _, client := range hub.Clients {
+			select {
+			case client.Send <- notification:
+			default:
+				// Skip if buffer full
+			}
+		}
+		hub.Mutex.RUnlock()
 	}
 
 	// Send success response
@@ -266,7 +293,7 @@ func RespondToGroupInvitation(db *sql.DB, w http.ResponseWriter, r *http.Request
 }
 
 // RequestToJoinGroup handles join requests
-func RequestToJoinGroup(db *sql.DB, w http.ResponseWriter, r *http.Request) {
+func RequestToJoinGroup(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -308,6 +335,9 @@ func RequestToJoinGroup(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Failed to send join request", http.StatusInternalServerError)
 			return
 		}
+
+		// Broadcast join request notification
+		sendJoinRequestNotification(db, hub, userID, joinData.GroupID)
 
 		// Success response
 		response := map[string]interface{}{
@@ -353,12 +383,68 @@ func RequestToJoinGroup(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Broadcast join request notification
+	sendJoinRequestNotification(db, hub, userID, joinData.GroupID)
+
 	response := map[string]interface{}{
 		"success": true,
 		"message": "Join request sent successfully. Waiting for group admin approval.",
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
+}
+
+// sendJoinRequestNotification broadcasts WebSocket notification for join requests
+func sendJoinRequestNotification(db *sql.DB, hub *chat.Hub, userID int, groupID int) {
+	if hub == nil {
+		return
+	}
+
+	// Get username and group creator
+	var username string
+	var creatorID int
+	db.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
+	db.QueryRow("SELECT creator_id FROM groups WHERE id = ?", groupID).Scan(&creatorID)
+
+	// Notify the requesting user
+	userNotif := chat.Frontend{
+		Type:      "join_request_sent",
+		From:      userID,
+		To:        userID,
+		Username:  username,
+		GroupID:   groupID,
+		Content:   "Join request pending approval",
+		Timestamp: time.Now(),
+	}
+
+	hub.Mutex.RLock()
+	if client, ok := hub.Clients[userID]; ok {
+		select {
+		case client.Send <- userNotif:
+		default:
+		}
+	}
+	hub.Mutex.RUnlock()
+
+	// Notify the group admin/creator
+	adminNotif := chat.Frontend{
+		Type:      "group_join_request",
+		From:      userID,
+		To:        creatorID,
+		Username:  username,
+		GroupID:   groupID,
+		Content:   fmt.Sprintf("%s requested to join your group", username),
+		Timestamp: time.Now(),
+	}
+
+	hub.Mutex.RLock()
+	if client, ok := hub.Clients[creatorID]; ok {
+		select {
+		case client.Send <- adminNotif:
+		default:
+		}
+	}
+	hub.Mutex.RUnlock()
 }
 
 // GetUserGroups returns groups where user is a member
@@ -483,7 +569,7 @@ func HandleGetGroupPostComments(db *sql.DB, w http.ResponseWriter, r *http.Reque
 	_ = json.NewEncoder(w).Encode(comments)
 }
 
-func ToggleGroupPostLike(db *sql.DB, w http.ResponseWriter, r *http.Request) {
+func ToggleGroupPostLike(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost && r.Method != http.MethodDelete {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -524,11 +610,44 @@ func ToggleGroupPostLike(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+
+	// Get username for WebSocket broadcast
+	var username string
+	db.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
+
+	// Broadcast like update to all group members
+	if hub != nil {
+		likeNotification := chat.Frontend{
+			Type:      "group_post_like_update",
+			From:      userID,
+			Username:  username,
+			GroupID:   groupID,
+			PostId:    postID,
+			Timestamp: time.Now(),
+		}
+
+		// Get group member IDs
+		memberIDs, err := getGroupMemberIDs(db, groupID)
+		if err == nil {
+			hub.Mutex.RLock()
+			for _, memberID := range memberIDs {
+				if client, ok := hub.Clients[memberID]; ok {
+					select {
+					case client.Send <- likeNotification:
+					default:
+						// Skip if buffer full
+					}
+				}
+			}
+			hub.Mutex.RUnlock()
+		}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]any{"success": true})
 }
 
-func AddGroupPostComment(db *sql.DB, w http.ResponseWriter, r *http.Request) {
+func AddGroupPostComment(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -595,6 +714,36 @@ func AddGroupPostComment(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 
 	var username string
 	_ = db.QueryRow(`SELECT username FROM users WHERE id=?`, userID).Scan(&username)
+
+	// Broadcast comment notification to all group members
+	if hub != nil {
+		commentNotification := chat.Frontend{
+			Type:      "group_post_comment",
+			From:      userID,
+			Username:  username,
+			GroupID:   groupID,
+			PostId:    groupPostID,
+			CommentId: int(commentID),
+			Content:   content,
+			Timestamp: time.Now(),
+		}
+
+		// Get group member IDs
+		memberIDs, err := getGroupMemberIDs(db, groupID)
+		if err == nil {
+			hub.Mutex.RLock()
+			for _, memberID := range memberIDs {
+				if client, ok := hub.Clients[memberID]; ok {
+					select {
+					case client.Send <- commentNotification:
+					default:
+						// Skip if buffer full
+					}
+				}
+			}
+			hub.Mutex.RUnlock()
+		}
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)

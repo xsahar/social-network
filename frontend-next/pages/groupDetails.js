@@ -192,14 +192,11 @@ export default function GroupDetails() {
       console.log('[GroupDetails] WebSocket message:', message);
       
       if (message.group_id == id) {
+        // Don't refresh entire group for posts/events - let child components handle it
         if (message.type === 'new_groupPost') {
-          console.log('New group post received, refreshing...');
-          // Refresh group details to get new post
-          fetchGroupDetails(id);
+          console.log('New group post received (handled by GroupPostsSection)');
         } else if (message.type === 'new_groupEvent') {
-          console.log('New group event received, refreshing...');
-          // Refresh group details to get new event
-          fetchGroupDetails(id);
+          console.log('New group event received (handled by GroupEvents)');
         }
       }
     });
