@@ -250,15 +250,17 @@ func GetUserGroups(db *sql.DB, userID int) ([]map[string]interface{}, error) {
 // GetUserGroupInvitations returns pending invitations for a user
 func GetUserGroupInvitations(db *sql.DB, userID int) ([]map[string]interface{}, error) {
 	query := `
-		SELECT gi.id, gi.group_id, gi.inviter_id, gi.created_at, g.title, u.username
+		SELECT gi.id, gi.group_id, gi.inviter_id, gi.status, gi.created_at, g.title, u.username
 		FROM group_invitations gi
 		JOIN groups g ON gi.group_id = g.id
 		JOIN users u ON gi.inviter_id = u.id
 		WHERE gi.invitee_id = ? AND gi.status = 'pending'
 		ORDER BY gi.created_at DESC`
 
+	fmt.Printf("[GetUserGroupInvitations] Querying for userID: %d\n", userID)
 	rows, err := db.Query(query, userID)
 	if err != nil {
+		fmt.Printf("[GetUserGroupInvitations] Query error: %v\n", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -266,25 +268,29 @@ func GetUserGroupInvitations(db *sql.DB, userID int) ([]map[string]interface{}, 
 	var invitations []map[string]interface{}
 	for rows.Next() {
 		var id, groupID, inviterID int
-		var groupTitle, inviter string
+		var groupTitle, inviterName, status string
 		var createdAt time.Time
 
-		err := rows.Scan(&id, &groupID, &inviterID, &createdAt, &groupTitle, &inviter)
+		err := rows.Scan(&id, &groupID, &inviterID, &status, &createdAt, &groupTitle, &inviterName)
 		if err != nil {
+			fmt.Printf("[GetUserGroupInvitations] Scan error: %v\n", err)
 			return nil, err
 		}
 
 		invitation := map[string]interface{}{
-			"id":         id,
-			"group_id":   groupID,
-			"inviter_id": inviterID,
-			"group_name": groupTitle,
-			"inviter":    inviter,
-			"created_at": createdAt.Format("2006-01-02 15:04:05"),
+			"id":           id,
+			"group_id":     groupID,
+			"inviter_id":   inviterID,
+			"status":       status,
+			"group_name":   groupTitle,
+			"inviter_name": inviterName,
+			"created_at":   createdAt.Format("2006-01-02 15:04:05"),
 		}
+		fmt.Printf("[GetUserGroupInvitations] Found invitation: %+v\n", invitation)
 		invitations = append(invitations, invitation)
 	}
 
+	fmt.Printf("[GetUserGroupInvitations] Returning %d invitations\n", len(invitations))
 	return invitations, nil
 }
 

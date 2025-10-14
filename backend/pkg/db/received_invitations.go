@@ -13,7 +13,7 @@ func GetReceivedInvitations(db *sql.DB, userID int) ([]map[string]interface{}, e
 		FROM group_invitations gi
 		JOIN groups g ON gi.group_id = g.id
 		JOIN users u ON gi.inviter_id = u.id
-		WHERE gi.invitee_id = ?
+		WHERE gi.invitee_id = ? AND gi.status = 'pending'
 		ORDER BY gi.created_at DESC
 	`
 
