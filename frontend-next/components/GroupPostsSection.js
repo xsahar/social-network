@@ -7,6 +7,7 @@ export default function GroupPostsSection({ groupId, user }) {
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [newPost, setNewPost] = useState({ title: '', content: '' });
+  const [postImage, setPostImage] = useState(null);
   const router = useRouter();
   const { subscribe } = useWebSocketContext();
 
@@ -92,10 +93,16 @@ export default function GroupPostsSection({ groupId, user }) {
       formData.append('title', newPost.title.trim());
       formData.append('content', newPost.content.trim());
       
+      // Add image if selected
+      if (postImage) {
+        formData.append('imgOrgif', postImage);
+      }
+      
       console.log('Creating post with groupId:', groupId, 'FormData:', {
         group_id: groupId.toString(),
         title: newPost.title.trim(),
-        content: newPost.content.trim()
+        content: newPost.content.trim(),
+        hasImage: !!postImage
       });
 
       // Debug: Log FormData entries
@@ -112,6 +119,7 @@ export default function GroupPostsSection({ groupId, user }) {
       if (response.ok) {
         setShowCreatePost(false);
         setNewPost({ title: '', content: '' });
+        setPostImage(null);
         fetchGroupPosts(); // Refresh posts
         alert('Post created successfully!');
       } else {
@@ -183,6 +191,33 @@ export default function GroupPostsSection({ groupId, user }) {
                   placeholder="Share your thoughts with the group..."
                   required
                 />
+              </div>
+              
+              {/* Image Upload */}
+              <div className="form-group">
+                <label>Add Image or GIF (Optional)</label>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/gif"
+                  onChange={(e) => setPostImage(e.target.files[0])}
+                />
+                {postImage && (
+                  <div className="image-preview">
+                    <img
+                      src={URL.createObjectURL(postImage)}
+                      alt="Preview"
+                      style={{ maxWidth: '200px', marginTop: '10px', borderRadius: '8px' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setPostImage(null)}
+                      className="btn btn-secondary"
+                      style={{ marginTop: '10px' }}
+                    >
+                      Remove Image
+                    </button>
+                  </div>
+                )}
               </div>
               
               <div className="form-group">

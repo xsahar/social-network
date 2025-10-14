@@ -2,27 +2,27 @@ package database
 
 import (
 	"database/sql"
+	"os"
+	"path/filepath"
 	"time"
-    "path/filepath"
-    "os"
 )
-
 
 func getOrCreateCategoryIDTx(tx *sql.Tx, name string) (int, error) {
 	var id int
 	err := tx.QueryRow(`SELECT id FROM categories WHERE LOWER(name)=LOWER(?)`, name).Scan(&id)
 	if err == sql.ErrNoRows {
 		res, err := tx.Exec(`INSERT INTO categories (name) VALUES (?)`, name)
-		if err != nil { return 0, err }
+		if err != nil {
+			return 0, err
+		}
 		lastID, _ := res.LastInsertId()
 		return int(lastID), nil
 	}
 	return id, err
 }
 
-
 func GetGroupPosts(db *sql.DB, groupID, viewerID int) ([]map[string]interface{}, error) {
-    rows, err := db.Query(`
+	rows, err := db.Query(`
         SELECT gp.id, gp.group_id, gp.user_id, gp.title, gp.content, gp.created_at,
                gp.imgOrgif,                        -- NEW
                u.username,
@@ -47,119 +47,124 @@ func GetGroupPosts(db *sql.DB, groupID, viewerID int) ([]map[string]interface{},
           )
         ORDER BY gp.created_at DESC
     `, viewerID, viewerID, groupID, viewerID)
-    if err != nil { return nil, err }
-    defer rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
-    var out []map[string]interface{}
-    for rows.Next() {
-        var (
-            id, gid, uid              int
-            likeCount, dislikeCount   int
-            commentCount              int
-            isLikedInt, isDislikedInt int
-            title, content, username  string
-            createdAt                 time.Time
-            imgOrgif                  sql.NullString // NEW
-        )
-        if err := rows.Scan(
-            &id, &gid, &uid, &title, &content, &createdAt,
-            &imgOrgif, // NEW
-            &username, &likeCount, &dislikeCount, &commentCount, &isLikedInt, &isDislikedInt,
-        ); err != nil {
-            return nil, err
-        }
+	var out []map[string]interface{}
+	for rows.Next() {
+		var (
+			id, gid, uid              int
+			likeCount, dislikeCount   int
+			commentCount              int
+			isLikedInt, isDislikedInt int
+			title, content, username  string
+			createdAt                 time.Time
+			imgOrgif                  sql.NullString // NEW
+		)
+		if err := rows.Scan(
+			&id, &gid, &uid, &title, &content, &createdAt,
+			&imgOrgif, // NEW
+			&username, &likeCount, &dislikeCount, &commentCount, &isLikedInt, &isDislikedInt,
+		); err != nil {
+			return nil, err
+		}
 
-        // categories
-        crows, err := db.Query(`
+		// categories
+		crows, err := db.Query(`
             SELECT c.name
             FROM group_post_categories gpc
             JOIN categories c ON c.id = gpc.category_id
             WHERE gpc.group_post_id = ?`, id)
-        if err != nil { return nil, err }
-        var cats []string
-        for crows.Next() {
-            var n string
-            _ = crows.Scan(&n)
-            cats = append(cats, n)
-        }
-        crows.Close()
+		if err != nil {
+			return nil, err
+		}
+		var cats []string
+		for crows.Next() {
+			var n string
+			_ = crows.Scan(&n)
+			cats = append(cats, n)
+		}
+		crows.Close()
 
-        out = append(out, map[string]interface{}{
-            "id":             id,
-            "group_id":       gid,
-            "user_id":        uid,
-            "title":          title,
-            "content":        content,
-            "created_at":     createdAt.Format("2006-01-02 15:04:05"),
-            "username":       username,
-            "categories":     cats,
-            "imgOrgif":      imgOrgif.String,            // ← include image/GIF URL
-            "like_count":     likeCount,
-            "dislike_count":  dislikeCount,            // ← now present
-            "comment_count":  commentCount,
-            "is_liked":       isLikedInt == 1,
-            "is_disliked":    isDislikedInt == 1,      // ← now present
-        })
-    }
-    return out, rows.Err()
+		out = append(out, map[string]interface{}{
+			"id":            id,
+			"group_id":      gid,
+			"user_id":       uid,
+			"title":         title,
+			"content":       content,
+			"created_at":    createdAt.Format("2006-01-02 15:04:05"),
+			"username":      username,
+			"categories":    cats,
+			"imgOrgif":      imgOrgif.String, // ← include image/GIF URL
+			"image":         imgOrgif.String, // ← alias for frontend compatibility
+			"like_count":    likeCount,
+			"dislike_count": dislikeCount, // ← now present
+			"comment_count": commentCount,
+			"is_liked":      isLikedInt == 1,
+			"is_disliked":   isDislikedInt == 1, // ← now present
+		})
+	}
+	return out, rows.Err()
 }
 
-
 func GetGroupPostComments(db *sql.DB, groupPostID int) ([]map[string]interface{}, error) {
-    rows, err := db.Query(`
+	rows, err := db.Query(`
         SELECT c.id, c.group_post_id, c.user_id, c.content, c.created_at, c.imgOrgif, u.username
         FROM group_post_comments c
         JOIN users u ON u.id = c.user_id
         WHERE c.group_post_id = ?
         ORDER BY c.created_at ASC
     `, groupPostID)
-    if err != nil { return nil, err }
-    defer rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
-    var out []map[string]interface{}
-    for rows.Next() {
-        var (
-            id, gid, uid    int
-            content, username string
-            createdAt        time.Time
-            imgOrgif         sql.NullString // NEW
-        )
-        if err := rows.Scan(&id, &gid, &uid, &content, &createdAt, &imgOrgif, &username); err != nil {
-            return nil, err
-        }
-        out = append(out, map[string]interface{}{
-            "id":            id,
-            "group_post_id": gid,
-            "user_id":       uid,
-            "content":       content,
-            "imgOrgif":      imgOrgif.String, 
-            "created_at":    createdAt.Format("2006-01-02 15:04:05"),
-            "username":      username,
-        })
-    }
-    return out, rows.Err()
+	var out []map[string]interface{}
+	for rows.Next() {
+		var (
+			id, gid, uid      int
+			content, username string
+			createdAt         time.Time
+			imgOrgif          sql.NullString // NEW
+		)
+		if err := rows.Scan(&id, &gid, &uid, &content, &createdAt, &imgOrgif, &username); err != nil {
+			return nil, err
+		}
+		out = append(out, map[string]interface{}{
+			"id":            id,
+			"group_post_id": gid,
+			"user_id":       uid,
+			"content":       content,
+			"imgOrgif":      imgOrgif.String,
+			"image":         imgOrgif.String, // alias for frontend compatibility
+			"created_at":    createdAt.Format("2006-01-02 15:04:05"),
+			"username":      username,
+		})
+	}
+	return out, rows.Err()
 }
-
 
 func InsertGroupPostComment(db *sql.DB, groupPostID, userID int, content, imgOrgif string) (int64, time.Time, error) {
-    query := `INSERT INTO group_post_comments (group_post_id, user_id, content, imgOrgif) VALUES (?, ?, ?, ?)`
-    result, err := db.Exec(query, groupPostID, userID, content, imgOrgif)
-    if err != nil {
-        return -1, time.Time{}, err
-    }
-    id, err := result.LastInsertId()
-    if err != nil {
-        return -1, time.Time{}, err
-    }
-    var createdAt time.Time
-    query = `SELECT created_at FROM group_post_comments WHERE id = ?`
-    err = db.QueryRow(query, id).Scan(&createdAt)
-    if err != nil {
-        return -1, time.Time{}, err
-    }
-    return id, createdAt, nil
+	query := `INSERT INTO group_post_comments (group_post_id, user_id, content, imgOrgif) VALUES (?, ?, ?, ?)`
+	result, err := db.Exec(query, groupPostID, userID, content, imgOrgif)
+	if err != nil {
+		return -1, time.Time{}, err
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return -1, time.Time{}, err
+	}
+	var createdAt time.Time
+	query = `SELECT created_at FROM group_post_comments WHERE id = ?`
+	err = db.QueryRow(query, id).Scan(&createdAt)
+	if err != nil {
+		return -1, time.Time{}, err
+	}
+	return id, createdAt, nil
 }
-
 
 func GetGroupPostOwnerAndGroup(db *sql.DB, postID int) (groupID int, ownerID int, err error) {
 	err = db.QueryRow(`SELECT group_id, user_id FROM group_posts WHERE id=?`, postID).Scan(&groupID, &ownerID)
@@ -180,8 +185,14 @@ func IsGroupAdmin(db *sql.DB, groupID, userID int) (bool, error) {
 
 func DeleteGroupPost(db *sql.DB, postID int) error {
 	tx, err := db.Begin()
-	if err != nil { return err }
-	defer func() { if err != nil { _ = tx.Rollback() } }()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
 
 	// 1) Get image path (if any) before deleting
 	var imgPath sql.NullString
@@ -190,17 +201,28 @@ func DeleteGroupPost(db *sql.DB, postID int) error {
 	}
 
 	// 2) Delete children first (if you don’t have ON DELETE CASCADE)
-	if _, err = tx.Exec(`DELETE FROM group_post_likes     WHERE group_post_id=?`, postID); err != nil { return err }
-	if _, err = tx.Exec(`DELETE FROM group_post_dislikes  WHERE group_post_id=?`, postID); err != nil { return err }
-	if _, err = tx.Exec(`DELETE FROM group_post_comments  WHERE group_post_id=?`, postID); err != nil { return err }
-	if _, err = tx.Exec(`DELETE FROM group_post_categories WHERE group_post_id=?`, postID); err != nil { return err }
+	if _, err = tx.Exec(`DELETE FROM group_post_likes     WHERE group_post_id=?`, postID); err != nil {
+		return err
+	}
+	if _, err = tx.Exec(`DELETE FROM group_post_dislikes  WHERE group_post_id=?`, postID); err != nil {
+		return err
+	}
+	if _, err = tx.Exec(`DELETE FROM group_post_comments  WHERE group_post_id=?`, postID); err != nil {
+		return err
+	}
+	if _, err = tx.Exec(`DELETE FROM group_post_categories WHERE group_post_id=?`, postID); err != nil {
+		return err
+	}
 
 	// 3) Delete the post
-	if _, err = tx.Exec(`DELETE FROM group_posts WHERE id=?`, postID); err != nil { return err }
+	if _, err = tx.Exec(`DELETE FROM group_posts WHERE id=?`, postID); err != nil {
+		return err
+	}
 
 	// 4) Commit DB work before touching filesystem
-	if err = tx.Commit(); err != nil { return err }
-
+	if err = tx.Commit(); err != nil {
+		return err
+	}
 
 	if imgPath.Valid && imgPath.String != "" {
 		publicRoot := "../frontend-next/public"
@@ -212,22 +234,22 @@ func DeleteGroupPost(db *sql.DB, postID int) error {
 }
 
 func InsertGroupPost(db *sql.DB, groupID int, userID int, title, content, imgOrgif string) (int64, time.Time, error) {
-    query := `INSERT INTO group_posts (group_id, user_id, title, content, imgOrgif) VALUES (?, ?, ?, ?, ?)`
-    result, err := db.Exec(query, groupID, userID, title, content, imgOrgif)
-    if err != nil {
-        return -1, time.Time{}, err
-    }
-    id, err := result.LastInsertId()
-    if err != nil {
-        return -1, time.Time{}, err
-    }
-    var createdAt time.Time
-    query = `SELECT created_at FROM group_posts WHERE id = ?`
-    err = db.QueryRow(query, id).Scan(&createdAt)
-    if err != nil {
-        return -1, time.Time{}, err
-    }
-    return id, createdAt, nil
+	query := `INSERT INTO group_posts (group_id, user_id, title, content, imgOrgif) VALUES (?, ?, ?, ?, ?)`
+	result, err := db.Exec(query, groupID, userID, title, content, imgOrgif)
+	if err != nil {
+		return -1, time.Time{}, err
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return -1, time.Time{}, err
+	}
+	var createdAt time.Time
+	query = `SELECT created_at FROM group_posts WHERE id = ?`
+	err = db.QueryRow(query, id).Scan(&createdAt)
+	if err != nil {
+		return -1, time.Time{}, err
+	}
+	return id, createdAt, nil
 }
 
 func AddGroupPostCategory(db *sql.DB, groupPostID, categoryID int) error {
@@ -235,30 +257,31 @@ func AddGroupPostCategory(db *sql.DB, groupPostID, categoryID int) error {
 		groupPostID, categoryID)
 	return err
 }
+
 func AddGroupPostLike(db *sql.DB, groupPostID, userID int) error {
-    if _, err := db.Exec(`DELETE FROM group_post_dislikes WHERE group_post_id=? AND user_id=?`, groupPostID, userID); err != nil {
-        return err
-    }
-    _, err := db.Exec(`INSERT OR IGNORE INTO group_post_likes (group_post_id, user_id) VALUES (?, ?)`, groupPostID, userID)
-    return err
+	if _, err := db.Exec(`DELETE FROM group_post_dislikes WHERE group_post_id=? AND user_id=?`, groupPostID, userID); err != nil {
+		return err
+	}
+	_, err := db.Exec(`INSERT OR IGNORE INTO group_post_likes (group_post_id, user_id) VALUES (?, ?)`, groupPostID, userID)
+	return err
 }
 
 func RemoveGroupPostLike(db *sql.DB, groupPostID, userID int) error {
-    _, err := db.Exec(`DELETE FROM group_post_likes WHERE group_post_id = ? AND user_id = ?`,
-        groupPostID, userID)
-    return err
+	_, err := db.Exec(`DELETE FROM group_post_likes WHERE group_post_id = ? AND user_id = ?`,
+		groupPostID, userID)
+	return err
 }
 
 func AddGroupPostDislike(db *sql.DB, groupPostID, userID int) error {
-    if _, err := db.Exec(`DELETE FROM group_post_likes WHERE group_post_id=? AND user_id=?`, groupPostID, userID); err != nil {
-        return err
-    }
-    _, err := db.Exec(`INSERT OR IGNORE INTO group_post_dislikes (group_post_id, user_id) VALUES (?, ?)`, groupPostID, userID)
-    return err
+	if _, err := db.Exec(`DELETE FROM group_post_likes WHERE group_post_id=? AND user_id=?`, groupPostID, userID); err != nil {
+		return err
+	}
+	_, err := db.Exec(`INSERT OR IGNORE INTO group_post_dislikes (group_post_id, user_id) VALUES (?, ?)`, groupPostID, userID)
+	return err
 }
 
 func RemoveGroupPostDislike(db *sql.DB, groupPostID, userID int) error {
-    _, err := db.Exec(`DELETE FROM group_post_dislikes WHERE group_post_id = ? AND user_id = ?`,
-        groupPostID, userID)
-    return err
+	_, err := db.Exec(`DELETE FROM group_post_dislikes WHERE group_post_id = ? AND user_id = ?`,
+		groupPostID, userID)
+	return err
 }
