@@ -55,21 +55,30 @@ func GetPosts(db *sql.DB, w http.ResponseWriter, r *http.Request) {
             -- User's own posts (can always see own posts)
             p.user_id = ?
             OR
-            -- Almost private posts (only followers can see)
+            -- Almost private posts (only mutual followers can see - both must follow each other)
             (COALESCE(p.privacy_level, 0) = 1 AND EXISTS (
                 SELECT 1 FROM userFollow 
                 WHERE follower_id = ? AND following_id = p.user_id
+            ) AND EXISTS (
+                SELECT 1 FROM userFollow 
+                WHERE follower_id = p.user_id AND following_id = ?
             ))
             OR
-            -- Private posts (only selected followers can see)
+            -- Private posts (only selected followers with mutual follow can see)
             (COALESCE(p.privacy_level, 0) = 2 AND EXISTS (
                 SELECT 1 FROM post_permissions 
                 WHERE post_id = p.id AND user_id = ?
+            ) AND EXISTS (
+                SELECT 1 FROM userFollow 
+                WHERE follower_id = ? AND following_id = p.user_id
+            ) AND EXISTS (
+                SELECT 1 FROM userFollow 
+                WHERE follower_id = p.user_id AND following_id = ?
             ))
         ORDER BY p.created_at DESC
     `
 
-	rows, err := db.Query(query, userID, userID, userID)
+	rows, err := db.Query(query, userID, userID, userID, userID, userID, userID)
 	if err != nil {
 		fmt.Println("Error retrieving posts:", err)
 		http.Error(w, "Failed to retrieve posts", http.StatusInternalServerError)
@@ -117,6 +126,7 @@ func GetPosts(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 			"privacy_level":  privacyLevel,
 			"privacy_text":   privacyText,
 			"imgOrgif":       imgOrgif,
+			"image":          imgOrgif, // Alias for frontend compatibility
 			"categories":     categories,
 			"likes_count":    likesCount,
 			"dislikes_count": dislikesCount,
@@ -204,6 +214,7 @@ func GetPublicPosts(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 			"title":      title,
 			"content":    content,
 			"imgOrgif":   imgOrgif,
+			"image":      imgOrgif, // Alias for frontend compatibility
 			"categories": categories,
 			"createdAt":  createdAt.Format("2006-01-02 15:04:05"),
 		}
@@ -251,17 +262,26 @@ func GetProfilePosts(db *sql.DB, w http.ResponseWriter, r *http.Request, usernam
           AND (
                COALESCE(p.privacy_level,0) = 0                         -- public
             OR (? > 0 AND ? = p.user_id)                               -- viewer is owner
-            OR (COALESCE(p.privacy_level,0) = 1 AND EXISTS (           -- followers-only
+            OR (COALESCE(p.privacy_level,0) = 1 AND EXISTS (           -- followers-only (mutual follow required)
                  SELECT 1 FROM userFollow f
                  WHERE f.follower_id = ? AND f.following_id = p.user_id
+            ) AND EXISTS (
+                 SELECT 1 FROM userFollow f
+                 WHERE f.follower_id = p.user_id AND f.following_id = ?
             ))
-            OR (COALESCE(p.privacy_level,0) = 2 AND EXISTS (           -- explicit permission
+            OR (COALESCE(p.privacy_level,0) = 2 AND EXISTS (           -- explicit permission with mutual follow
                  SELECT 1 FROM post_permissions pp
                  WHERE pp.post_id = p.id AND pp.user_id = ?
+            ) AND EXISTS (
+                 SELECT 1 FROM userFollow f
+                 WHERE f.follower_id = ? AND f.following_id = p.user_id
+            ) AND EXISTS (
+                 SELECT 1 FROM userFollow f
+                 WHERE f.follower_id = p.user_id AND f.following_id = ?
             ))
           )
         ORDER BY p.created_at DESC
-    `, profileUserID, viewerID, viewerID, viewerID, viewerID)
+    `, profileUserID, viewerID, viewerID, viewerID, viewerID, viewerID, viewerID, viewerID)
 	if err != nil {
 		fmt.Println("Error retrieving profile posts:", err)
 		http.Error(w, "Failed to retrieve posts", http.StatusInternalServerError)
@@ -287,7 +307,7 @@ func GetProfilePosts(db *sql.DB, w http.ResponseWriter, r *http.Request, usernam
 		posts = append(posts, map[string]any{
 			"id": postID, "username": username, "title": title, "content": content,
 			"privacy_level": privacyLevel, "privacy_text": privacyText,
-			"imgOrgif": imgOrgif, "categories": categories,
+			"imgOrgif": imgOrgif, "image": imgOrgif, "categories": categories,
 			"likes_count": likesCount, "dislikes_count": dislikesCount,
 			"createdAt": createdAt.Format("2006-01-02 15:04:05"),
 		})

@@ -38,7 +38,16 @@ export default async function handler(req, res) {
       headers: headers,
     });
     
-    const data = await response.json();
+    // Try to parse as JSON, fall back to text if it fails
+    let data;
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      // Backend returned plain text (likely an error)
+      const text = await response.text();
+      data = { error: text, success: false };
+    }
     
     // Forward any set-cookie headers from the backend
     const setCookieHeader = response.headers.get('set-cookie');

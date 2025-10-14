@@ -24,6 +24,7 @@ type Comment struct {
 	Username  string    `json:"username"`
 	Content   string    `json:"content"`
 	ImgOrGif  string    `json:"imgOrgif"`
+	Image     string    `json:"image"` // Alias for frontend compatibility
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -201,6 +202,7 @@ ORDER BY c.created_at ASC
 			fmt.Println("Row Scanning Error:", err)
 			return nil, err
 		}
+		cmt.Image = cmt.ImgOrGif // Set alias for frontend compatibility
 		fmt.Println("Comment Image:", cmt.ImgOrGif)
 		comments = append(comments, cmt)
 		fmt.Println((comments))

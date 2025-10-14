@@ -276,17 +276,35 @@ export default function CreatePost() {
 
             <div>
               <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-2">
-                Image (Optional)
+                Image or GIF (Optional)
               </label>
-                            <input
+              <input
                 type="file"
                 id="image"
                 name="image"
-                accept="image/*"
+                accept="image/jpeg,image/jpg,image/png,image/gif"
                 onChange={handleChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
               />
-              <p className="text-xs text-gray-500 mt-1">Supports JPEG, PNG, and GIF formats</p>
+              <p className="text-xs text-gray-500 mt-1">Supports JPEG, PNG, and GIF formats (max 10MB)</p>
+              
+              {/* Image Preview */}
+              {formData.image && (
+                <div className="mt-3 relative inline-block">
+                  <img 
+                    src={URL.createObjectURL(formData.image)} 
+                    alt="Preview" 
+                    className="max-w-xs max-h-48 rounded-lg border border-gray-300"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setFormData({...formData, image: null})}
+                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
             </div>
 
             {error && (

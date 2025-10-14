@@ -14,6 +14,7 @@ export default function Comments() {
   const [post, setPost] = useState(null);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
+  const [commentImage, setCommentImage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -103,6 +104,9 @@ export default function Comments() {
         formData.append('group_id', groupId);
         formData.append('group_post_id', postId);
         formData.append('content', newComment.trim());
+        if (commentImage) {
+          formData.append('imgOrgif', commentImage);
+        }
         
         response = await fetch('http://localhost:8080/groups/comments', {
           method: 'POST',
@@ -110,22 +114,24 @@ export default function Comments() {
           credentials: 'include'
         });
       } else {
-        // Regular posts
+        // Regular posts - use FormData for image support
+        const formData = new FormData();
+        formData.append('post_id', postId);
+        formData.append('comment', newComment.trim());
+        if (commentImage) {
+          formData.append('imgOrgif', commentImage);
+        }
+
         response = await fetch('/api/comment', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            postId: parseInt(postId),
-            content: newComment.trim()
-          }),
+          body: formData,
           credentials: 'include'
         });
       }
 
       if (response.ok) {
         setNewComment('');
+        setCommentImage(null);
         fetchCommentsAndPost(); // Refresh comments
       } else {
         console.error('Failed to post comment');
@@ -219,6 +225,39 @@ export default function Comments() {
               rows={3}
               required
             />
+            
+            {/* Image Upload */}
+            <div className="mt-3">
+              <label htmlFor="comment-image" className="block text-sm font-medium text-gray-700 mb-2">
+                Add Image or GIF (Optional)
+              </label>
+              <input
+                type="file"
+                id="comment-image"
+                accept="image/jpeg,image/jpg,image/png,image/gif"
+                onChange={(e) => setCommentImage(e.target.files[0])}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              />
+              
+              {/* Image Preview */}
+              {commentImage && (
+                <div className="mt-2 relative inline-block">
+                  <img 
+                    src={URL.createObjectURL(commentImage)} 
+                    alt="Preview" 
+                    className="max-w-xs max-h-32 rounded-lg border border-gray-300"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setCommentImage(null)}
+                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 text-lg leading-none"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+            </div>
+            
             <div className="comment-form-actions">
               <button
                 type="submit"
@@ -257,6 +296,15 @@ export default function Comments() {
                   </div>
                 </div>
                 <p className="comment-content">{comment.content}</p>
+                
+                {/* Display comment image if exists */}
+                {comment.image && (
+                  <img
+                    src={comment.image}
+                    alt="Comment image"
+                    className="comment-image mt-2 max-w-md rounded-lg border border-gray-200"
+                  />
+                )}
               </div>
             ))
           )}
