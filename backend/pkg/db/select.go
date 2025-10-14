@@ -327,9 +327,8 @@ func GetPostIfLiked(db *sql.DB, userID int) ([]map[string]interface{}, error) {
 	return posts, nil
 }
 
-
 func GetUserFollowers(db *sql.DB, userID int) ([]map[string]interface{}, error) {
-    query := `
+	query := `
         SELECT u.id, u.username, u.email
         FROM users u
         JOIN userFollow f ON u.id = f.follower_id
@@ -337,80 +336,80 @@ func GetUserFollowers(db *sql.DB, userID int) ([]map[string]interface{}, error) 
         ORDER BY u.username
     `
 
-    rows, err := db.Query(query, userID)
-    if err != nil {
-        return nil, fmt.Errorf("failed to get followers: %w", err)
-    }
-    defer rows.Close()
+	rows, err := db.Query(query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get followers: %w", err)
+	}
+	defer rows.Close()
 
-    var followers []map[string]interface{}
-    for rows.Next() {
-        var id int
-        var username, email string
+	var followers []map[string]interface{}
+	for rows.Next() {
+		var id int
+		var username, email string
 
-        err := rows.Scan(&id, &username, &email)
-        if err != nil {
-            return nil, fmt.Errorf("failed to scan follower: %w", err)
-        }
+		err := rows.Scan(&id, &username, &email)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan follower: %w", err)
+		}
 
-        follower := map[string]interface{}{
-            "id":       id,
-            "username": username,
-            "email":    email,
-        }
+		follower := map[string]interface{}{
+			"id":       id,
+			"username": username,
+			"email":    email,
+		}
 
-        followers = append(followers, follower)
-    }
+		followers = append(followers, follower)
+	}
 
-    return followers, nil
+	return followers, nil
 }
 
 func CheckUserCanSeePost(db *sql.DB, postID, viewerID int) (bool, error) {
-    query := `
+	query := `
         SELECT p.privacy_level, p.user_id
         FROM posts p
         WHERE p.id = ?
     `
-    
-    var privacyLevel, authorID int
-    err := db.QueryRow(query, postID).Scan(&privacyLevel, &authorID)
-    if err != nil {
-        return false, fmt.Errorf("failed to get post privacy: %w", err)
-    }
 
-    // If it's the author's own post
-    if authorID == viewerID {
-        return true, nil
-    }
+	var privacyLevel, authorID int
+	err := db.QueryRow(query, postID).Scan(&privacyLevel, &authorID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get post privacy: %w", err)
+	}
 
-    // If it's public
-    if privacyLevel == 0 {
-        return true, nil
-    }
+	// If it's the author's own post
+	if authorID == viewerID {
+		return true, nil
+	}
 
-    if privacyLevel == 1 {
-        var count int
-        err := db.QueryRow(`
+	// If it's public
+	if privacyLevel == 0 {
+		return true, nil
+	}
+
+	if privacyLevel == 1 {
+		var count int
+		err := db.QueryRow(`
             SELECT COUNT(*) FROM userFollow 
-            WHERE follower_id = ? AND following_id = ? AND status = 'accepted'
+            WHERE follower_id = ? AND following_id = ?
         `, viewerID, authorID).Scan(&count)
-        if err != nil {
-            return false, err
-        }
-        return count > 0, nil
-    }
+		if err != nil {
+			return false, err
+		}
+		return count > 0, nil
+	}
 
-    if privacyLevel == 2 {
-        var count int
-        err := db.QueryRow(`
+	if privacyLevel == 2 {
+		var count int
+		err := db.QueryRow(`
             SELECT COUNT(*) FROM post_permissions 
             WHERE post_id = ? AND user_id = ?
         `, postID, viewerID).Scan(&count)
-        if err != nil {
-            return false, err
-        }
-        return count > 0, nil
-    }
+		if err != nil {
+			return false, err
+		}
+		return count > 0, nil
+	}
 
-    return false, nil
+	return false, nil
 }

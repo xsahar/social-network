@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Layout from '../components/Layout';
@@ -10,8 +10,10 @@ export default function CreatePost() {
     content: '',
     category: '',
     privacy: 'public',
-    image: null
+    image: null,
+    selectedFollowers: []
   });
+  const [followers, setFollowers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { user, loading: sessionLoading } = useSession();
@@ -19,10 +21,31 @@ export default function CreatePost() {
 
   const categories = ['Travel', 'Sport', 'Food', 'Nature'];
   const privacyOptions = [
-    { value: 'public', label: 'Public - Everyone can see' },
-    { value: 'almost-private', label: 'Almost Private - Only followers' },
-    { value: 'private', label: 'Private - Selected followers only' }
+    { value: 'public', label: 'Public', description: 'Everyone can see' },
+    { value: 'almost-private', label: 'Almost Private', description: 'Only followers' },
+    { value: 'private', label: 'Private', description: 'Selected followers only' }
   ];
+
+  // Fetch followers when privacy is set to private
+  useEffect(() => {
+    if (formData.privacy === 'private') {
+      fetchFollowers();
+    }
+  }, [formData.privacy]);
+
+  const fetchFollowers = async () => {
+    try {
+      const response = await fetch('/api/user-followers', {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setFollowers(data.followers || []);
+      }
+    } catch (error) {
+      console.error('Error fetching followers:', error);
+    }
+  };
 
   const handleChange = (e) => {
     if (e.target.type === 'file') {
@@ -38,19 +61,48 @@ export default function CreatePost() {
     }
   };
 
+  const handleFollowerToggle = (followerId) => {
+    setFormData(prev => {
+      const selected = prev.selectedFollowers.includes(followerId)
+        ? prev.selectedFollowers.filter(id => id !== followerId)
+        : [...prev.selectedFollowers, followerId];
+      return { ...prev, selectedFollowers: selected };
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+
+    // Validate private post has selected followers
+    if (formData.privacy === 'private' && formData.selectedFollowers.length === 0) {
+      setError('Please select at least one follower for private posts');
+      setLoading(false);
+      return;
+    }
 
     try {
       const formDataToSend = new FormData();
       formDataToSend.append('title', formData.title);
       formDataToSend.append('content', formData.content);
       formDataToSend.append('category', formData.category);
-      formDataToSend.append('privacy', formData.privacy);
+      
+      // Convert privacy to numeric level
+      let privacyLevel = 0;
+      if (formData.privacy === 'almost-private') privacyLevel = 1;
+      if (formData.privacy === 'private') privacyLevel = 2;
+      formDataToSend.append('privacy_level', privacyLevel);
+
+      // Add selected followers for private posts
+      if (formData.privacy === 'private') {
+        formData.selectedFollowers.forEach(id => {
+          formDataToSend.append('selected_followers', id);
+        });
+      }
+
       if (formData.image) {
-        formDataToSend.append('image', formData.image);
+        formDataToSend.append('imgOrgif', formData.image);
       }
 
       const response = await fetch('/api/create-post', {
@@ -155,26 +207,72 @@ export default function CreatePost() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
                 Privacy Setting *
               </label>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {privacyOptions.map((option) => (
-                  <label key={option.value} className="flex items-center">
-                                        <input
+                  <label key={option.value} className="flex items-start p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                    <input
                       type="radio"
                       id={option.value}
                       name="privacy"
                       value={option.value}
                       checked={formData.privacy === option.value}
                       onChange={handleChange}
-                      className="mr-2 text-blue-600 focus:ring-blue-500"
+                      className="mt-1 mr-3 text-blue-600 focus:ring-blue-500"
                     />
-                    <span className="text-sm text-gray-700">{option.label}</span>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-900">{option.label}</div>
+                      <div className="text-xs text-gray-500">{option.description}</div>
+                    </div>
                   </label>
                 ))}
               </div>
             </div>
+
+            {/* Follower Selector for Private Posts */}
+            {formData.privacy === 'private' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Followers * (Choose who can see this post)
+                </label>
+                <div className="border border-gray-300 rounded-lg p-4 max-h-60 overflow-y-auto">
+                  {followers.length === 0 ? (
+                    <p className="text-sm text-gray-500 text-center py-4">
+                      You have no followers yet. Set post to "Almost Private" to allow future followers to see it.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {followers.map((follower) => (
+                        <label 
+                          key={follower.id} 
+                          className="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={formData.selectedFollowers.includes(follower.id)}
+                            onChange={() => handleFollowerToggle(follower.id)}
+                            className="mr-3 text-blue-600 focus:ring-blue-500"
+                          />
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium text-sm">
+                              {follower.username?.charAt(0).toUpperCase()}
+                            </div>
+                            <span className="text-sm text-gray-900">{follower.username}</span>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {formData.selectedFollowers.length > 0 && (
+                  <p className="text-xs text-gray-600 mt-2">
+                    {formData.selectedFollowers.length} follower(s) selected
+                  </p>
+                )}
+              </div>
+            )}
 
             <div>
               <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-2">
