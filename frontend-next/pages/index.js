@@ -1,16 +1,13 @@
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Chat from '../components/Chat';
 import { useSession } from '../hooks/useSession';
 import { useWebSocketContext } from '../contexts/WebSocketContext';
-import { useChat } from '../hooks/useChat';
 
 export default function MainPage() {
   const router = useRouter();
   const { user, loading, logout } = useSession();
   const { onlineUsers } = useWebSocketContext();
-  const { chatOpen, chatWith, startChat, setChatOpen } = useChat();
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -125,13 +122,6 @@ export default function MainPage() {
                         </div>
                         <span className="username">{userData.username}</span>
                       </div>
-                      
-                      <button 
-                        onClick={() => startChat(userData)}
-                        className="chat-btn"
-                      >
-                        Chat
-                      </button>
                     </div>
                   ))}
               </div>
@@ -139,14 +129,6 @@ export default function MainPage() {
           </div>
         </div>
         </div>
-
-        {/* Chat Component */}
-        {chatOpen && chatWith && (
-          <Chat
-            targetUser={chatWith}
-            onClose={() => setChatOpen(false)}
-          />
-        )}
       </main>
     </div>
   );

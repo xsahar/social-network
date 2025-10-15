@@ -10,25 +10,16 @@ import { useChat } from '../hooks/useChat';
 export default function Posts() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [followingUsers, setFollowingUsers] = useState([]);
   const { user, loading: sessionLoading } = useSession();
   const { onlineUsers, subscribe } = useWebSocketContext();
   const { chatOpen, chatWith, startChat, setChatOpen } = useChat();
   const router = useRouter();
 
-  const handleCategoryClick = (value) => {
-    setSelectedCategory(value);
-    router.push(`/posts?category=${value}`);
-  };
-
-  const fetchPosts = async (category = '') => {
+  const fetchPosts = async () => {
     try {
       setLoading(true);
-      const url = category 
-        ? `/api/posts?category=${category}`
-        : '/api/posts';
-      
-      const response = await fetch(url, {
+      const response = await fetch('/api/posts', {
         method: 'GET',
         credentials: 'include'
       });
@@ -43,6 +34,23 @@ export default function Posts() {
       setPosts([]); // Set empty array on error
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchFollowingUsers = async () => {
+    try {
+      const response = await fetch('/api/user-followers', {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setFollowingUsers(data?.following || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch following users:', error);
+      setFollowingUsers([]);
     }
   };
 
@@ -115,7 +123,7 @@ export default function Posts() {
 
       if (response.ok) {
         // Refresh posts to get updated like count
-        fetchPosts(selectedCategory);
+        fetchPosts();
       }
     } catch (error) {
       console.error('Failed to like post:', error);
@@ -138,7 +146,7 @@ export default function Posts() {
 
       if (response.ok) {
         // Refresh posts to get updated dislike count
-        fetchPosts(selectedCategory);
+        fetchPosts();
       }
     } catch (error) {
       console.error('Failed to dislike post:', error);
@@ -146,14 +154,9 @@ export default function Posts() {
   };
 
   useEffect(() => {
-    const { category } = router.query;
-    if (category) {
-      setSelectedCategory(category);
-      fetchPosts(category);
-    } else {
-      fetchPosts();
-    }
-  }, [router.query]);
+    fetchPosts();
+    fetchFollowingUsers();
+  }, []);
 
 
 
@@ -174,44 +177,6 @@ export default function Posts() {
       </Head>
       
       <div className="posts-layout">
-        {/* Left Sidebar - Categories */}
-        <div className="sidebar-post left-sidebar">
-          <h2>Filter Posts</h2>
-          
-          <div className="category-list">
-            <button 
-              onClick={() => handleCategoryClick('')}
-              className={`button-side ${selectedCategory === '' ? 'active' : ''}`}
-            >
-              All Posts
-            </button>
-            {['Travel', 'Sport', 'Food', 'Nature'].map((category) => (
-              <button 
-                key={category} 
-                className={`button-side ${selectedCategory === category ? 'active' : ''}`}
-                onClick={() => handleCategoryClick(category)}
-              >
-                {category}
-              </button>
-            ))}
-          </div>
-          
-          <div className="sidebar-actions">
-            <button 
-              className="button-side"
-              onClick={() => router.push('/myProfile')}
-            >
-              My Profile
-            </button>
-            <button 
-              className="button-side"
-              onClick={() => router.push('/createPost')}
-            >
-              Create Post
-            </button>
-          </div>
-        </div>
-
         {/* Main Content */}
         <div className="posts-main-content">
           <div className="posts-header">
@@ -232,9 +197,7 @@ export default function Posts() {
             ) : posts.length === 0 ? (
               <div className="no-posts-message">
                 <p>No posts found</p>
-                {selectedCategory && (
-                  <p>Try selecting a different category or create a new post</p>
-                )}
+                <p>Try creating a new post</p>
               </div>
             ) : (
               posts.map((post) => (
@@ -300,31 +263,40 @@ export default function Posts() {
           </div>
         </div>
 
-        {/* Right Sidebar - Online Users */}
+        {/* Right Sidebar - Chat with Following Users */}
         {user && (
           <div className="w-64 bg-white rounded-lg shadow-lg p-6 h-fit">
             <h3 className="text-lg font-semibold mb-4 text-gray-800">
-              Online Users ({onlineUsers.length})
+              Chat ({followingUsers.length})
             </h3>
             <div className="space-y-2">
-              {onlineUsers.length > 0 ? (
-                onlineUsers.map((user, index) => (
-                  <div key={index} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                      <span className="text-sm text-gray-700">{user.username}</span>
+              {followingUsers.length > 0 ? (
+                followingUsers.map((followingUser) => {
+                  const isOnline = onlineUsers.some(u => u.id === followingUser.id);
+                  return (
+                    <div key={followingUser.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
+                      <div className="flex items-center space-x-2">
+                        {isOnline && (
+                          <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                        )}
+                        {!isOnline && (
+                          <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                        )}
+                        <span className="text-sm text-gray-700">{followingUser.username}</span>
+                      </div>
+                      <button
+                        onClick={() => startChat(followingUser)}
+                        className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                      >
+                        Chat
+                      </button>
                     </div>
-                    <button
-                      onClick={() => startChat(user)}
-                      className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                    >
-                      Chat
-                    </button>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="text-center text-gray-500 py-4">
-                  <p className="text-sm">No users online</p>
+                  <p className="text-sm">No users to chat with</p>
+                  <p className="text-xs mt-1">Follow users to start chatting</p>
                 </div>
               )}
             </div>

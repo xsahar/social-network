@@ -53,7 +53,7 @@ func FollowUser(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 		_, err = db.Exec(`
 			INSERT OR IGNORE INTO follow_requests (requester_id, target_id, status) 
 			VALUES (?, ?, 'pending')`, followerID, targetID)
-		
+
 		if err != nil {
 			http.Error(w, "Failed to send follow request", http.StatusInternalServerError)
 			return
@@ -201,13 +201,14 @@ func GetAllUsers(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 
 	// Get search parameter
 	searchQuery := r.URL.Query().Get("search")
-	
+
 	var query string
 	var args []interface{}
 
 	if searchQuery != "" {
 		query = `
-			SELECT u.id, u.username, u.firstname, u.lastname, u.avatar_url, u.isPrivate,
+			SELECT u.id, u.username, u.firstname, u.lastname, u.email, u.date_of_birth, 
+			       u.nickname, u.bio, u.avatar_url, u.isPrivate,
 			       CASE WHEN uf.following_id IS NOT NULL THEN 1 ELSE 0 END as is_following,
 			       CASE WHEN fr.id IS NOT NULL THEN fr.status ELSE NULL END as request_status
 			FROM users u
@@ -215,12 +216,13 @@ func GetAllUsers(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 			LEFT JOIN follow_requests fr ON u.id = fr.target_id AND fr.requester_id = ? AND fr.status = 'pending'
 			WHERE u.id != ? AND (u.username LIKE ? OR u.firstname LIKE ? OR u.lastname LIKE ?)
 			ORDER BY u.firstname, u.lastname`
-		
+
 		searchPattern := "%" + searchQuery + "%"
 		args = []interface{}{currentUserID, currentUserID, currentUserID, searchPattern, searchPattern, searchPattern}
 	} else {
 		query = `
-			SELECT u.id, u.username, u.firstname, u.lastname, u.avatar_url, u.isPrivate,
+			SELECT u.id, u.username, u.firstname, u.lastname, u.email, u.date_of_birth,
+			       u.nickname, u.bio, u.avatar_url, u.isPrivate,
 			       CASE WHEN uf.following_id IS NOT NULL THEN 1 ELSE 0 END as is_following,
 			       CASE WHEN fr.id IS NOT NULL THEN fr.status ELSE NULL END as request_status
 			FROM users u
@@ -228,7 +230,7 @@ func GetAllUsers(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 			LEFT JOIN follow_requests fr ON u.id = fr.target_id AND fr.requester_id = ? AND fr.status = 'pending'
 			WHERE u.id != ?
 			ORDER BY u.firstname, u.lastname`
-		
+
 		args = []interface{}{currentUserID, currentUserID, currentUserID}
 	}
 
@@ -246,13 +248,19 @@ func GetAllUsers(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 			Username      string         `json:"username"`
 			Fname         string         `json:"firstname"`
 			Lname         string         `json:"lastname"`
+			Email         sql.NullString `json:"email"`
+			DateOfBirth   sql.NullString `json:"date_of_birth"`
+			Nickname      sql.NullString `json:"nickname"`
+			Bio           sql.NullString `json:"bio"`
 			Avatar        string         `json:"avatar"`
 			IsPrivate     bool           `json:"isPrivate"`
 			IsFollowing   bool           `json:"isFollowing"`
 			RequestStatus sql.NullString `json:"requestStatus"`
 		}
 
-		err := rows.Scan(&user.ID, &user.Username, &user.Fname, &user.Lname, &user.Avatar, &user.IsPrivate, &user.IsFollowing, &user.RequestStatus)
+		err := rows.Scan(&user.ID, &user.Username, &user.Fname, &user.Lname,
+			&user.Email, &user.DateOfBirth, &user.Nickname, &user.Bio,
+			&user.Avatar, &user.IsPrivate, &user.IsFollowing, &user.RequestStatus)
 		if err != nil {
 			continue
 		}
@@ -265,6 +273,22 @@ func GetAllUsers(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 			"avatar":      user.Avatar,
 			"isPrivate":   user.IsPrivate,
 			"isFollowing": user.IsFollowing,
+		}
+
+		// Only include detailed info if user has public profile OR current user is following them
+		if !user.IsPrivate || user.IsFollowing {
+			if user.Email.Valid {
+				userMap["email"] = user.Email.String
+			}
+			if user.DateOfBirth.Valid {
+				userMap["dateOfBirth"] = user.DateOfBirth.String
+			}
+			if user.Nickname.Valid && user.Nickname.String != "" {
+				userMap["nickname"] = user.Nickname.String
+			}
+			if user.Bio.Valid && user.Bio.String != "" {
+				userMap["bio"] = user.Bio.String
+			}
 		}
 
 		if user.RequestStatus.Valid {

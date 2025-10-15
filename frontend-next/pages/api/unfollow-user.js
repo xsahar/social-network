@@ -15,7 +15,20 @@ export default async function handler(req, res) {
       body: JSON.stringify(req.body),
     });
     
-    const data = await response.json();
+    // Get response text first to check if it's valid JSON
+    const responseText = await response.text();
+    let data;
+    
+    try {
+      data = JSON.parse(responseText);
+    } catch (jsonError) {
+      // If not JSON, treat the text as a message
+      console.log('Unfollow user response (plain text):', responseText);
+      data = { 
+        message: responseText,
+        success: response.ok
+      };
+    }
     
     // Forward any set-cookie headers from the backend
     const setCookieHeader = response.headers.get('set-cookie');
