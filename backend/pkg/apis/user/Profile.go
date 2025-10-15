@@ -126,17 +126,19 @@ func GetProfileHandler(db *sql.DB, w http.ResponseWriter, r *http.Request, usern
 func UpdateProfileHandler(db *sql.DB, w http.ResponseWriter, r *http.Request, currentUsername string) {
 	// Handle both JSON and multipart form data
 	contentType := r.Header.Get("Content-Type")
-	
+	fmt.Println("[UpdateProfile] Content-Type:", contentType)
+
 	var formValues map[string]string
-	
+
 	if strings.Contains(contentType, "application/json") {
 		// Parse JSON request
+		fmt.Println("[UpdateProfile] Parsing as JSON")
 		var jsonData map[string]interface{}
 		if err := json.NewDecoder(r.Body).Decode(&jsonData); err != nil {
 			http.Error(w, "Invalid JSON", http.StatusBadRequest)
 			return
 		}
-		
+
 		// Convert to string map
 		formValues = make(map[string]string)
 		for key, value := range jsonData {
@@ -146,12 +148,15 @@ func UpdateProfileHandler(db *sql.DB, w http.ResponseWriter, r *http.Request, cu
 		}
 	} else {
 		// Try multipart form (for file uploads)
+		fmt.Println("[UpdateProfile] Parsing as multipart form")
 		const maxMem = 10 << 20 // 10MB
 		if err := r.ParseMultipartForm(maxMem); err != nil {
+			fmt.Println("[UpdateProfile] Parse error:", err)
 			http.Error(w, "could not parse form", http.StatusBadRequest)
 			return
 		}
-		
+		fmt.Println("[UpdateProfile] Successfully parsed multipart form")
+
 		// Convert form values to map
 		formValues = make(map[string]string)
 		for key, values := range r.PostForm {
@@ -192,7 +197,8 @@ func UpdateProfileHandler(db *sql.DB, w http.ResponseWriter, r *http.Request, cu
 	avatarURL := existing.Avatar
 	if formValues["resetAvatar"] == "true" {
 		avatarURL = "/img/avatars/images.png"
-	} else {
+	} else if strings.Contains(contentType, "multipart/form-data") {
+		// Only try to read form file if content-type is multipart
 		file, header, err := r.FormFile("avatarInput")
 		if err != nil && err != http.ErrMissingFile {
 			http.Error(w, "error reading avatar", http.StatusBadRequest)
@@ -408,7 +414,6 @@ func GetOtherProfile(db *sql.DB, username string) (UserProfile, error) {
 		&profile.Avatar,
 		&profile.IsPrivate,
 	)
-
 	if err != nil {
 		return UserProfile{}, err
 	}
@@ -450,7 +455,6 @@ func GetCompleteProfileHandler(db *sql.DB, w http.ResponseWriter, r *http.Reques
 		&profile.IsPrivate,
 		&dateOfBirth,
 	)
-
 	if err != nil {
 		http.Error(w, "Profile not found", http.StatusNotFound)
 		return
@@ -543,7 +547,7 @@ func getUserPosts(db *sql.DB, userID int) ([]interface{}, error) {
 			CommentCount int    `json:"comment_count"`
 		}
 
-		err := rows.Scan(&post.ID, &post.Title, &post.Content, &post.ImgOrgif, 
+		err := rows.Scan(&post.ID, &post.Title, &post.Content, &post.ImgOrgif,
 			&post.CreatedAt, &post.PrivacyLevel, &post.LikeCount, &post.CommentCount)
 		if err != nil {
 			continue
@@ -668,15 +672,15 @@ func UpdateProfileJSONHandler(db *sql.DB, w http.ResponseWriter, r *http.Request
 
 	// Parse JSON request body
 	var updateData struct {
-		Fname        string `json:"fname"`
-		Lname        string `json:"lname"`
-		Nickname     string `json:"nickname"`
-		Email        string `json:"email"`
-		Age          int    `json:"age"`
-		Gender       string `json:"gender"`
-		DateOfBirth  string `json:"dateOfBirth"`
-		Bio          string `json:"bio"`
-		IsPrivate    bool   `json:"isPrivate"`
+		Fname       string `json:"fname"`
+		Lname       string `json:"lname"`
+		Nickname    string `json:"nickname"`
+		Email       string `json:"email"`
+		Age         int    `json:"age"`
+		Gender      string `json:"gender"`
+		DateOfBirth string `json:"dateOfBirth"`
+		Bio         string `json:"bio"`
+		IsPrivate   bool   `json:"isPrivate"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&updateData); err != nil {
@@ -692,7 +696,7 @@ func UpdateProfileJSONHandler(db *sql.DB, w http.ResponseWriter, r *http.Request
 		WHERE username = ?`
 
 	_, err := db.Exec(query,
-		currentUsername,  // keep same username
+		currentUsername, // keep same username
 		updateData.Nickname,
 		updateData.Fname,
 		updateData.Lname,
@@ -704,7 +708,6 @@ func UpdateProfileJSONHandler(db *sql.DB, w http.ResponseWriter, r *http.Request
 		updateData.DateOfBirth,
 		currentUsername,
 	)
-
 	if err != nil {
 		http.Error(w, "Failed to update profile", http.StatusInternalServerError)
 		return
@@ -714,5 +717,43 @@ func UpdateProfileJSONHandler(db *sql.DB, w http.ResponseWriter, r *http.Request
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"message": "Profile updated successfully",
+	})
+}
+
+// TogglePrivacy toggles the user's profile privacy setting
+func TogglePrivacy(db *sql.DB, w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Validate session
+	userID, loggedIn := ValidateSession(db, r)
+	if !loggedIn {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Get current privacy status
+	var currentPrivacy bool
+	err := db.QueryRow("SELECT isPrivate FROM users WHERE id = ?", userID).Scan(&currentPrivacy)
+	if err != nil {
+		http.Error(w, "Failed to get current privacy status", http.StatusInternalServerError)
+		return
+	}
+
+	// Toggle the privacy
+	newPrivacy := !currentPrivacy
+	_, err = db.Exec("UPDATE users SET isPrivate = ? WHERE id = ?", newPrivacy, userID)
+	if err != nil {
+		http.Error(w, "Failed to update privacy setting", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":   true,
+		"isPrivate": newPrivacy,
+		"message":   fmt.Sprintf("Profile is now %s", map[bool]string{true: "private", false: "public"}[newPrivacy]),
 	})
 }

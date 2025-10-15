@@ -1196,6 +1196,10 @@ func ensureEventPollTables(db *sql.DB) error {
 		u.GetFollowStatus(db, w, r)
 	}))
 
+	http.HandleFunc("/toggle-privacy", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
+		u.TogglePrivacy(db, w, r)
+	}))
+
 	http.HandleFunc("/update-profile", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
 		// Get current user from session
 		userID, loggedIn := u.ValidateSession(db, r)

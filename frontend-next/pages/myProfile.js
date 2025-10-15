@@ -64,7 +64,14 @@ export default function MyProfile() {
       });
       
       if (response.ok) {
-        setIsPrivate(!isPrivate);
+        const data = await response.json();
+        console.log('Privacy toggled:', data);
+        setIsPrivate(data.isPrivate);
+        // Refresh profile to get updated data
+        fetchProfile();
+      } else {
+        const errorText = await response.text();
+        console.error('Failed to toggle privacy:', response.status, errorText);
       }
     } catch (error) {
       console.error('Failed to toggle privacy:', error);
@@ -80,6 +87,17 @@ export default function MyProfile() {
 
 
   const handleEditProfile = () => {
+    // Convert ISO date to yyyy-MM-dd format for date input
+    let formattedDate = '';
+    if (profile?.dateOfBirth) {
+      try {
+        const date = new Date(profile.dateOfBirth);
+        formattedDate = date.toISOString().split('T')[0];
+      } catch (e) {
+        formattedDate = '';
+      }
+    }
+    
     setEditForm({
       firstname: profile?.fname || '',
       lastname: profile?.lname || '',
@@ -88,7 +106,7 @@ export default function MyProfile() {
       email: profile?.email || '',
       age: profile?.age || '',
       gender: profile?.gender || '',
-      dateOfBirth: profile?.dateOfBirth || ''
+      dateOfBirth: formattedDate
     });
     setEditMode(true);
   };
@@ -96,10 +114,10 @@ export default function MyProfile() {
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     try {
-      // If there's a file, use FormData, otherwise use JSON
       let requestBody;
       let headers = {};
       
+      // Check if there's a file to upload
       if (editForm.avatarFile && editForm.avatarFile.size > 0) {
         // Use FormData for file upload
         const formData = new FormData();
@@ -110,8 +128,9 @@ export default function MyProfile() {
         });
         formData.append('avatarInput', editForm.avatarFile);
         requestBody = formData;
+        console.log('Sending FormData with avatar file');
       } else {
-        // Use JSON for text-only updates
+        // Use JSON for text-only updates (backend accepts this)
         const profileData = {};
         Object.keys(editForm).forEach(key => {
           if (key !== 'avatarFile' && editForm[key] !== null && editForm[key] !== '') {
@@ -120,6 +139,7 @@ export default function MyProfile() {
         });
         requestBody = JSON.stringify(profileData);
         headers['Content-Type'] = 'application/json';
+        console.log('Sending JSON (no file):', profileData);
       }
       
       const response = await fetch('/api/update-profile', {
@@ -133,7 +153,8 @@ export default function MyProfile() {
         setEditMode(false);
         fetchProfile(); // Refresh profile data
       } else {
-        console.error('Failed to update profile');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Failed to update profile:', errorData);
       }
     } catch (error) {
       console.error('Error updating profile:', error);

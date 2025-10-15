@@ -6,12 +6,36 @@ export default async function handler(req, res) {
   }
 
   try {
-    // For now, just return success since the backend doesn't have this specific endpoint
-    // This would need to be implemented in the backend later
-    res.status(200).json({ 
-      success: true, 
-      message: 'Privacy toggle functionality needs to be implemented in backend' 
+    const response = await fetch('http://localhost:8080/toggle-privacy', {
+      method: 'POST',
+      headers: {
+        'Cookie': req.headers.cookie || '',
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
     });
+
+    // Get response text first to check if it's valid JSON
+    const responseText = await response.text();
+    let data;
+    
+    try {
+      data = JSON.parse(responseText);
+    } catch (jsonError) {
+      console.log('Toggle privacy response (plain text):', responseText);
+      data = { 
+        message: responseText,
+        success: response.ok
+      };
+    }
+    
+    // Forward any set-cookie headers from the backend
+    const setCookieHeader = response.headers.get('set-cookie');
+    if (setCookieHeader) {
+      res.setHeader('Set-Cookie', setCookieHeader);
+    }
+    
+    res.status(response.status).json(data);
   } catch (error) {
     console.error('Toggle privacy API error:', error);
     res.status(500).json({ error: 'Failed to toggle privacy' });
