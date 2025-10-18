@@ -189,7 +189,7 @@ export default function Comments() {
             <div className="post-user-info">
               <h3>{post.username || 'Anonymous'}</h3>
               <p className="post-date">
-                {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : 'Unknown date'}
+                {new Date(post.created_at).toLocaleDateString()}
               </p>
             </div>
           </div>
@@ -284,7 +284,7 @@ export default function Comments() {
                   <div className="comment-user-info">
                     <h4>{comment.username || 'Anonymous'}</h4>
                     <p className="post-date">
-                      {comment.createdAt ? new Date(comment.createdAt).toLocaleDateString() : 'Unknown date'}
+                      {new Date(comment.created_at).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
