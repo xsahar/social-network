@@ -390,7 +390,7 @@ func ConnectWeb(db *sql.DB) {
 			return
 		}
 
-		// Get user's followers
+		// Get user's followers (people who follow you)
 		followers, err := database.GetUserFollowers(db, userID)
 		if err != nil {
 			fmt.Println("Error getting followers:", err)
@@ -398,12 +398,97 @@ func ConnectWeb(db *sql.DB) {
 			return
 		}
 
+		// Get users you are following
+		following, err := database.GetUserFollowing(db, userID)
+		if err != nil {
+			fmt.Println("Error getting following:", err)
+			http.Error(w, "Failed to get following", http.StatusInternalServerError)
+			return
+		}
+
+		// Combine both lists and remove duplicates (users who follow each other)
+		chatUsers := make(map[int]map[string]interface{})
+
+		// Add followers
+		for _, follower := range followers {
+			if id, ok := follower["id"].(int); ok {
+				chatUsers[id] = follower
+			}
+		}
+
+		// Add following
+		for _, followingUser := range following {
+			if id, ok := followingUser["id"].(int); ok {
+				chatUsers[id] = followingUser
+			}
+		}
+
+		// Convert map to slice
+		var chatUsersList []map[string]interface{}
+		for _, user := range chatUsers {
+			chatUsersList = append(chatUsersList, user)
+		}
+
 		response := map[string]interface{}{
 			"followers": followers,
+			"following": chatUsersList, // Send combined list as "following" for backward compatibility
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
+	}))
+
+	// Get chat history between two users
+	http.HandleFunc("/get-chat-history", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		// Validate session
+		userID, loggedIn := u.ValidateSession(db, r)
+		if !loggedIn {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		// Get other user ID from query params
+		otherUserIDStr := r.URL.Query().Get("user_id")
+		if otherUserIDStr == "" {
+			http.Error(w, "user_id parameter required", http.StatusBadRequest)
+			return
+		}
+
+		otherUserID, err := strconv.Atoi(otherUserIDStr)
+		if err != nil {
+			http.Error(w, "Invalid user_id", http.StatusBadRequest)
+			return
+		}
+
+		// Check if users can chat (follow relationship required)
+		canChat, err := database.CheckFollowRelationship(db, userID, otherUserID)
+		if err != nil {
+			http.Error(w, "Error checking permissions", http.StatusInternalServerError)
+			return
+		}
+
+		if !canChat {
+			http.Error(w, "You can only chat with users you follow or who follow you", http.StatusForbidden)
+			return
+		}
+
+		// Fetch chat history
+		messages, err := database.GetChatHistory(db, userID, otherUserID)
+		if err != nil {
+			fmt.Println("Error fetching chat history:", err)
+			http.Error(w, "Failed to fetch chat history", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"messages": messages,
+		})
 	}))
 
 	// likes

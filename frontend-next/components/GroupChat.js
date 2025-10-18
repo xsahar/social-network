@@ -95,18 +95,70 @@ export default function GroupChat({ groupId, user, isOpen, onClose, connected, m
   if (!isOpen) return null;
 
   return (
-    <div className="modal">
-      <div className="modal-content" style={{maxWidth: '400px', maxHeight: '80vh', display: 'flex', flexDirection: 'column'}}>
-        <div className="chat-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #e4e6ea', paddingBottom: '12px' }}>
-          <h3 style={{fontSize: '18px', fontWeight: '500', color: '#1c1e21'}}>Group Chat</h3>
-          <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-            <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: connected ? '#42b883' : '#e0245e' }}></span>
-            <span style={{fontSize: '12px', color: '#65676b'}}>{connected ? 'Connected' : 'Disconnected'}</span>
-            <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#65676b' }}>×</button>
+    <div style={{
+      position: 'fixed',
+      right: 0,
+      top: '64px',
+      width: '350px',
+      height: 'calc(100vh - 64px)',
+      backgroundColor: 'white',
+      boxShadow: '-2px 0 8px rgba(0,0,0,0.15)',
+      display: 'flex',
+      flexDirection: 'column',
+      zIndex: 999
+    }}>
+      {/* Chat Header */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        padding: '16px',
+        borderBottom: '1px solid #e4e6ea',
+        backgroundColor: '#f8f9fa'
+      }}>
+        <h3 style={{fontSize: '18px', fontWeight: '500', color: '#1c1e21', margin: 0}}>
+          Group Chat
+        </h3>
+        <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
+            <span style={{ 
+              display: 'inline-block', 
+              width: '8px', 
+              height: '8px', 
+              borderRadius: '50%', 
+              backgroundColor: connected ? '#42b883' : '#e0245e' 
+            }}></span>
+            <span style={{fontSize: '12px', color: '#65676b'}}>
+              {connected ? 'Connected' : 'Disconnected'}
+            </span>
           </div>
+          <button 
+            onClick={onClose} 
+            style={{ 
+              background: 'none', 
+              border: 'none', 
+              fontSize: '24px', 
+              cursor: 'pointer', 
+              color: '#65676b',
+              padding: '0',
+              lineHeight: '1'
+            }}
+          >
+            ×
+          </button>
         </div>
-        
-        <div ref={chatWindowRef} style={{ flex: 1, overflowY: 'auto', padding: '8px', maxHeight: '400px', border: '1px solid #e4e6ea', borderRadius: '6px', marginBottom: '12px' }} className="group-chat-window">
+      </div>
+      
+      {/* Chat Messages */}
+      <div 
+        ref={chatWindowRef} 
+        style={{ 
+          flex: 1, 
+          overflowY: 'auto', 
+          padding: '16px',
+          backgroundColor: '#f8f9fa'
+        }}
+      >
           {groupMessages.length === 0 ? (
             <div style={{textAlign: 'center', color: '#65676b', padding: '32px'}}>
               <p>No messages yet. Start the conversation!</p>
@@ -130,24 +182,52 @@ export default function GroupChat({ groupId, user, isOpen, onClose, connected, m
           )}
         </div>
 
-        <form onSubmit={handleSendMessage} style={{display: 'flex', gap: '8px'}}>
+        {/* Chat Input */}
+        <form 
+          onSubmit={handleSendMessage} 
+          style={{
+            padding: '16px',
+            borderTop: '1px solid #e4e6ea',
+            backgroundColor: 'white',
+            display: 'flex',
+            gap: '8px'
+          }}
+        >
           <input
             type="text"
             value={messageInput}
             onChange={(e) => setMessageInput(e.target.value)}
             placeholder={connected ? "Type your message..." : "Connecting..."}
             disabled={!connected}
-            style={{ flex: 1, padding: '8px 12px', border: '1px solid #dddfe2', borderRadius: '6px', fontSize: '14px' }}
+            style={{ 
+              flex: 1, 
+              padding: '10px 12px', 
+              border: '1px solid #dddfe2', 
+              borderRadius: '20px', 
+              fontSize: '14px',
+              outline: 'none'
+            }}
           />
           <button 
             type="submit"
             disabled={!connected || !messageInput.trim()}
-            style={{ padding: '8px 16px', backgroundColor: connected && messageInput.trim() ? '#4267B2' : '#e4e6ea', color: connected && messageInput.trim() ? 'white' : '#65676b', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '500', cursor: connected && messageInput.trim() ? 'pointer' : 'not-allowed' }}
+            style={{ 
+              padding: '10px 20px', 
+              backgroundColor: connected && messageInput.trim() ? '#4267B2' : '#e4e6ea', 
+              color: connected && messageInput.trim() ? 'white' : '#65676b', 
+              border: 'none', 
+              borderRadius: '20px', 
+              fontSize: '14px', 
+              fontWeight: '500', 
+              cursor: connected && messageInput.trim() ? 'pointer' : 'not-allowed',
+              whiteSpace: 'nowrap'
+            }}
           >
             Send
           </button>
         </form>
       </div>
-    </div>
-  );
-}
+    );
+  }
+  
+  

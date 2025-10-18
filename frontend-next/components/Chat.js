@@ -4,15 +4,61 @@ import { useWebSocketContext } from '../contexts/WebSocketContext';
 const Chat = ({ isOpen, onClose, chatWith, userID }) => {
   const [messageInput, setMessageInput] = useState('');
   const [chatMessages, setChatMessages] = useState([]);
-  const { sendMessage, subscribe } = useWebSocketContext();
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const { sendMessage, subscribe, connected } = useWebSocketContext();
   const chatWindowRef = useRef(null);
+
+  // Fetch chat history when chat opens
+  useEffect(() => {
+    if (!chatWith || !isOpen) {
+      setChatMessages([]); // Clear messages when chat closes
+      return;
+    }
+
+    const fetchChatHistory = async () => {
+      setIsLoadingHistory(true);
+      try {
+        const response = await fetch(`http://localhost:8080/get-chat-history?user_id=${chatWith.id}`, {
+          credentials: 'include',
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const messages = data.messages || [];
+          // Sort by timestamp (oldest first)
+          const sortedMessages = messages.sort((a, b) => 
+            new Date(a.timestamp) - new Date(b.timestamp)
+          );
+          setChatMessages(sortedMessages);
+        } else if (response.status === 403) {
+          setErrorMessage('You can only chat with users you follow or who follow you');
+        } else {
+          console.error('Failed to fetch chat history');
+        }
+      } catch (error) {
+        console.error('Error fetching chat history:', error);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+
+    fetchChatHistory();
+  }, [chatWith, isOpen]);
 
   // Filter and listen for messages for this specific chat
   useEffect(() => {
-    if (!chatWith || !userID) return;
+    if (!chatWith || !userID || !isOpen) return;
 
     const unsubscribe = subscribe((message) => {
-      // Only handle private messages
+      // Handle error messages
+      if (message.type === 'error') {
+        setErrorMessage(message.content);
+        setTimeout(() => setErrorMessage(''), 5000);
+        return;
+      }
+
+      // Only handle private messages for this specific chat
       if (message.type === 'private_message' || message.type === 'message') {
         // Check if message is between current user and chat partner
         if (
@@ -20,21 +66,24 @@ const Chat = ({ isOpen, onClose, chatWith, userID }) => {
           (message.from === chatWith.id && message.to === userID)
         ) {
           setChatMessages(prev => {
-            // Avoid duplicates
+            // Avoid duplicates based on timestamp, content, and sender
             const isDuplicate = prev.some(msg => 
-              msg.timestamp === message.timestamp && 
               msg.content === message.content &&
-              msg.from === message.from
+              msg.from === message.from &&
+              Math.abs(new Date(msg.timestamp) - new Date(message.timestamp)) < 1000
             );
             if (isDuplicate) return prev;
-            return [...prev, message];
+            
+            // Add new message and sort by timestamp
+            const updated = [...prev, message];
+            return updated.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
           });
         }
       }
     });
 
     return () => unsubscribe();
-  }, [chatWith, userID, subscribe]);
+  }, [chatWith, userID, isOpen, subscribe]);
 
   // Auto scroll to bottom when new messages arrive
   useEffect(() => {
@@ -46,7 +95,7 @@ const Chat = ({ isOpen, onClose, chatWith, userID }) => {
   const handleSendMessage = (e) => {
     e.preventDefault();
     
-    if (!messageInput.trim() || !chatWith) return;
+    if (!messageInput.trim() || !chatWith || !connected) return;
 
     const messageData = {
       type: 'private_message',
@@ -59,11 +108,6 @@ const Chat = ({ isOpen, onClose, chatWith, userID }) => {
     const success = sendMessage(messageData);
     
     if (success) {
-      // Add message to local chat immediately for better UX
-      setChatMessages(prev => [...prev, {
-        ...messageData,
-        username: 'You'
-      }]);
       setMessageInput('');
     } else {
       alert('Failed to send message. Please check your connection.');
@@ -78,73 +122,157 @@ const Chat = ({ isOpen, onClose, chatWith, userID }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 w-80 h-96 bg-white border border-gray-300 rounded-lg shadow-lg z-50 flex flex-col">
+    <div style={{
+      position: 'fixed',
+      right: 0,
+      top: '64px',
+      width: '350px',
+      height: 'calc(100vh - 64px)',
+      backgroundColor: 'white',
+      boxShadow: '-2px 0 8px rgba(0,0,0,0.15)',
+      display: 'flex',
+      flexDirection: 'column',
+      zIndex: 999
+    }}>
       {/* Chat Header */}
-      <div className="bg-blue-600 text-white p-3 rounded-t-lg flex justify-between items-center">
-        <h3 className="font-semibold">Chat with {chatWith?.username || 'User'}</h3>
-        <button
-          onClick={onClose}
-          className="text-white hover:text-gray-200"
-        >
-          ×
-        </button>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        padding: '16px',
+        borderBottom: '1px solid #e4e6ea',
+        backgroundColor: '#f8f9fa'
+      }}>
+        <h3 style={{fontSize: '18px', fontWeight: '500', color: '#1c1e21', margin: 0}}>
+          {chatWith?.username || 'User'}
+        </h3>
+        <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
+            <span style={{ 
+              display: 'inline-block', 
+              width: '8px', 
+              height: '8px', 
+              borderRadius: '50%', 
+              backgroundColor: connected ? '#42b883' : '#e0245e' 
+            }}></span>
+            <span style={{fontSize: '12px', color: '#65676b'}}>
+              {connected ? 'Connected' : 'Disconnected'}
+            </span>
+          </div>
+          <button 
+            onClick={onClose} 
+            style={{ 
+              background: 'none', 
+              border: 'none', 
+              fontSize: '24px', 
+              cursor: 'pointer', 
+              color: '#65676b',
+              padding: '0',
+              lineHeight: '1'
+            }}
+          >
+            ×
+          </button>
+        </div>
       </div>
+
+      {/* Error Message */}
+      {errorMessage && (
+        <div style={{ 
+          backgroundColor: '#fee', 
+          border: '1px solid #fcc', 
+          color: '#c00', 
+          padding: '12px 16px', 
+          fontSize: '14px',
+          borderRadius: '0'
+        }}>
+          ⚠️ {errorMessage}
+        </div>
+      )}
 
       {/* Chat Messages */}
       <div
         ref={chatWindowRef}
-        className="flex-1 overflow-y-auto p-3 space-y-2 bg-gray-50"
+        style={{ 
+          flex: 1, 
+          overflowY: 'auto', 
+          padding: '16px',
+          backgroundColor: '#f8f9fa'
+        }}
       >
-        {chatMessages.length === 0 ? (
-          <div className="text-center text-gray-500 text-sm mt-8">
-            No messages yet. Start the conversation!
+        {isLoadingHistory ? (
+          <div style={{textAlign: 'center', color: '#65676b', padding: '32px'}}>
+            <p>Loading messages...</p>
+          </div>
+        ) : chatMessages.length === 0 ? (
+          <div style={{textAlign: 'center', color: '#65676b', padding: '32px'}}>
+            <p>No messages yet. Start the conversation!</p>
           </div>
         ) : (
-          chatMessages.map((msg, index) => (
-            <div
-              key={`${msg.timestamp}-${index}`}
-              className={`flex ${msg.from === userID ? 'justify-end' : 'justify-start'}`}
-            >
-              <div className="flex flex-col max-w-xs">
-                <div 
-                  className={`p-2 rounded-lg max-w-xs ${
-                    msg.from === userID 
-                      ? 'bg-blue-600 text-white ml-auto' 
-                      : 'bg-gray-100 text-gray-800'
-                  }`}
-                >
-                  {msg.content || msg.message}
-                </div>
-                <div className={`text-xs text-gray-400 mt-1 ${
-                  msg.from === userID ? 'text-right' : 'text-left'
-                }`}>
-                  {formatTime(msg.timestamp)}
+          chatMessages.map((msg, index) => {
+            const isMyMessage = msg.from === userID;
+            return (
+              <div key={`${msg.timestamp}-${index}`} className={`chat-message ${isMyMessage ? 'my-message' : 'other-message'}`}>
+                <div className="bubble">
+                  {!isMyMessage && (
+                    <div className="meta">
+                      <span style={{fontWeight: '500'}}>{msg.username || chatWith?.username || `User ${msg.from}`}</span>
+                    </div>
+                  )}
+                  <div className="text">{msg.content || msg.message}</div>
+                  <div className="meta" style={{justifyContent: isMyMessage ? 'flex-end' : 'flex-start'}}>
+                    <span>{formatTime(msg.timestamp)}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
       {/* Chat Input */}
-      <form onSubmit={handleSendMessage} className="p-3 border-t bg-white rounded-b-lg">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={messageInput}
-            onChange={(e) => setMessageInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage(e)}
-            placeholder="Type a message..."
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm transition-colors"
-          />
-          <button
-            type="submit"
-            disabled={!messageInput.trim()}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm transition-colors"
-          >
-            Send
-          </button>
-        </div>
+      <form 
+        onSubmit={handleSendMessage} 
+        style={{
+          padding: '16px',
+          borderTop: '1px solid #e4e6ea',
+          backgroundColor: 'white',
+          display: 'flex',
+          gap: '8px'
+        }}
+      >
+        <input
+          type="text"
+          value={messageInput}
+          onChange={(e) => setMessageInput(e.target.value)}
+          placeholder={connected ? "Type your message..." : "Connecting..."}
+          disabled={!connected}
+          style={{ 
+            flex: 1, 
+            padding: '10px 12px', 
+            border: '1px solid #dddfe2', 
+            borderRadius: '20px', 
+            fontSize: '14px',
+            outline: 'none'
+          }}
+        />
+        <button 
+          type="submit"
+          disabled={!connected || !messageInput.trim()}
+          style={{ 
+            padding: '10px 20px', 
+            backgroundColor: connected && messageInput.trim() ? '#4267B2' : '#e4e6ea', 
+            color: connected && messageInput.trim() ? 'white' : '#65676b', 
+            border: 'none', 
+            borderRadius: '20px', 
+            fontSize: '14px', 
+            fontWeight: '500', 
+            cursor: connected && messageInput.trim() ? 'pointer' : 'not-allowed',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          Send
+        </button>
       </form>
     </div>
   );

@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	database "socialnetwork/pkg/db"
+
 	"github.com/gorilla/websocket"
 	_ "modernc.org/sqlite"
 )
@@ -23,7 +25,7 @@ type Frontend struct {
 	Type      string    `json:"type"`
 	PostId    int       `json:"post_id"`
 	CommentId int       `json:"comment_id"`
-	isLike    bool      `json:"is_like"`
+	IsLike    bool      `json:"is_like"`
 }
 
 type Client struct {
@@ -267,6 +269,53 @@ func (c *Client) readPump(hub *Hub) {
 			hub.Mutex.RUnlock()
 			continue
 		}
+
+		// Handle private messages with follow validation
+		if msg.Type == "private_message" || msg.Type == "message" {
+			// Validate that at least one user follows the other
+			canChat, err := database.CheckFollowRelationship(hub.DB, msg.From, msg.To)
+			if err != nil {
+				fmt.Println("Error checking follow relationship:", err)
+				continue
+			}
+
+			if !canChat {
+				// Send error message back to sender
+				errorMsg := Frontend{
+					Type:      "error",
+					Content:   "You can only message users you follow or who follow you",
+					Timestamp: time.Now(),
+				}
+				hub.Mutex.RLock()
+				if senderClient, ok := hub.Clients[msg.From]; ok {
+					select {
+					case senderClient.Send <- errorMsg:
+					default:
+					}
+				}
+				hub.Mutex.RUnlock()
+				continue
+			}
+
+			// Save message to database
+			msg.Timestamp = time.Now()
+			if err := hub.saveMessageToDB(msg); err != nil {
+				fmt.Println("Error saving message:", err)
+			}
+
+			// Send to recipient if online
+			hub.Mutex.RLock()
+			if toClient, ok := hub.Clients[msg.To]; ok {
+				toClient.Send <- msg
+			}
+			// Echo back to sender for confirmation
+			if fromClient, ok := hub.Clients[msg.From]; ok {
+				fromClient.Send <- msg
+			}
+			hub.Mutex.RUnlock()
+			continue
+		}
+
 		msg.Timestamp = time.Now()
 		hub.Broadcast <- msg
 	}

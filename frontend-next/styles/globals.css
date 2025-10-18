@@ -2010,6 +2010,150 @@ input[type="submit"]:active {
   background: #f1f1f1;
   text-align: left;
 }
+
+/* Regular chat messages (non-group) */
+.chat-message {
+  display: flex;
+  margin: 8px 0;
+  max-width: 70%;
+}
+
+.chat-message .bubble {
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: #f1f1f1;
+}
+
+.chat-message .meta {
+  font-size: 11px;
+  margin-bottom: 4px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.chat-message .text {
+  font-size: 14px;
+}
+
+/* My messages → right side, blue bubble */
+.chat-message.my-message {
+  margin-left: auto;
+  justify-content: flex-end;
+}
+.chat-message.my-message .bubble {
+  background: #d1e9ff;
+  text-align: right;
+}
+
+/* Others' messages → left side, gray bubble */
+.chat-message.other-message {
+  margin-right: auto;
+  justify-content: flex-start;
+}
+.chat-message.other-message .bubble {
+  background: #f1f1f1;
+  text-align: left;
+}
+
+/* Chat Sidebar Styles */
+.chat-sidebar {
+  width: 280px;
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  height: fit-content;
+}
+
+.chat-sidebar-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1c1e21;
+  margin-bottom: 16px;
+}
+
+.chat-users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chat-user-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+}
+
+.chat-user-item:hover {
+  background-color: #f5f6f7;
+}
+
+.chat-user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chat-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.chat-status-dot.online {
+  background-color: #42b883;
+}
+
+.chat-status-dot.offline {
+  background-color: #c4c4c4;
+}
+
+.chat-username {
+  font-size: 14px;
+  color: #1c1e21;
+  font-weight: 500;
+}
+
+.chat-button {
+  padding: 6px 16px;
+  background-color: #4267B2;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.chat-button:hover {
+  background-color: #365899;
+  transform: translateY(-1px);
+}
+
+.chat-button:active {
+  transform: translateY(0);
+}
+
+.chat-empty-state {
+  text-align: center;
+  color: #65676b;
+  padding: 32px 16px;
+}
+
+.chat-empty-state p {
+  margin: 4px 0;
+  font-size: 14px;
+}
+
+.chat-empty-subtext {
+  font-size: 12px;
+  color: #8a8d91;
+}
+
 .post-card {
   background: white;
   border-radius: 12px;

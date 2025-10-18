@@ -291,28 +291,23 @@ export default function Posts() {
 
         {/* Right Sidebar - Chat with Following Users */}
         {user && (
-          <div className="w-64 bg-white rounded-lg shadow-lg p-6 h-fit">
-            <h3 className="text-lg font-semibold mb-4 text-gray-800">
+          <div className="chat-sidebar">
+            <h3 className="chat-sidebar-title">
               Chat ({followingUsers.length})
             </h3>
-            <div className="space-y-2">
+            <div className="chat-users-list">
               {followingUsers.length > 0 ? (
                 followingUsers.map((followingUser) => {
                   const isOnline = onlineUsers.some(u => u.id === followingUser.id);
                   return (
-                    <div key={followingUser.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
-                      <div className="flex items-center space-x-2">
-                        {isOnline && (
-                          <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                        )}
-                        {!isOnline && (
-                          <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-                        )}
-                        <span className="text-sm text-gray-700">{followingUser.username}</span>
+                    <div key={followingUser.id} className="chat-user-item">
+                      <div className="chat-user-info">
+                        <div className={`chat-status-dot ${isOnline ? 'online' : 'offline'}`}></div>
+                        <span className="chat-username">{followingUser.username}</span>
                       </div>
                       <button
                         onClick={() => startChat(followingUser)}
-                        className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                        className="chat-button"
                       >
                         Chat
                       </button>
@@ -320,9 +315,9 @@ export default function Posts() {
                   );
                 })
               ) : (
-                <div className="text-center text-gray-500 py-4">
-                  <p className="text-sm">No users to chat with</p>
-                  <p className="text-xs mt-1">Follow users to start chatting</p>
+                <div className="chat-empty-state">
+                  <p>No users to chat with</p>
+                  <p className="chat-empty-subtext">Follow users to start chatting</p>
                 </div>
               )}
             </div>

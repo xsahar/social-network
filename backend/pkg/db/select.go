@@ -364,6 +364,61 @@ func GetUserFollowers(db *sql.DB, userID int) ([]map[string]interface{}, error) 
 	return followers, nil
 }
 
+// GetUserFollowing returns a list of users that the specified user is following
+func GetUserFollowing(db *sql.DB, userID int) ([]map[string]interface{}, error) {
+	query := `
+        SELECT u.id, u.username, u.email
+        FROM users u
+        JOIN userFollow f ON u.id = f.following_id
+        WHERE f.follower_id = ?
+        ORDER BY u.username
+    `
+
+	rows, err := db.Query(query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get following: %w", err)
+	}
+	defer rows.Close()
+
+	var following []map[string]interface{}
+	for rows.Next() {
+		var id int
+		var username, email string
+
+		err := rows.Scan(&id, &username, &email)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan following: %w", err)
+		}
+
+		user := map[string]interface{}{
+			"id":       id,
+			"username": username,
+			"email":    email,
+		}
+
+		following = append(following, user)
+	}
+
+	return following, nil
+}
+
+// CheckFollowRelationship checks if at least one user follows the other
+// Returns true if userA follows userB OR userB follows userA
+func CheckFollowRelationship(db *sql.DB, userA, userB int) (bool, error) {
+	query := `
+		SELECT COUNT(*) > 0
+		FROM userFollow
+		WHERE (follower_id = ? AND following_id = ?)
+		   OR (follower_id = ? AND following_id = ?)
+	`
+	var hasRelationship bool
+	err := db.QueryRow(query, userA, userB, userB, userA).Scan(&hasRelationship)
+	if err != nil {
+		return false, fmt.Errorf("failed to check follow relationship: %w", err)
+	}
+	return hasRelationship, nil
+}
+
 func CheckUserCanSeePost(db *sql.DB, postID, viewerID int) (bool, error) {
 	query := `
         SELECT p.privacy_level, p.user_id
@@ -412,4 +467,46 @@ func CheckUserCanSeePost(db *sql.DB, postID, viewerID int) (bool, error) {
 	}
 
 	return false, nil
+}
+
+// GetChatHistory retrieves messages between two users
+func GetChatHistory(db *sql.DB, userID1, userID2 int) ([]map[string]interface{}, error) {
+	query := `
+		SELECT m.id, m.sender_id, m.receiver_id, m.content, m.created_at,
+		       u.username as sender_username
+		FROM messages m
+		JOIN users u ON m.sender_id = u.id
+		WHERE (m.sender_id = ? AND m.receiver_id = ?) 
+		   OR (m.sender_id = ? AND m.receiver_id = ?)
+		ORDER BY m.created_at ASC
+	`
+
+	rows, err := db.Query(query, userID1, userID2, userID2, userID1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var messages []map[string]interface{}
+	for rows.Next() {
+		var id, senderID, receiverID int
+		var content, senderUsername string
+		var createdAt time.Time
+
+		err := rows.Scan(&id, &senderID, &receiverID, &content, &createdAt, &senderUsername)
+		if err != nil {
+			return nil, err
+		}
+
+		messages = append(messages, map[string]interface{}{
+			"id":        id,
+			"from":      senderID,
+			"to":        receiverID,
+			"content":   content,
+			"username":  senderUsername,
+			"timestamp": createdAt.Format(time.RFC3339),
+		})
+	}
+
+	return messages, nil
 }
