@@ -37,6 +37,24 @@ export default function Comments() {
         // Refresh comments when a new group post comment is added
         console.log('[Comments] Group post comment received, refreshing...');
         fetchCommentsAndPost();
+      } else if (message.type === 'new_commentLike') {
+        // Update comment like counts in real-time
+        try {
+          const likeData = JSON.parse(message.content);
+          console.log('[Comments] Comment like update:', likeData);
+          
+          setComments(prev => prev.map(comment => 
+            comment.id === likeData.comment_id 
+              ? { 
+                  ...comment, 
+                  likes_count: likeData.likes_count,
+                  dislikes_count: likeData.dislikes_count 
+                }
+              : comment
+          ));
+        } catch (e) {
+          console.error('[Comments] Failed to parse comment like data:', e);
+        }
       }
     });
 

@@ -5,17 +5,21 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	u "socialnetwork/pkg/apis/user"
 	"log/slog"
 	"net/http"
+	"time"
+
+	"socialnetwork/pkg/apis/chat"
+	u "socialnetwork/pkg/apis/user"
 )
 
 type LikesController struct {
-	s LikesService
+	s   LikesService
+	hub *chat.Hub
 }
 
-func NewLikesController(s LikesService) *LikesController {
-	return &LikesController{s: s}
+func NewLikesController(s LikesService, hub *chat.Hub) *LikesController {
+	return &LikesController{s: s, hub: hub}
 }
 
 func (c *LikesController) LikeDislikePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
@@ -70,6 +74,36 @@ func (c *LikesController) LikeDislikePost(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		http.Error(w, "Failed to fetch updated interactions", http.StatusInternalServerError)
 		return
+	}
+
+	// Broadcast like/dislike update via WebSocket to all connected users
+	if c.hub != nil {
+		likeNotification := chat.Frontend{
+			Type:      "new_postLike",
+			From:      userID,
+			PostId:    *req.PostID,
+			Timestamp: time.Now(),
+		}
+
+		// Add the updated counts as a JSON payload in Content
+		countsData := map[string]interface{}{
+			"post_id":        *req.PostID,
+			"likes_count":    updatedCounts.Likes,
+			"dislikes_count": updatedCounts.Dislikes,
+		}
+		countsJSON, _ := json.Marshal(countsData)
+		likeNotification.Content = string(countsJSON)
+
+		// Broadcast to all clients
+		c.hub.Mutex.RLock()
+		for _, client := range c.hub.Clients {
+			select {
+			case client.Send <- likeNotification:
+			default:
+				// Skip if client buffer is full
+			}
+		}
+		c.hub.Mutex.RUnlock()
 	}
 
 	//  Send JSON response with updated counts
@@ -151,6 +185,36 @@ func (c *LikesController) InteractWithComment(w http.ResponseWriter, r *http.Req
 
 	fmt.Printf(" Updated Counts -> Likes: %d, Dislikes: %d\n", updatedCounts.Likes, updatedCounts.Dislikes)
 
+	// Broadcast comment like update via WebSocket to all connected users
+	if c.hub != nil {
+		commentLikeNotification := chat.Frontend{
+			Type:      "new_commentLike",
+			From:      userID,
+			CommentId: *req.CommentID,
+			Timestamp: time.Now(),
+		}
+
+		// Add the updated counts as a JSON payload in Content
+		countsData := map[string]interface{}{
+			"comment_id":     *req.CommentID,
+			"likes_count":    updatedCounts.Likes,
+			"dislikes_count": updatedCounts.Dislikes,
+		}
+		countsJSON, _ := json.Marshal(countsData)
+		commentLikeNotification.Content = string(countsJSON)
+
+		// Broadcast to all clients
+		c.hub.Mutex.RLock()
+		for _, client := range c.hub.Clients {
+			select {
+			case client.Send <- commentLikeNotification:
+			default:
+				// Skip if client buffer is full
+			}
+		}
+		c.hub.Mutex.RUnlock()
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"message":  "Interaction updated successfully",
@@ -171,13 +235,11 @@ func (c *LikesController) GetInteractions(w http.ResponseWriter, r *http.Request
 	if req.PostID != nil {
 		resp, err = c.s.GetPostsInteractions(r.Context(), *req.PostID)
 		if err != nil {
-
 			return
 		}
 	} else if req.CommentID != nil {
 		resp, err = c.s.GetCommentsInteractions(r.Context(), *req.CommentID)
 		if err != nil {
-
 			return
 		}
 	} else {

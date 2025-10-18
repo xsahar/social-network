@@ -83,17 +83,25 @@ export default function Posts() {
         } catch (e) {
           console.error('[Posts] Failed to parse post data:', e);
         }
-      } else if (message.type === 'new_postLike' && message.post_id) {
-        // Update like count for specific post
-        setPosts(prev => prev.map(post => 
-          post.id === message.post_id 
-            ? { 
-                ...post, 
-                likes_count: message.likes_count,
-                dislikes_count: message.dislikes_count 
-              }
-            : post
-        ));
+      } else if (message.type === 'new_postLike') {
+        // Parse the like data from the message content
+        try {
+          const likeData = JSON.parse(message.content);
+          console.log('[Posts] Like update data:', likeData);
+          
+          // Update like count for specific post
+          setPosts(prev => prev.map(post => 
+            post.id === likeData.post_id 
+              ? { 
+                  ...post, 
+                  likes_count: likeData.likes_count,
+                  dislikes_count: likeData.dislikes_count 
+                }
+              : post
+          ));
+        } catch (e) {
+          console.error('[Posts] Failed to parse like data:', e);
+        }
       } else if (message.type === 'new_comment' && message.post_id) {
         // Update comment count for specific post
         setPosts(prev => prev.map(post => 
@@ -122,8 +130,17 @@ export default function Posts() {
       });
 
       if (response.ok) {
-        // Refresh posts to get updated like count
-        fetchPosts();
+        const data = await response.json();
+        // Update local state immediately with the response data
+        setPosts(prev => prev.map(post => 
+          post.id === postId 
+            ? { 
+                ...post, 
+                likes_count: data.likes,
+                dislikes_count: data.dislikes 
+              }
+            : post
+        ));
       }
     } catch (error) {
       console.error('Failed to like post:', error);
@@ -145,8 +162,17 @@ export default function Posts() {
       });
 
       if (response.ok) {
-        // Refresh posts to get updated dislike count
-        fetchPosts();
+        const data = await response.json();
+        // Update local state immediately with the response data
+        setPosts(prev => prev.map(post => 
+          post.id === postId 
+            ? { 
+                ...post, 
+                likes_count: data.likes,
+                dislikes_count: data.dislikes 
+              }
+            : post
+        ));
       }
     } catch (error) {
       console.error('Failed to dislike post:', error);

@@ -409,7 +409,7 @@ func ConnectWeb(db *sql.DB) {
 	// likes
 	likesRepo := likerepo.NewLikesRepository(db)
 	likesService := like.NewLikesService(likesRepo)
-	likesController := like.NewLikesController(*likesService)
+	likesController := like.NewLikesController(*likesService, chatHub)
 
 	http.HandleFunc("/likeDislikePost", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
 		likesController.LikeDislikePost(w, r, db)
