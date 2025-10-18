@@ -33,7 +33,8 @@ func GetPosts(db *sql.DB, w http.ResponseWriter, r *http.Request) {
             p.imgOrgif, 
             p.created_at,
             COALESCE(likes.count, 0) as likes_count,
-            COALESCE(dislikes.count, 0) as dislikes_count
+            COALESCE(dislikes.count, 0) as dislikes_count,
+            COALESCE(comments.count, 0) as comments_count
         FROM posts p
         JOIN users u ON p.user_id = u.id
         LEFT JOIN (
@@ -48,6 +49,11 @@ func GetPosts(db *sql.DB, w http.ResponseWriter, r *http.Request) {
             WHERE is_like = 0 AND comment_id IS NULL 
             GROUP BY post_id
         ) dislikes ON p.id = dislikes.post_id
+        LEFT JOIN (
+            SELECT post_id, COUNT(*) as count 
+            FROM comments 
+            GROUP BY post_id
+        ) comments ON p.id = comments.post_id
         WHERE 
             -- Public posts (everyone can see)
             COALESCE(p.privacy_level, 0) = 0
@@ -89,11 +95,11 @@ func GetPosts(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 	// Create a slice to hold posts
 	var posts []map[string]interface{}
 	for rows.Next() {
-		var postID, privacyLevel, likesCount, dislikesCount, postUserID int
+		var postID, privacyLevel, likesCount, dislikesCount, commentsCount, postUserID int
 		var username, title, content, imgOrgif string
 		var createdAt time.Time
 
-		err := rows.Scan(&postID, &username, &postUserID, &title, &content, &privacyLevel, &imgOrgif, &createdAt, &likesCount, &dislikesCount)
+		err := rows.Scan(&postID, &username, &postUserID, &title, &content, &privacyLevel, &imgOrgif, &createdAt, &likesCount, &dislikesCount, &commentsCount)
 		if err != nil {
 			fmt.Println("Error scanning post:", err)
 			http.Error(w, "Failed to process posts", http.StatusInternalServerError)
@@ -130,6 +136,7 @@ func GetPosts(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 			"categories":     categories,
 			"likes_count":    likesCount,
 			"dislikes_count": dislikesCount,
+			"comments":       commentsCount,
 			"createdAt":      createdAt.Format("2006-01-02 15:04:05"),
 		}
 		posts = append(posts, post)
@@ -159,7 +166,8 @@ func GetPublicPosts(db *sql.DB, w http.ResponseWriter, r *http.Request) {
             COALESCE(p.privacy_level, 0) as privacy_level, 
             p.created_at,
             COALESCE(likes.count, 0) as likes_count,
-            COALESCE(dislikes.count, 0) as dislikes_count
+            COALESCE(dislikes.count, 0) as dislikes_count,
+            COALESCE(comments.count, 0) as comments_count
         FROM posts p
         JOIN users u ON p.user_id = u.id
         LEFT JOIN (
@@ -174,6 +182,11 @@ func GetPublicPosts(db *sql.DB, w http.ResponseWriter, r *http.Request) {
             WHERE is_like = 0 AND comment_id IS NULL 
             GROUP BY post_id
         ) dislikes ON p.id = dislikes.post_id
+        LEFT JOIN (
+            SELECT post_id, COUNT(*) as count 
+            FROM comments 
+            GROUP BY post_id
+        ) comments ON p.id = comments.post_id
         WHERE 
             COALESCE(p.privacy_level, 0) = 0  -- ONLY PUBLIC posts
         ORDER BY p.created_at DESC
@@ -189,11 +202,11 @@ func GetPublicPosts(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 
 	var posts []map[string]interface{}
 	for rows.Next() {
-		var postID, privacyLevel, likesCount, dislikesCount int
+		var postID, privacyLevel, likesCount, dislikesCount, commentsCount int
 		var username, title, content, imgOrgif string
 		var createdAt time.Time
 
-		err := rows.Scan(&postID, &username, &title, &content, &imgOrgif, &privacyLevel, &createdAt, &likesCount, &dislikesCount)
+		err := rows.Scan(&postID, &username, &title, &content, &imgOrgif, &privacyLevel, &createdAt, &likesCount, &dislikesCount, &commentsCount)
 		if err != nil {
 			fmt.Println("Error scanning post:", err)
 			http.Error(w, "Failed to process posts", http.StatusInternalServerError)
@@ -209,14 +222,17 @@ func GetPublicPosts(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 
 		// Store post in slice
 		post := map[string]interface{}{
-			"id":         postID,
-			"username":   username,
-			"title":      title,
-			"content":    content,
-			"imgOrgif":   imgOrgif,
-			"image":      imgOrgif, // Alias for frontend compatibility
-			"categories": categories,
-			"createdAt":  createdAt.Format("2006-01-02 15:04:05"),
+			"id":             postID,
+			"username":       username,
+			"title":          title,
+			"content":        content,
+			"imgOrgif":       imgOrgif,
+			"image":          imgOrgif, // Alias for frontend compatibility
+			"categories":     categories,
+			"likes_count":    likesCount,
+			"dislikes_count": dislikesCount,
+			"comments":       commentsCount,
+			"createdAt":      createdAt.Format("2006-01-02 15:04:05"),
 		}
 		posts = append(posts, post)
 	}
@@ -247,7 +263,8 @@ func GetProfilePosts(db *sql.DB, w http.ResponseWriter, r *http.Request, usernam
             p.imgOrgif,
             p.created_at,
             COALESCE(likes.count, 0)    AS likes_count,
-            COALESCE(dislikes.count, 0) AS dislikes_count
+            COALESCE(dislikes.count, 0) AS dislikes_count,
+            COALESCE(comments.count, 0) AS comments_count
         FROM posts p
         JOIN users u ON p.user_id = u.id
         LEFT JOIN (
@@ -258,6 +275,10 @@ func GetProfilePosts(db *sql.DB, w http.ResponseWriter, r *http.Request, usernam
           SELECT post_id, COUNT(*) AS count FROM likes
           WHERE is_like = 0 AND comment_id IS NULL GROUP BY post_id
         ) dislikes ON p.id = dislikes.post_id
+        LEFT JOIN (
+          SELECT post_id, COUNT(*) AS count FROM comments
+          GROUP BY post_id
+        ) comments ON p.id = comments.post_id
         WHERE p.user_id = ?
           AND (
                COALESCE(p.privacy_level,0) = 0                         -- public
@@ -292,11 +313,11 @@ func GetProfilePosts(db *sql.DB, w http.ResponseWriter, r *http.Request, usernam
 	var posts []map[string]any
 	for rows.Next() {
 		var (
-			postID, privacyLevel, likesCount, dislikesCount int
-			username, title, content, imgOrgif              string
-			createdAt                                       time.Time
+			postID, privacyLevel, likesCount, dislikesCount, commentsCount int
+			username, title, content, imgOrgif                             string
+			createdAt                                                      time.Time
 		)
-		if err := rows.Scan(&postID, &username, &title, &content, &privacyLevel, &imgOrgif, &createdAt, &likesCount, &dislikesCount); err != nil {
+		if err := rows.Scan(&postID, &username, &title, &content, &privacyLevel, &imgOrgif, &createdAt, &likesCount, &dislikesCount, &commentsCount); err != nil {
 			http.Error(w, "Failed to process posts", http.StatusInternalServerError)
 			return
 		}
@@ -309,6 +330,7 @@ func GetProfilePosts(db *sql.DB, w http.ResponseWriter, r *http.Request, usernam
 			"privacy_level": privacyLevel, "privacy_text": privacyText,
 			"imgOrgif": imgOrgif, "image": imgOrgif, "categories": categories,
 			"likes_count": likesCount, "dislikes_count": dislikesCount,
+			"comments":  commentsCount,
 			"createdAt": createdAt.Format("2006-01-02 15:04:05"),
 		})
 	}

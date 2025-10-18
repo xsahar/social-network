@@ -55,17 +55,10 @@ export default function Comments() {
         });
         
         if (response.ok) {
-          const commentsData = await response.json();
-          setComments(commentsData || []);
-          // For group posts, we need to fetch post details separately or set a mock post
-          setPost({
-            id: postId,
-            title: 'Group Post',
-            content: 'Loading post details...',
-            type: 'group',
-            username: 'Group Member',
-            createdAt: new Date().toISOString()
-          });
+          const data = await response.json();
+          // Backend now returns { post: {...}, comments: [...] }
+          setPost(data.post);
+          setComments(data.comments || []);
         } else {
           setError('Failed to fetch group comments');
         }

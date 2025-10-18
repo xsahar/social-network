@@ -139,8 +139,9 @@ func GetGroupPostComments(db *sql.DB, groupPostID int) ([]map[string]interface{}
 			"user_id":       uid,
 			"content":       content,
 			"imgOrgif":      imgOrgif.String,
-			"image":         imgOrgif.String, // alias for frontend compatibility
-			"created_at":    createdAt.Format("2006-01-02 15:04:05"),
+			"image":         imgOrgif.String,                         // alias for frontend compatibility
+			"createdAt":     createdAt.Format("2006-01-02 15:04:05"), // Use camelCase for frontend
+			"created_at":    createdAt.Format("2006-01-02 15:04:05"), // Keep for backward compatibility
 			"username":      username,
 		})
 	}

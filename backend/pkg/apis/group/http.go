@@ -713,6 +713,36 @@ func HandleGetGroupPostComments(db *sql.DB, w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	// Fetch the post details
+	var post map[string]interface{}
+	var postUserID int
+	var title, content, username, imgOrgif string
+	var createdAt time.Time
+
+	err = db.QueryRow(`
+		SELECT gp.id, gp.user_id, gp.title, gp.content, gp.imgOrgif, gp.created_at, u.username
+		FROM group_posts gp
+		JOIN users u ON gp.user_id = u.id
+		WHERE gp.id = ? AND gp.group_id = ?
+	`, postID, groupID).Scan(&postID, &postUserID, &title, &content, &imgOrgif, &createdAt, &username)
+
+	if err != nil {
+		http.Error(w, "Post not found", http.StatusNotFound)
+		return
+	}
+
+	post = map[string]interface{}{
+		"id":        postID,
+		"userID":    postUserID,
+		"username":  username,
+		"title":     title,
+		"content":   content,
+		"image":     imgOrgif,
+		"imgOrgif":  imgOrgif,
+		"createdAt": createdAt.Format("2006-01-02 15:04:05"),
+		"type":      "group",
+	}
+
 	comments, err := database.GetGroupPostComments(db, postID)
 	if err == sql.ErrNoRows {
 		comments = []map[string]interface{}{}
@@ -721,8 +751,14 @@ func HandleGetGroupPostComments(db *sql.DB, w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	// Return both post and comments
+	response := map[string]interface{}{
+		"post":     post,
+		"comments": comments,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(comments)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 func ToggleGroupPostLike(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *http.Request) {
