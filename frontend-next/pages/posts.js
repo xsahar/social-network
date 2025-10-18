@@ -202,7 +202,7 @@ export default function Posts() {
         <title>Posts - Social Network</title>
       </Head>
       
-      <div className="posts-layout">
+      <div className={`posts-layout ${chatOpen ? 'chat-open' : ''}`}>
         {/* Main Content */}
         <div className="posts-main-content">
           <div className="posts-header">

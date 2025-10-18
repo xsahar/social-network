@@ -255,6 +255,11 @@ html {
   display: flex;
   gap: 20px;
   min-height: calc(100vh - 80px);
+  transition: margin-right 0.3s ease;
+}
+
+.posts-layout.chat-open {
+  margin-right: 350px;
 }
 
 .posts-main-content {
@@ -2498,6 +2503,11 @@ input[type="submit"]:active {
     margin: 0 auto;
     padding: 24px;
     background: white;
+    transition: margin-right 0.3s ease;
+}
+
+.group-details-container.chat-open {
+    margin-right: 350px;
 }
 
 .group-details-container .group-header {

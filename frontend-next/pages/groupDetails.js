@@ -271,7 +271,7 @@ export default function GroupDetails() {
 
   return (
     <Layout>
-      <div className="group-details-container">
+      <div className={`group-details-container ${showGroupChat ? 'chat-open' : ''}`}>
         <div className="group-header">
           <div className="group-header-content">
             <div className="group-title-section">
