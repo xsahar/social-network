@@ -286,3 +286,13 @@ func RemoveGroupPostDislike(db *sql.DB, groupPostID, userID int) error {
 		groupPostID, userID)
 	return err
 }
+
+// GetGroupPostLikeCounts returns the like and dislike counts for a group post
+func GetGroupPostLikeCounts(db *sql.DB, groupPostID int) (likes int, dislikes int, err error) {
+	err = db.QueryRow(`
+		SELECT 
+			IFNULL((SELECT COUNT(*) FROM group_post_likes WHERE group_post_id = ?), 0) AS likes,
+			IFNULL((SELECT COUNT(*) FROM group_post_dislikes WHERE group_post_id = ?), 0) AS dislikes
+	`, groupPostID, groupPostID).Scan(&likes, &dislikes)
+	return likes, dislikes, err
+}

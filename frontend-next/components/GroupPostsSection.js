@@ -32,8 +32,23 @@ export default function GroupPostsSection({ groupId, user }) {
           console.log('[GroupPostsSection] New group post detected, refreshing...');
           fetchGroupPosts();
         } else if (message.type === 'group_post_like_update') {
-          console.log('[GroupPostsSection] Post like update detected, refreshing...');
-          fetchGroupPosts();
+          // Parse like counts from message content and update UI without refresh
+          try {
+            const likeData = JSON.parse(message.content);
+            console.log('[GroupPostsSection] Like update data:', likeData);
+            
+            setPosts(prev => prev.map(post => 
+              post.id === likeData.post_id 
+                ? { 
+                    ...post, 
+                    like_count: likeData.likes_count,
+                    dislike_count: likeData.dislikes_count 
+                  }
+                : post
+            ));
+          } catch (e) {
+            console.error('[GroupPostsSection] Failed to parse like data:', e);
+          }
         } else if (message.type === 'group_post_comment') {
           console.log('[GroupPostsSection] New comment detected, refreshing post list...');
           fetchGroupPosts();
@@ -134,20 +149,57 @@ export default function GroupPostsSection({ groupId, user }) {
 
   const handleLike = async (postId) => {
     try {
-      const response = await fetch('http://localhost:8080/groups/toggle-post-like', {
+      const response = await fetch(`http://localhost:8080/groups/likes?groupId=${groupId}&postId=${postId}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ group_post_id: postId }),
         credentials: 'include'
       });
       
       if (response.ok) {
-        fetchGroupPosts(); // Refresh posts to get updated like count
+        const data = await response.json();
+        // Update local state immediately with the response data
+        setPosts(prev => prev.map(post => 
+          post.id === postId 
+            ? { 
+                ...post, 
+                like_count: data.likes,
+                dislike_count: data.dislikes,
+                is_liked: !post.is_liked  // Toggle the liked state
+              }
+            : post
+        ));
       } else {
         console.error('Failed to toggle like');
       }
     } catch (error) {
       console.error('Error toggling like:', error);
+    }
+  };
+
+  const handleDislike = async (postId) => {
+    try {
+      const response = await fetch(`http://localhost:8080/groups/dislikes?groupId=${groupId}&postId=${postId}`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        // Update local state immediately with the response data
+        setPosts(prev => prev.map(post => 
+          post.id === postId 
+            ? { 
+                ...post, 
+                like_count: data.likes,
+                dislike_count: data.dislikes,
+                is_disliked: !post.is_disliked  // Toggle the disliked state
+              }
+            : post
+        ));
+      } else {
+        console.error('Failed to toggle dislike');
+      }
+    } catch (error) {
+      console.error('Error toggling dislike:', error);
     }
   };
 
@@ -301,6 +353,13 @@ export default function GroupPostsSection({ groupId, user }) {
                     className={`icon-btn like-btn ${post.is_liked ? 'active' : ''}`}
                   >
                     👍 Like ({post.like_count || 0})
+                  </button>
+                  
+                  <button
+                    onClick={() => handleDislike(post.id)}
+                    className={`icon-btn dislike-btn ${post.is_disliked ? 'active' : ''}`}
+                  >
+                    👎 Dislike ({post.dislike_count || 0})
                   </button>
                   
                   <button

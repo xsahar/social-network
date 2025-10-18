@@ -807,14 +807,31 @@ func ToggleGroupPostLike(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *ht
 	var username string
 	db.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
 
+	// Get updated like/dislike counts
+	likesCount, dislikesCount, err := database.GetGroupPostLikeCounts(db, postID)
+	if err != nil {
+		http.Error(w, "Failed to fetch counts", http.StatusInternalServerError)
+		return
+	}
+
 	// Broadcast like update to all group members
 	if hub != nil {
+		// Prepare count data as JSON
+		countsData := map[string]interface{}{
+			"post_id":        postID,
+			"group_id":       groupID,
+			"likes_count":    likesCount,
+			"dislikes_count": dislikesCount,
+		}
+		countsJSON, _ := json.Marshal(countsData)
+
 		likeNotification := chat.Frontend{
 			Type:      "group_post_like_update",
 			From:      userID,
 			Username:  username,
 			GroupID:   groupID,
 			PostId:    postID,
+			Content:   string(countsJSON),
 			Timestamp: time.Now(),
 		}
 
@@ -836,7 +853,11 @@ func ToggleGroupPostLike(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *ht
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{"success": true})
+	json.NewEncoder(w).Encode(map[string]any{
+		"success":  true,
+		"likes":    likesCount,
+		"dislikes": dislikesCount,
+	})
 }
 
 func AddGroupPostComment(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *http.Request) {
@@ -1171,7 +1192,7 @@ func getGroupMemberIDs(db *sql.DB, groupID int) ([]int, error) {
 }
 
 // ToggleGroupPostDislike mirrors ToggleGroupPostLike for 👎
-func ToggleGroupPostDislike(db *sql.DB, w http.ResponseWriter, r *http.Request) {
+func ToggleGroupPostDislike(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost && r.Method != http.MethodDelete {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -1215,6 +1236,59 @@ func ToggleGroupPostDislike(db *sql.DB, w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
+	// Get username for WebSocket broadcast
+	var username string
+	db.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
+
+	// Get updated like/dislike counts
+	likesCount, dislikesCount, err := database.GetGroupPostLikeCounts(db, postID)
+	if err != nil {
+		http.Error(w, "Failed to fetch counts", http.StatusInternalServerError)
+		return
+	}
+
+	// Broadcast dislike update to all group members
+	if hub != nil {
+		// Prepare count data as JSON
+		countsData := map[string]interface{}{
+			"post_id":        postID,
+			"group_id":       groupID,
+			"likes_count":    likesCount,
+			"dislikes_count": dislikesCount,
+		}
+		countsJSON, _ := json.Marshal(countsData)
+
+		dislikeNotification := chat.Frontend{
+			Type:      "group_post_like_update",
+			From:      userID,
+			Username:  username,
+			GroupID:   groupID,
+			PostId:    postID,
+			Content:   string(countsJSON),
+			Timestamp: time.Now(),
+		}
+
+		// Get group member IDs
+		memberIDs, err := getGroupMemberIDs(db, groupID)
+		if err == nil {
+			hub.Mutex.RLock()
+			for _, memberID := range memberIDs {
+				if client, ok := hub.Clients[memberID]; ok {
+					select {
+					case client.Send <- dislikeNotification:
+					default:
+						// Skip if buffer full
+					}
+				}
+			}
+			hub.Mutex.RUnlock()
+		}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{"success": true})
+	json.NewEncoder(w).Encode(map[string]any{
+		"success":  true,
+		"likes":    likesCount,
+		"dislikes": dislikesCount,
+	})
 }

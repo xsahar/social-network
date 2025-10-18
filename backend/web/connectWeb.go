@@ -567,7 +567,7 @@ func ConnectWeb(db *sql.DB) {
 	}))
 
 	http.HandleFunc("/groups/dislikes", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
-		g.ToggleGroupPostDislike(db, w, r)
+		g.ToggleGroupPostDislike(db, chatHub, w, r)
 	}))
 
 	// Create an event with a built-in YES/NO poll
