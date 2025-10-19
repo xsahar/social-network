@@ -31,18 +31,21 @@ export default function Comments() {
     const unsubscribe = subscribe((message) => {
       // Listen for both regular and group post comments
       if (message.type === 'new_comment' && message.post_id == postId) {
-        // Refresh comments when a new comment is added to this post
         fetchCommentsAndPost();
       } else if (message.type === 'group_post_comment' && message.post_id == postId) {
-        // Refresh comments when a new group post comment is added
-        console.log('[Comments] Group post comment received, refreshing...');
-        fetchCommentsAndPost();
+        try {
+          const commentData = JSON.parse(message.content);
+          setComments(prev => {
+            // Avoid duplicates
+            if (prev.some(c => c.id === commentData.id)) return prev;
+            return [...prev, commentData];
+          });
+        } catch (e) {
+          console.error('[Comments] Failed to parse new group comment data:', e);
+        }
       } else if (message.type === 'new_commentLike') {
-        // Update comment like counts in real-time
         try {
           const likeData = JSON.parse(message.content);
-          console.log('[Comments] Comment like update:', likeData);
-          
           setComments(prev => prev.map(comment => 
             comment.id === likeData.comment_id 
               ? { 

@@ -26,17 +26,21 @@ export default function GroupPostsSection({ groupId, user }) {
 
     const unsubscribe = subscribe((message) => {
       console.log('[GroupPostsSection] Received WebSocket message:', message);
-      
       if (message.group_id == groupId) {
         if (message.type === 'new_groupPost') {
-          console.log('[GroupPostsSection] New group post detected, refreshing...');
-          fetchGroupPosts();
+          try {
+            const postData = JSON.parse(message.content);
+            setPosts(prev => {
+              // Avoid duplicates
+              if (prev.some(p => p.id === postData.id)) return prev;
+              return [postData, ...prev];
+            });
+          } catch (e) {
+            console.error('[GroupPostsSection] Failed to parse new group post data:', e);
+          }
         } else if (message.type === 'group_post_like_update') {
-          // Parse like counts from message content and update UI without refresh
           try {
             const likeData = JSON.parse(message.content);
-            console.log('[GroupPostsSection] Like update data:', likeData);
-            
             setPosts(prev => prev.map(post => 
               post.id === likeData.post_id 
                 ? { 
@@ -50,7 +54,6 @@ export default function GroupPostsSection({ groupId, user }) {
             console.error('[GroupPostsSection] Failed to parse like data:', e);
           }
         } else if (message.type === 'group_post_comment') {
-          console.log('[GroupPostsSection] New comment detected, refreshing post list...');
           fetchGroupPosts();
         }
       }

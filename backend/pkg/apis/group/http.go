@@ -933,6 +933,18 @@ func AddGroupPostComment(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *ht
 
 	// Broadcast comment notification to all group members
 	if hub != nil {
+		// Fetch the full comment data for broadcast
+		comments, err := database.GetGroupPostComments(db, groupPostID)
+		var newComment map[string]interface{}
+		if err == nil {
+			for _, c := range comments {
+				if cid, ok := c["id"].(int); ok && cid == int(commentID) {
+					newComment = c
+					break
+				}
+			}
+		}
+		commentJSON, _ := json.Marshal(newComment)
 		commentNotification := chat.Frontend{
 			Type:      "group_post_comment",
 			From:      userID,
@@ -940,7 +952,7 @@ func AddGroupPostComment(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *ht
 			GroupID:   groupID,
 			PostId:    groupPostID,
 			CommentId: int(commentID),
-			Content:   content,
+			Content:   string(commentJSON),
 			Timestamp: time.Now(),
 		}
 
@@ -1129,13 +1141,25 @@ func CreateGroupPost(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *http.R
 
 	// Broadcast new group post to all group members via WebSocket
 	if hub != nil {
+		// Fetch the full post data for broadcast
+		posts, err := database.GetGroupPosts(db, groupID, userID)
+		var newPost map[string]interface{}
+		if err == nil {
+			for _, p := range posts {
+				if pid, ok := p["id"].(int); ok && pid == postID {
+					newPost = p
+					break
+				}
+			}
+		}
+		postJSON, _ := json.Marshal(newPost)
 		postNotification := chat.Frontend{
 			Type:      "new_groupPost",
 			From:      userID,
 			Username:  username,
 			GroupID:   groupID,
 			PostId:    postID,
-			Content:   content,
+			Content:   string(postJSON),
 			Timestamp: time.Now(),
 		}
 

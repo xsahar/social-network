@@ -86,10 +86,10 @@ export default function GroupEvents({ groupId, user }) {
       });
       
       if (response.ok) {
-        setShowCreateEvent(false);
-        setNewEvent({ title: '', description: '' });
-        fetchGroupEvents(); // Refresh events
-        alert('Event created successfully!');
+  setShowCreateEvent(false);
+  setNewEvent({ title: '', description: '' });
+  // Do not reload events here; WebSocket will update UI
+  alert('Event created successfully!');
       } else {
         const errorText = await response.text();
         alert(`Failed to create event: ${errorText}`);
@@ -106,12 +106,10 @@ export default function GroupEvents({ groupId, user }) {
         method: 'POST',
         credentials: 'include'
       });
-      
-      if (response.ok) {
-        fetchGroupEvents(); // Refresh events to get updated vote counts
-      } else {
+      if (!response.ok) {
         console.error('Failed to vote on event');
       }
+      // Do not reload events here; WebSocket will update UI
     } catch (error) {
       console.error('Error voting on event:', error);
     }

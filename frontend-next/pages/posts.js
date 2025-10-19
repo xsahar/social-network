@@ -60,36 +60,67 @@ export default function Posts() {
 
     const unsubscribe = subscribe((message) => {
       console.log('[Posts] Received WebSocket message:', message);
-      
+
+
+      // Handle normal post creation
       if (message.type === 'new_post') {
-        // Parse the post data from the message content
         try {
           const postData = JSON.parse(message.content);
-          console.log('[Posts] New post data:', postData);
-          
-          // Add new post to the top of the feed
+          // If the post is from the current user and avatar_url is missing, inject user's avatar
+          let postWithAvatar = postData;
+          if (user && message.from === user.userID && (!postData.avatar_url || postData.avatar_url === '' || postData.avatar_url === '/img/avatars/images.png')) {
+            postWithAvatar = { ...postData, avatar_url: user.avatar };
+          }
           setPosts(prev => {
-            // Avoid duplicates
-            if (prev.some(p => p.id === postData.id)) {
-              return prev;
+            // If post already exists, update avatar_url if needed (for all users)
+            if (prev.some(p => p.id === postWithAvatar.id)) {
+              return prev.map(p =>
+                p.id === postWithAvatar.id && (!p.avatar_url || p.avatar_url === '' || p.avatar_url === '/img/avatars/images.png')
+                  ? { ...p, avatar_url: postWithAvatar.avatar_url }
+                  : p
+              );
             }
-            return [postData, ...prev];
+            return [postWithAvatar, ...prev];
           });
-          
-          // Show notification
           if (message.username && message.from !== user.userID) {
             console.log(`✨ New post from ${message.username}: ${postData.title}`);
           }
         } catch (e) {
           console.error('[Posts] Failed to parse post data:', e);
         }
-      } else if (message.type === 'new_postLike') {
-        // Parse the like data from the message content
+      }
+
+      // Handle group post creation in real-time
+      else if (message.type === 'new_groupPost') {
+        try {
+          const groupPostData = JSON.parse(message.content);
+          let groupPostWithAvatar = groupPostData;
+          if (user && message.from === user.userID && (!groupPostData.avatar_url || groupPostData.avatar_url === '' || groupPostData.avatar_url === '/img/avatars/images.png')) {
+            groupPostWithAvatar = { ...groupPostData, avatar_url: user.avatar };
+          }
+          setPosts(prev => {
+            // If post already exists, update avatar_url if needed (for all users)
+            if (prev.some(p => p.id === groupPostWithAvatar.id)) {
+              return prev.map(p =>
+                p.id === groupPostWithAvatar.id && (!p.avatar_url || p.avatar_url === '' || p.avatar_url === '/img/avatars/images.png')
+                  ? { ...p, avatar_url: groupPostWithAvatar.avatar_url }
+                  : p
+              );
+            }
+            return [groupPostWithAvatar, ...prev];
+          });
+          if (message.username && message.from !== user.userID) {
+            console.log(`✨ New group post from ${message.username}: ${groupPostData.title}`);
+          }
+        } catch (e) {
+          console.error('[Posts] Failed to parse group post data:', e);
+        }
+      }
+
+      // Handle like updates
+      else if (message.type === 'new_postLike') {
         try {
           const likeData = JSON.parse(message.content);
-          console.log('[Posts] Like update data:', likeData);
-          
-          // Update like count for specific post
           setPosts(prev => prev.map(post => 
             post.id === likeData.post_id 
               ? { 
@@ -102,8 +133,10 @@ export default function Posts() {
         } catch (e) {
           console.error('[Posts] Failed to parse like data:', e);
         }
-      } else if (message.type === 'new_comment' && message.post_id) {
-        // Update comment count for specific post
+      }
+
+      // Handle comment updates
+      else if (message.type === 'new_comment' && message.post_id) {
         setPosts(prev => prev.map(post => 
           post.id === message.post_id 
             ? { ...post, comments: (post.comments || 0) + 1 }

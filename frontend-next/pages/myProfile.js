@@ -506,7 +506,20 @@ export default function MyProfile() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                         <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#1f2937' }}>{post.title}</h3>
                         <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                          {new Date(post.createdAt).toLocaleDateString()}
+                          {(() => {
+                            let dateVal = post.createdAt || post.created_at;
+                            if (dateVal) {
+                              // If it's a number (timestamp), parse as int
+                              if (typeof dateVal === 'number' || /^\d+$/.test(dateVal)) {
+                                const date = new Date(Number(dateVal));
+                                return isNaN(date) ? 'Unknown Date' : date.toLocaleDateString();
+                              }
+                              // If it's a string, try parsing as ISO/date string
+                              const date = new Date(dateVal);
+                              return isNaN(date) ? 'Unknown Date' : date.toLocaleDateString();
+                            }
+                            return 'Unknown Date';
+                          })()}
                         </span>
                       </div>
                       
@@ -519,12 +532,12 @@ export default function MyProfile() {
                       )}
                       
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', paddingTop: '0.75rem', borderTop: '1px solid #e5e7eb' }}>
-                        <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                        {/* <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
                           👍 {post.likes || 0}
-                        </span>
-                        <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                        </span> */}
+                        {/* <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
                           💬 {post.comments || 0}
-                        </span>
+                        </span> */}
                         <button
                           onClick={() => router.push(`/comments?postId=${post.id}`)}
                           className="icon-btn comment-btn"
