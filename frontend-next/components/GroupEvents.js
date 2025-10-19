@@ -20,18 +20,39 @@ export default function GroupEvents({ groupId, user }) {
 
     const unsubscribe = subscribe((message) => {
       console.log('[GroupEvents] Received WebSocket message:', message);
-      
       if (message.group_id == groupId) {
         if (message.type === 'new_groupEvent') {
-          console.log('[GroupEvents] New group event detected, refreshing...');
-          fetchGroupEvents();
-        } else if (message.type === 'event_vote_update') {
-          console.log('[GroupEvents] Event vote update detected, refreshing...');
-          fetchGroupEvents();
+          // Add new event to state instantly using info from message
+          setEvents(prev => {
+            if (prev.some(ev => ev.id === message.post_id)) return prev;
+            return [
+              {
+                id: message.post_id,
+                title: message.content.split(':')[0]?.trim() || '',
+                description: message.content.split(':').slice(1).join(':').trim() || '',
+                created_at: message.timestamp,
+                yes_count: message.yes_count,
+                no_count: message.no_count,
+                user_vote: message.user_vote || null
+              },
+              ...prev
+            ];
+          });
+        } else if (message.type === 'group_event_vote_update') {
+          // Use info from WebSocket message to update event in state
+          setEvents(prev => prev.map(ev =>
+            ev.id === message.post_id
+              ? {
+                  ...ev,
+                  yes_count: message.yes_count,
+                  no_count: message.no_count,
+                  user_vote: message.user_vote
+                }
+              : ev
+          ));
         }
       }
     });
-
     return () => unsubscribe();
   }, [user, groupId, subscribe]);
 
@@ -86,10 +107,10 @@ export default function GroupEvents({ groupId, user }) {
       });
       
       if (response.ok) {
-  setShowCreateEvent(false);
-  setNewEvent({ title: '', description: '' });
-  // Do not reload events here; WebSocket will update UI
-  alert('Event created successfully!');
+        setShowCreateEvent(false);
+        setNewEvent({ title: '', description: '' });
+        fetchGroupEvents(); // Refresh events
+        alert('Event created successfully!');
       } else {
         const errorText = await response.text();
         alert(`Failed to create event: ${errorText}`);
@@ -106,10 +127,10 @@ export default function GroupEvents({ groupId, user }) {
         method: 'POST',
         credentials: 'include'
       });
+      // No reload! WebSocket will update the UI
       if (!response.ok) {
         console.error('Failed to vote on event');
       }
-      // Do not reload events here; WebSocket will update UI
     } catch (error) {
       console.error('Error voting on event:', error);
     }

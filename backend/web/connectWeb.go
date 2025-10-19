@@ -708,6 +708,17 @@ func ConnectWeb(db *sql.DB) {
 		var username string
 		db.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
 
+		// Query event poll counts and user's vote
+		var yesCount, noCount int
+		_ = db.QueryRow(`SELECT COUNT(*) FROM event_votes WHERE event_id = ? AND choice='yes'`, id).Scan(&yesCount)
+		_ = db.QueryRow(`SELECT COUNT(*) FROM event_votes WHERE event_id = ? AND choice='no'`, id).Scan(&noCount)
+		var uv sql.NullString
+		_ = db.QueryRow(`SELECT choice FROM event_votes WHERE event_id = ? AND user_id = ?`, id, userID).Scan(&uv)
+		var userVote string
+		if uv.Valid {
+			userVote = uv.String
+		}
+
 		// Broadcast new event to all group members via WebSocket
 		eventNotification := chat.Frontend{
 			Type:      "new_groupEvent",
@@ -717,6 +728,9 @@ func ConnectWeb(db *sql.DB) {
 			PostId:    int(id),
 			Content:   req.Title + ": " + req.Description,
 			Timestamp: time.Now(),
+			YesCount:  yesCount,
+			NoCount:   noCount,
+			UserVote:  userVote,
 		}
 
 		// Get group member IDs
@@ -897,14 +911,20 @@ func ConnectWeb(db *sql.DB) {
 			var username string
 			db.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
 
-			// Broadcast event vote update to all group members
+			// Query updated counts and user's vote
+			var yesCount, noCount int
+			_ = db.QueryRow(`SELECT COUNT(*) FROM event_votes WHERE event_id = ? AND choice='yes'`, eventID).Scan(&yesCount)
+			_ = db.QueryRow(`SELECT COUNT(*) FROM event_votes WHERE event_id = ? AND choice='no'`, eventID).Scan(&noCount)
+
 			voteNotification := chat.Frontend{
-				Type:      "event_vote_update",
+				Type:      "group_event_vote_update",
 				From:      userID,
 				Username:  username,
 				GroupID:   groupID,
 				PostId:    eventID,
-				Content:   choice,
+				YesCount:  yesCount,
+				NoCount:   noCount,
+				UserVote:  choice,
 				Timestamp: time.Now(),
 			}
 
