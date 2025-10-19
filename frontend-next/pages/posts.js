@@ -230,11 +230,39 @@ export default function Posts() {
                 <div key={post.id} className="post-card">
                   <div className="post-header">
                     <div className="post-author">
-                      <img
-                        src={post.userAvatar || '/css/icon.png'}
-                        alt={`${post.username}'s avatar`}
-                        className="post-avatar"
-                      />
+                      {post.avatar_url && post.avatar_url !== '/img/avatars/images.png' && post.avatar_url !== '' ? (
+                        <img
+                          src={post.avatar_url}
+                          alt={`${post.username}'s avatar`}
+                          className="post-avatar"
+                          style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #e5e7eb', background: '#f3f4f6' }}
+                          onError={e => { e.target.src = '/img/avatars/images.png'; }}
+                        />
+                      ) : (
+                        <div
+                          className="post-avatar-fallback"
+                          style={{
+                            width: '48px',
+                            height: '48px',
+                            borderRadius: '50%',
+                            background: '#e5e7eb',
+                            color: '#374151',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 700,
+                            fontSize: '1.5rem',
+                            border: '2px solid #e5e7eb',
+                            textTransform: 'uppercase',
+                          }}
+                        >
+                          {post.firstname && post.firstname.length > 0
+                            ? post.firstname[0]
+                            : (post.username && post.username.length > 0
+                                ? post.username[0]
+                                : '?')}
+                        </div>
+                      )}
                       <div className="post-author-info">
                         <h3>{post.username}</h3>
                         <p className="post-meta">

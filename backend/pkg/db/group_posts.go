@@ -23,30 +23,30 @@ func getOrCreateCategoryIDTx(tx *sql.Tx, name string) (int, error) {
 
 func GetGroupPosts(db *sql.DB, groupID, viewerID int) ([]map[string]interface{}, error) {
 	rows, err := db.Query(`
-        SELECT gp.id, gp.group_id, gp.user_id, gp.title, gp.content, gp.created_at,
-               gp.imgOrgif,                        -- NEW
-               u.username,
-               IFNULL(l.cnt, 0)  AS like_count,
-               IFNULL(dl.cnt, 0) AS dislike_count,
-               IFNULL(c.cnt, 0)  AS comment_count,
-               CASE WHEN ul.user_id  IS NULL THEN 0 ELSE 1 END AS is_liked,
-               CASE WHEN ud.user_id IS NULL THEN 0 ELSE 1 END AS is_disliked
-        FROM group_posts gp
-        JOIN users u ON u.id = gp.user_id
-        LEFT JOIN (SELECT group_post_id, COUNT(*) AS cnt FROM group_post_likes GROUP BY group_post_id) l  ON l.group_post_id  = gp.id
-        LEFT JOIN (SELECT group_post_id, COUNT(*) AS cnt FROM group_post_dislikes GROUP BY group_post_id) dl ON dl.group_post_id = gp.id
-        LEFT JOIN (SELECT group_post_id, COUNT(*) AS cnt FROM group_post_comments GROUP BY group_post_id) c  ON c.group_post_id  = gp.id
-        LEFT JOIN (SELECT group_post_id, user_id FROM group_post_likes WHERE user_id = ?)  ul ON ul.group_post_id = gp.id
-        LEFT JOIN (SELECT group_post_id, user_id FROM group_post_dislikes WHERE user_id = ?) ud ON ud.group_post_id = gp.id
-        WHERE gp.group_id = ?
-          AND EXISTS (
-                SELECT 1 FROM group_members m
-                WHERE m.group_id = gp.group_id
-                  AND m.user_id  = ?
-                  AND m.status   = 'accepted'
-          )
-        ORDER BY gp.created_at DESC
-    `, viewerID, viewerID, groupID, viewerID)
+				 SELECT gp.id, gp.group_id, gp.user_id, gp.title, gp.content, gp.created_at,
+								gp.imgOrgif,
+								u.username, u.firstname, u.lastname, u.avatar_url,
+								IFNULL(l.cnt, 0)  AS like_count,
+								IFNULL(dl.cnt, 0) AS dislike_count,
+								IFNULL(c.cnt, 0)  AS comment_count,
+								CASE WHEN ul.user_id  IS NULL THEN 0 ELSE 1 END AS is_liked,
+								CASE WHEN ud.user_id IS NULL THEN 0 ELSE 1 END AS is_disliked
+				 FROM group_posts gp
+				 JOIN users u ON u.id = gp.user_id
+				 LEFT JOIN (SELECT group_post_id, COUNT(*) AS cnt FROM group_post_likes GROUP BY group_post_id) l  ON l.group_post_id  = gp.id
+				 LEFT JOIN (SELECT group_post_id, COUNT(*) AS cnt FROM group_post_dislikes GROUP BY group_post_id) dl ON dl.group_post_id = gp.id
+				 LEFT JOIN (SELECT group_post_id, COUNT(*) AS cnt FROM group_post_comments GROUP BY group_post_id) c  ON c.group_post_id  = gp.id
+				 LEFT JOIN (SELECT group_post_id, user_id FROM group_post_likes WHERE user_id = ?)  ul ON ul.group_post_id = gp.id
+				 LEFT JOIN (SELECT group_post_id, user_id FROM group_post_dislikes WHERE user_id = ?) ud ON ud.group_post_id = gp.id
+				 WHERE gp.group_id = ?
+					 AND EXISTS (
+								 SELECT 1 FROM group_members m
+								 WHERE m.group_id = gp.group_id
+									 AND m.user_id  = ?
+									 AND m.status   = 'accepted'
+					 )
+				 ORDER BY gp.created_at DESC
+			`, viewerID, viewerID, groupID, viewerID)
 	if err != nil {
 		return nil, err
 	}
@@ -55,18 +55,19 @@ func GetGroupPosts(db *sql.DB, groupID, viewerID int) ([]map[string]interface{},
 	var out []map[string]interface{}
 	for rows.Next() {
 		var (
-			id, gid, uid              int
-			likeCount, dislikeCount   int
-			commentCount              int
-			isLikedInt, isDislikedInt int
-			title, content, username  string
-			createdAt                 time.Time
-			imgOrgif                  sql.NullString // NEW
+			id, gid, uid                                             int
+			likeCount, dislikeCount                                  int
+			commentCount                                             int
+			isLikedInt, isDislikedInt                                int
+			title, content, username, firstname, lastname, avatarURL string
+			createdAt                                                time.Time
+			imgOrgif                                                 sql.NullString
 		)
 		if err := rows.Scan(
 			&id, &gid, &uid, &title, &content, &createdAt,
-			&imgOrgif, // NEW
-			&username, &likeCount, &dislikeCount, &commentCount, &isLikedInt, &isDislikedInt,
+			&imgOrgif,
+			&username, &firstname, &lastname, &avatarURL,
+			&likeCount, &dislikeCount, &commentCount, &isLikedInt, &isDislikedInt,
 		); err != nil {
 			return nil, err
 		}
@@ -96,14 +97,17 @@ func GetGroupPosts(db *sql.DB, groupID, viewerID int) ([]map[string]interface{},
 			"content":       content,
 			"created_at":    createdAt.Format("2006-01-02 15:04:05"),
 			"username":      username,
+			"firstname":     firstname,
+			"lastname":      lastname,
+			"avatar_url":    avatarURL,
 			"categories":    cats,
-			"imgOrgif":      imgOrgif.String, // ← include image/GIF URL
-			"image":         imgOrgif.String, // ← alias for frontend compatibility
+			"imgOrgif":      imgOrgif.String,
+			"image":         imgOrgif.String,
 			"like_count":    likeCount,
-			"dislike_count": dislikeCount, // ← now present
+			"dislike_count": dislikeCount,
 			"comment_count": commentCount,
 			"is_liked":      isLikedInt == 1,
-			"is_disliked":   isDislikedInt == 1, // ← now present
+			"is_disliked":   isDislikedInt == 1,
 		})
 	}
 	return out, rows.Err()
@@ -111,12 +115,12 @@ func GetGroupPosts(db *sql.DB, groupID, viewerID int) ([]map[string]interface{},
 
 func GetGroupPostComments(db *sql.DB, groupPostID int) ([]map[string]interface{}, error) {
 	rows, err := db.Query(`
-        SELECT c.id, c.group_post_id, c.user_id, c.content, c.created_at, c.imgOrgif, u.username
-        FROM group_post_comments c
-        JOIN users u ON u.id = c.user_id
-        WHERE c.group_post_id = ?
-        ORDER BY c.created_at ASC
-    `, groupPostID)
+			SELECT c.id, c.group_post_id, c.user_id, c.content, c.created_at, c.imgOrgif, u.username, u.firstname, u.lastname, u.avatar_url
+			FROM group_post_comments c
+			JOIN users u ON u.id = c.user_id
+			WHERE c.group_post_id = ?
+			ORDER BY c.created_at ASC
+		`, groupPostID)
 	if err != nil {
 		return nil, err
 	}
@@ -125,12 +129,12 @@ func GetGroupPostComments(db *sql.DB, groupPostID int) ([]map[string]interface{}
 	var out []map[string]interface{}
 	for rows.Next() {
 		var (
-			id, gid, uid      int
-			content, username string
-			createdAt         time.Time
-			imgOrgif          sql.NullString // NEW
+			id, gid, uid                                      int
+			content, username, firstname, lastname, avatarURL string
+			createdAt                                         time.Time
+			imgOrgif                                          sql.NullString
 		)
-		if err := rows.Scan(&id, &gid, &uid, &content, &createdAt, &imgOrgif, &username); err != nil {
+		if err := rows.Scan(&id, &gid, &uid, &content, &createdAt, &imgOrgif, &username, &firstname, &lastname, &avatarURL); err != nil {
 			return nil, err
 		}
 		out = append(out, map[string]interface{}{
@@ -139,10 +143,13 @@ func GetGroupPostComments(db *sql.DB, groupPostID int) ([]map[string]interface{}
 			"user_id":       uid,
 			"content":       content,
 			"imgOrgif":      imgOrgif.String,
-			"image":         imgOrgif.String,                         // alias for frontend compatibility
-			"createdAt":     createdAt.Format("2006-01-02 15:04:05"), // Use camelCase for frontend
-			"created_at":    createdAt.Format("2006-01-02 15:04:05"), // Keep for backward compatibility
+			"image":         imgOrgif.String,
+			"createdAt":     createdAt.Format("2006-01-02 15:04:05"),
+			"created_at":    createdAt.Format("2006-01-02 15:04:05"),
 			"username":      username,
+			"firstname":     firstname,
+			"lastname":      lastname,
+			"avatar_url":    avatarURL,
 		})
 	}
 	return out, rows.Err()

@@ -528,12 +528,15 @@ func ConnectWeb(db *sql.DB) {
 			return
 		}
 
-		// Combine post and comments into a single response
+		// Patch: Add 'image' alias for frontend compatibility (like group posts)
+		postObj := post[0]
+		if img, ok := postObj["imgOrgif"]; ok {
+			postObj["image"] = img
+		}
 		response := map[string]interface{}{
-			"post":     post[0], // Assuming GetPostByPostID returns a slice
+			"post":     postObj,
 			"comments": comments,
 		}
-
 		// Return combined response as JSON
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)

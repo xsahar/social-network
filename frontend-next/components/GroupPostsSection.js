@@ -309,19 +309,39 @@ export default function GroupPostsSection({ groupId, user }) {
               {/* Post Header */}
               <div className="post-header">
                 <div className="post-author">
-                  <div className="post-avatar" style={{
-                    background: 'linear-gradient(135deg, #4267B2 0%, #365899 100%)',
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontWeight: '500'
-                  }}>
-                    {post.username ? post.username[0].toUpperCase() : 'U'}
-                  </div>
+                  {post.avatar_url && post.avatar_url !== '' ? (
+                    <img
+                      src={post.avatar_url}
+                      alt={`${post.username || 'User'}'s avatar`}
+                      className="post-avatar"
+                      style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #e5e7eb', background: '#f3f4f6' }}
+                      onError={e => { e.target.src = '/img/avatars/images.png'; }}
+                    />
+                  ) : (
+                    <div
+                      className="post-avatar-fallback"
+                      style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '50%',
+                        background: '#e5e7eb',
+                        color: '#374151',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 700,
+                        fontSize: '1.2rem',
+                        border: '2px solid #e5e7eb',
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      {post.firstname && post.firstname.length > 0
+                        ? post.firstname[0]
+                        : (post.username && post.username.length > 0
+                            ? post.username[0]
+                            : '?')}
+                    </div>
+                  )}
                   <div className="post-author-info">
                     <h3>{post.username || 'Unknown User'}</h3>
                     <div className="post-meta">

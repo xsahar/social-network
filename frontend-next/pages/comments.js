@@ -199,15 +199,45 @@ export default function Comments() {
         {/* Original Post */}
         <div className="post-detail">
           <div className="post-header">
-            <img
-              src={post.userAvatar || '/css/icon.png'}
-              alt={`${post.username || 'User'}'s avatar`}
-              className="post-avatar"
-            />
+            {post.avatar_url && post.avatar_url !== '' ? (
+              <img
+                src={post.avatar_url}
+                alt={`${post.username || 'User'}'s avatar`}
+                className="post-avatar"
+                onError={e => { e.target.src = '/img/avatars/images.png'; }}
+              />
+            ) : (
+              <div
+                className="post-avatar-fallback"
+                style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '50%',
+                  background: '#e5e7eb',
+                  color: '#374151',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 700,
+                  fontSize: '1.5rem',
+                  border: '2px solid #e5e7eb',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {post.firstname && post.firstname.length > 0
+                  ? post.firstname[0]
+                  : (post.username && post.username.length > 0
+                      ? post.username[0]
+                      : '?')}
+              </div>
+            )}
             <div className="post-user-info">
               <h3>{post.username || 'Anonymous'}</h3>
               <p className="post-date">
-                {new Date(post.created_at).toLocaleDateString()}
+                {(() => {
+                  const d = new Date(post.created_at || post.createdAt);
+                  return isNaN(d.getTime()) ? (post.created_at || post.createdAt || 'Unknown Date') : d.toLocaleString();
+                })()}
               </p>
             </div>
           </div>
@@ -294,15 +324,45 @@ export default function Comments() {
             comments.map((comment) => (
               <div key={comment.id} className="comment-card">
                 <div className="comment-header">
-                  <img
-                    src={comment.userAvatar || '/css/icon.png'}
-                    alt={`${comment.username}'s avatar`}
-                    className="comment-avatar"
-                  />
+                  {comment.avatar_url && comment.avatar_url !== '' ? (
+                    <img
+                      src={comment.avatar_url}
+                      alt={`${comment.username}'s avatar`}
+                      className="comment-avatar"
+                      onError={e => { e.target.src = '/img/avatars/images.png'; }}
+                    />
+                  ) : (
+                    <div
+                      className="comment-avatar-fallback"
+                      style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '50%',
+                        background: '#e5e7eb',
+                        color: '#374151',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 700,
+                        fontSize: '1.2rem',
+                        border: '2px solid #e5e7eb',
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      {comment.firstname && comment.firstname.length > 0
+                        ? comment.firstname[0]
+                        : (comment.username && comment.username.length > 0
+                            ? comment.username[0]
+                            : '?')}
+                    </div>
+                  )}
                   <div className="comment-user-info">
                     <h4>{comment.username || 'Anonymous'}</h4>
                     <p className="post-date">
-                      {new Date(comment.created_at).toLocaleDateString()}
+                      {(() => {
+                        const d = new Date(comment.created_at || comment.createdAt);
+                        return isNaN(d.getTime()) ? (comment.created_at || comment.createdAt || 'Unknown Date') : d.toLocaleString();
+                      })()}
                     </p>
                   </div>
                 </div>

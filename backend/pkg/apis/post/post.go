@@ -27,16 +27,16 @@ func GetPosts(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 
 	// Complex query that respects privacy settings
 	query := `
-        SELECT 
-            p.id, u.username, p.user_id, p.title, p.content, 
-            COALESCE(p.privacy_level, 0) as privacy_level, 
-            p.imgOrgif, 
-            p.created_at,
-            COALESCE(likes.count, 0) as likes_count,
-            COALESCE(dislikes.count, 0) as dislikes_count,
-            COALESCE(comments.count, 0) as comments_count
-        FROM posts p
-        JOIN users u ON p.user_id = u.id
+		SELECT 
+			p.id, u.username, u.firstname, u.lastname, u.avatar_url, p.user_id, p.title, p.content, 
+			COALESCE(p.privacy_level, 0) as privacy_level, 
+			p.imgOrgif, 
+			p.created_at,
+			COALESCE(likes.count, 0) as likes_count,
+			COALESCE(dislikes.count, 0) as dislikes_count,
+			COALESCE(comments.count, 0) as comments_count
+		FROM posts p
+		JOIN users u ON p.user_id = u.id
         LEFT JOIN (
             SELECT post_id, COUNT(*) as count 
             FROM likes 
@@ -96,10 +96,10 @@ func GetPosts(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 	var posts []map[string]interface{}
 	for rows.Next() {
 		var postID, privacyLevel, likesCount, dislikesCount, commentsCount, postUserID int
-		var username, title, content, imgOrgif string
+		var username, firstname, lastname, avatarURL, title, content, imgOrgif string
 		var createdAt time.Time
 
-		err := rows.Scan(&postID, &username, &postUserID, &title, &content, &privacyLevel, &imgOrgif, &createdAt, &likesCount, &dislikesCount, &commentsCount)
+		err := rows.Scan(&postID, &username, &firstname, &lastname, &avatarURL, &postUserID, &title, &content, &privacyLevel, &imgOrgif, &createdAt, &likesCount, &dislikesCount, &commentsCount)
 		if err != nil {
 			fmt.Println("Error scanning post:", err)
 			http.Error(w, "Failed to process posts", http.StatusInternalServerError)
@@ -126,6 +126,9 @@ func GetPosts(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 		post := map[string]interface{}{
 			"id":             postID,
 			"username":       username,
+			"firstname":      firstname,
+			"lastname":       lastname,
+			"avatar_url":     avatarURL,
 			"userID":         postUserID,
 			"title":          title,
 			"content":        content,

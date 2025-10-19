@@ -22,6 +22,9 @@ type Comment struct {
 	ID        int       `json:"id"`
 	UserID    int       `json:"user_id"`
 	Username  string    `json:"username"`
+	Firstname string    `json:"firstname"`
+	Lastname  string    `json:"lastname"`
+	AvatarURL string    `json:"avatar_url"`
 	Content   string    `json:"content"`
 	ImgOrGif  string    `json:"imgOrgif"`
 	Image     string    `json:"image"` // Alias for frontend compatibility
@@ -169,17 +172,20 @@ func CreateComment(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *http.Req
 func GetCommentsByPostID(db *sql.DB, postID int) ([]Comment, error) {
 	const query = `
 SELECT
-    c.id,
-    c.user_id,
-    u.username,
-    c.content,
-    COALESCE(c.imgOrgif, '') AS imgOrgif,
-    c.created_at
+	c.id,
+	c.user_id,
+	u.username,
+	u.firstname,
+	u.lastname,
+	u.avatar_url,
+	c.content,
+	COALESCE(c.imgOrgif, '') AS imgOrgif,
+	c.created_at
 FROM comments c
 JOIN users u ON c.user_id = u.id
 WHERE c.post_id = ?
 ORDER BY c.created_at ASC
-    `
+	`
 
 	rows, err := db.Query(query, postID)
 	if err != nil {
@@ -195,6 +201,9 @@ ORDER BY c.created_at ASC
 			&cmt.ID,
 			&cmt.UserID,
 			&cmt.Username,
+			&cmt.Firstname,
+			&cmt.Lastname,
+			&cmt.AvatarURL,
 			&cmt.Content,
 			&cmt.ImgOrGif,
 			&cmt.CreatedAt,
@@ -203,10 +212,7 @@ ORDER BY c.created_at ASC
 			return nil, err
 		}
 		cmt.Image = cmt.ImgOrGif // Set alias for frontend compatibility
-		fmt.Println("Comment Image:", cmt.ImgOrGif)
 		comments = append(comments, cmt)
-		fmt.Println((comments))
-		fmt.Println((cmt))
 	}
 	if err := rows.Err(); err != nil {
 		fmt.Println("Iteration Error:", err)

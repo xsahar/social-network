@@ -716,15 +716,15 @@ func HandleGetGroupPostComments(db *sql.DB, w http.ResponseWriter, r *http.Reque
 	// Fetch the post details
 	var post map[string]interface{}
 	var postUserID int
-	var title, content, username, imgOrgif string
+	var title, content, username, firstname, lastname, avatarURL, imgOrgif string
 	var createdAt time.Time
 
 	err = db.QueryRow(`
-		SELECT gp.id, gp.user_id, gp.title, gp.content, gp.imgOrgif, gp.created_at, u.username
-		FROM group_posts gp
-		JOIN users u ON gp.user_id = u.id
-		WHERE gp.id = ? AND gp.group_id = ?
-	`, postID, groupID).Scan(&postID, &postUserID, &title, &content, &imgOrgif, &createdAt, &username)
+	       SELECT gp.id, gp.user_id, gp.title, gp.content, gp.imgOrgif, gp.created_at, u.username, u.firstname, u.lastname, u.avatar_url
+	       FROM group_posts gp
+	       JOIN users u ON gp.user_id = u.id
+	       WHERE gp.id = ? AND gp.group_id = ?
+       `, postID, groupID).Scan(&postID, &postUserID, &title, &content, &imgOrgif, &createdAt, &username, &firstname, &lastname, &avatarURL)
 
 	if err != nil {
 		http.Error(w, "Post not found", http.StatusNotFound)
@@ -732,15 +732,18 @@ func HandleGetGroupPostComments(db *sql.DB, w http.ResponseWriter, r *http.Reque
 	}
 
 	post = map[string]interface{}{
-		"id":        postID,
-		"userID":    postUserID,
-		"username":  username,
-		"title":     title,
-		"content":   content,
-		"image":     imgOrgif,
-		"imgOrgif":  imgOrgif,
-		"createdAt": createdAt.Format("2006-01-02 15:04:05"),
-		"type":      "group",
+		"id":         postID,
+		"userID":     postUserID,
+		"username":   username,
+		"firstname":  firstname,
+		"lastname":   lastname,
+		"avatar_url": avatarURL,
+		"title":      title,
+		"content":    content,
+		"image":      imgOrgif,
+		"imgOrgif":   imgOrgif,
+		"createdAt":  createdAt.Format("2006-01-02 15:04:05"),
+		"type":       "group",
 	}
 
 	comments, err := database.GetGroupPostComments(db, postID)
