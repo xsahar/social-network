@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { useWebSocketContext } from '../contexts/WebSocketContext';
 
 const Chat = ({ isOpen, onClose, chatWith, userID }) => {
@@ -8,6 +9,9 @@ const Chat = ({ isOpen, onClose, chatWith, userID }) => {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const { sendMessage, subscribe, connected } = useWebSocketContext();
   const chatWindowRef = useRef(null);
+  const inputRef = useRef(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [EmojiPicker, setEmojiPicker] = useState(null);
 
   // Fetch chat history when chat opens
   useEffect(() => {
@@ -92,6 +96,39 @@ const Chat = ({ isOpen, onClose, chatWith, userID }) => {
     }
   }, [chatMessages]);
 
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    const handler = (e) => {
+      if (!showEmojiPicker) return;
+      const picker = document.getElementById('emoji-picker');
+      const button = document.getElementById('emoji-button');
+      if (picker && !picker.contains(e.target) && button && !button.contains(e.target)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, [showEmojiPicker]);
+
+  // Dynamically load emoji-picker-react on first open to avoid SSR issues
+  useEffect(() => {
+    let mounted = true;
+    if (showEmojiPicker && !EmojiPicker) {
+      (async () => {
+        try {
+          const mod = await import('emoji-picker-react');
+          if (mounted) {
+            // emoji-picker-react default export is a component
+            setEmojiPicker(() => mod.default || mod);
+          }
+        } catch (err) {
+          console.error('Failed to load emoji picker-react:', err);
+        }
+      })();
+    }
+    return () => { mounted = false; };
+  }, [showEmojiPicker, EmojiPicker]);
+
   const handleSendMessage = (e) => {
     e.preventDefault();
     
@@ -105,13 +142,46 @@ const Chat = ({ isOpen, onClose, chatWith, userID }) => {
       timestamp: new Date().toISOString()
     };
 
+    // Try to send via WebSocket/transport
     const success = sendMessage(messageData);
-    
+
     if (success) {
+      // Optimistically append message so emoji and text appear immediately
+      setChatMessages(prev => {
+        const updated = [...prev, messageData];
+        return updated.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      });
       setMessageInput('');
     } else {
       alert('Failed to send message. Please check your connection.');
     }
+  };
+
+  const insertAtCaret = (text) => {
+    const input = inputRef.current;
+    if (!input) {
+      // fallback: append
+      setMessageInput(prev => prev + text);
+      return;
+    }
+
+    // For input/textarea elements
+    const start = input.selectionStart ?? input.value.length;
+    const end = input.selectionEnd ?? input.value.length;
+    const newVal = input.value.slice(0, start) + text + input.value.slice(end);
+    setMessageInput(newVal);
+
+    // update caret position after state update
+    // using setTimeout to wait for DOM update
+    setTimeout(() => {
+      const pos = start + text.length;
+      input.focus();
+      try {
+        input.setSelectionRange(pos, pos);
+      } catch (err) {
+        // ignore
+      }
+    }, 0);
   };
 
   const formatTime = (timestamp) => {
@@ -243,6 +313,7 @@ const Chat = ({ isOpen, onClose, chatWith, userID }) => {
       >
         <input
           type="text"
+          ref={inputRef}
           value={messageInput}
           onChange={(e) => setMessageInput(e.target.value)}
           placeholder={connected ? "Type your message..." : "Connecting..."}
@@ -256,7 +327,56 @@ const Chat = ({ isOpen, onClose, chatWith, userID }) => {
             outline: 'none'
           }}
         />
-        <button 
+        <div style={{position: 'relative', display: 'flex', alignItems: 'center', gap: '8px'}}>
+          <button
+            id="emoji-button"
+            type="button"
+            onClick={() => setShowEmojiPicker(s => !s)}
+            title="Insert emoji"
+            disabled={!connected}
+            style={{
+              padding: '8px 12px',
+              background: !connected ? '#f3f4f6' : 'none',
+              border: '1px solid #dddfe2',
+              borderRadius: '20px',
+              cursor: !connected ? 'not-allowed' : 'pointer',
+              fontSize: '18px',
+              lineHeight: 1
+            }}
+          >
+            🙂
+          </button>
+
+          {showEmojiPicker && (
+            <div id="emoji-picker" style={{
+              position: 'absolute',
+              bottom: '52px',
+              right: 0,
+              width: '320px',
+              background: 'white',
+              border: '1px solid #e4e6ea',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+              borderRadius: '8px',
+              padding: '8px',
+              zIndex: 1000
+            }}>
+              {EmojiPicker ? (
+                <EmojiPicker
+                  onEmojiClick={(emojiData) => {
+                    // emojiData.emoji is the unicode character
+                    const char = emojiData?.emoji || '';
+                    insertAtCaret(char);
+                    setShowEmojiPicker(false);
+                  }}
+                  preload={true}
+                />
+              ) : (
+                <div style={{padding: 12}}>Loading emojis…</div>
+              )}
+            </div>
+          )}
+
+          <button 
           type="submit"
           disabled={!connected || !messageInput.trim()}
           style={{ 
@@ -273,6 +393,7 @@ const Chat = ({ isOpen, onClose, chatWith, userID }) => {
         >
           Send
         </button>
+        </div>
       </form>
     </div>
   );

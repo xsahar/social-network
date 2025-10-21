@@ -5,6 +5,9 @@ export default function GroupChat({ groupId, user, isOpen, onClose, connected, m
   const [groupMessages, setGroupMessages] = useState([]);
   const [existingMessages, setExistingMessages] = useState([]);
   const chatWindowRef = useRef(null);
+  const inputRef = useRef(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [EmojiPicker, setEmojiPicker] = useState(null);
 
   const userId = user?.id || user?.userID || user?.user_id;
 
@@ -74,6 +77,36 @@ export default function GroupChat({ groupId, user, isOpen, onClose, connected, m
     }
   }, [groupMessages]);
 
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    const handler = (e) => {
+      if (!showEmojiPicker) return;
+      const picker = document.getElementById('group-emoji-picker');
+      const button = document.getElementById('group-emoji-button');
+      if (picker && !picker.contains(e.target) && button && !button.contains(e.target)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, [showEmojiPicker]);
+
+  // Dynamically load emoji-picker-react on first open
+  useEffect(() => {
+    let mounted = true;
+    if (showEmojiPicker && !EmojiPicker) {
+      (async () => {
+        try {
+          const mod = await import('emoji-picker-react');
+          if (mounted) setEmojiPicker(() => mod.default || mod);
+        } catch (err) {
+          console.error('Failed to load emoji picker-react:', err);
+        }
+      })();
+    }
+    return () => { mounted = false; };
+  }, [showEmojiPicker, EmojiPicker]);
+
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (!messageInput.trim() || !connected) return;
@@ -88,8 +121,30 @@ export default function GroupChat({ groupId, user, isOpen, onClose, connected, m
     };
     
     if (sendMessage(messageData)) {
+      // optimistic append so emoji appears immediately
+      setGroupMessages(prev => {
+        const updated = [...prev, messageData];
+        return updated.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      });
       setMessageInput('');
     }
+  };
+
+  const insertAtCaret = (text) => {
+    const input = inputRef.current;
+    if (!input) {
+      setMessageInput(prev => prev + text);
+      return;
+    }
+    const start = input.selectionStart ?? input.value.length;
+    const end = input.selectionEnd ?? input.value.length;
+    const newVal = input.value.slice(0, start) + text + input.value.slice(end);
+    setMessageInput(newVal);
+    setTimeout(() => {
+      const pos = start + text.length;
+      input.focus();
+      try { input.setSelectionRange(pos, pos); } catch (err) {}
+    }, 0);
   };
 
   if (!isOpen) return null;
@@ -193,38 +248,88 @@ export default function GroupChat({ groupId, user, isOpen, onClose, connected, m
             gap: '8px'
           }}
         >
-          <input
-            type="text"
-            value={messageInput}
-            onChange={(e) => setMessageInput(e.target.value)}
-            placeholder={connected ? "Type your message..." : "Connecting..."}
-            disabled={!connected}
-            style={{ 
-              flex: 1, 
-              padding: '10px 12px', 
-              border: '1px solid #dddfe2', 
-              borderRadius: '20px', 
-              fontSize: '14px',
-              outline: 'none'
-            }}
-          />
-          <button 
-            type="submit"
-            disabled={!connected || !messageInput.trim()}
-            style={{ 
-              padding: '10px 20px', 
-              backgroundColor: connected && messageInput.trim() ? '#4267B2' : '#e4e6ea', 
-              color: connected && messageInput.trim() ? 'white' : '#65676b', 
-              border: 'none', 
-              borderRadius: '20px', 
-              fontSize: '14px', 
-              fontWeight: '500', 
-              cursor: connected && messageInput.trim() ? 'pointer' : 'not-allowed',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            Send
-          </button>
+            <input
+              type="text"
+              ref={inputRef}
+              value={messageInput}
+              onChange={(e) => setMessageInput(e.target.value)}
+              placeholder={connected ? "Type your message..." : "Connecting..."}
+              disabled={!connected}
+              style={{ 
+                flex: 1, 
+                padding: '10px 12px', 
+                border: '1px solid #dddfe2', 
+                borderRadius: '20px', 
+                fontSize: '14px',
+                outline: 'none'
+              }}
+            />
+            <div style={{position: 'relative', display: 'flex', alignItems: 'center', gap: '8px'}}>
+              <button
+                id="group-emoji-button"
+                type="button"
+                onClick={() => setShowEmojiPicker(s => !s)}
+                title="Insert emoji"
+                disabled={!connected}
+                style={{
+                  padding: '8px 12px',
+                  background: !connected ? '#f3f4f6' : 'none',
+                  border: '1px solid #dddfe2',
+                  borderRadius: '20px',
+                  cursor: !connected ? 'not-allowed' : 'pointer',
+                  fontSize: '18px',
+                  lineHeight: 1
+                }}
+              >
+                🙂
+              </button>
+
+              {showEmojiPicker && (
+                <div id="group-emoji-picker" style={{
+                  position: 'absolute',
+                  bottom: '52px',
+                  right: 0,
+                  width: '320px',
+                  background: 'white',
+                  border: '1px solid #e4e6ea',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                  borderRadius: '8px',
+                  padding: '8px',
+                  zIndex: 1000
+                }}>
+                  {EmojiPicker ? (
+                    <EmojiPicker
+                      onEmojiClick={(emojiData) => {
+                        const char = emojiData?.emoji || '';
+                        insertAtCaret(char);
+                        setShowEmojiPicker(false);
+                      }}
+                      preload={true}
+                    />
+                  ) : (
+                    <div style={{padding: 12}}>Loading emojis…</div>
+                  )}
+                </div>
+              )}
+
+              <button 
+                type="submit"
+                disabled={!connected || !messageInput.trim()}
+                style={{ 
+                  padding: '10px 20px', 
+                  backgroundColor: connected && messageInput.trim() ? '#4267B2' : '#e4e6ea', 
+                  color: connected && messageInput.trim() ? 'white' : '#65676b', 
+                  border: 'none', 
+                  borderRadius: '20px', 
+                  fontSize: '14px', 
+                  fontWeight: '500', 
+                  cursor: connected && messageInput.trim() ? 'pointer' : 'not-allowed',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                Send
+              </button>
+            </div>
         </form>
       </div>
     );
