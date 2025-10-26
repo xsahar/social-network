@@ -5,10 +5,13 @@ const Notifications = () => {
   const { notifications, clearNotifications, setNotifications } = useWebSocketContext();
   const [visible, setVisible] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  // Only show these notification types for now (include follow responses and new follower)
+  const allowedNotificationTypes = ['follow_request', 'follow_request_response', 'new_follower', 'group_invitation', 'group_join_request', 'new_groupEvent'];
 
   useEffect(() => {
-    // Count only non-private-message notifications
-    setUnreadCount(notifications ? notifications.length : 0);
+    // Count only allowed notification types (ignore private messages / disabled types)
+    const count = (notifications || []).filter(n => allowedNotificationTypes.includes(n.type)).length;
+    setUnreadCount(count);
   }, [notifications]);
 
   const latest = notifications && notifications.length > 0 ? notifications[notifications.length - 1] : null;
@@ -44,15 +47,61 @@ const Notifications = () => {
         // action should be 'accept' or 'decline'
         if (n.type === 'follow_request') {
           // Call handle-follow-request proxy
+          // Accept a variety of possible field names from WebSocket payloads
+          const rawRequester = n.From || n.from || n.RequesterID || n.requester_id || n.requesterId || n.user_id || n.UserID;
+          const requesterId = Number(rawRequester || 0);
+          if (!requesterId || isNaN(requesterId) || requesterId <= 0) {
+            throw new Error('Invalid requester id');
+          }
+
           const resp = await fetch('/api/handle-follow-request', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ requester_id: n.From, action })
+            body: JSON.stringify({ requester_id: requesterId, action })
           });
-          if (!resp.ok) throw new Error('Failed to respond to follow request');
+          if (!resp.ok) {
+            // Try to parse backend response body for a helpful message
+            let errMsg = 'Failed to respond to follow request';
+            try {
+              const txt = await resp.text();
+              try {
+                const parsed = JSON.parse(txt);
+                if (parsed && parsed.message) errMsg = parsed.message;
+                else if (parsed && parsed.error) errMsg = parsed.error;
+                else errMsg = JSON.stringify(parsed);
+              } catch (e) {
+                // plain text
+                if (txt && txt.trim()) errMsg = txt.trim();
+              }
+            } catch (e) {
+              // ignore
+            }
+            throw new Error(errMsg);
+          }
         } else if (n.type === 'group_invitation') {
-          const invitationId = n.InvitationID || n.invitation_id || n.invitationId;
+          // Ensure we have an invitation ID. WebSocket notifications sometimes
+          // omit the invitation id, so fetch the user's pending invitations and
+          // try to match by group and inviter.
+          let invitationId = n.InvitationID || n.invitation_id || n.invitationId;
+          if (!invitationId) {
+            try {
+              const invResp = await fetch('/api/groups/invitations', { credentials: 'include' });
+              if (invResp.ok) {
+                const invData = await invResp.json();
+                const invs = invData.invitations || [];
+                const gid = n.GroupID || n.group_id || n.groupId;
+                const inviter = n.From || n.from || n.inviter_id || n.inviterId;
+                const match = invs.find(i => (i.group_id == gid) && (i.inviter_id == inviter));
+                if (match) invitationId = match.id;
+              }
+            } catch (e) {
+              console.error('Failed to lookup invitation id', e);
+            }
+          }
+
+          if (!invitationId) throw new Error('Invitation id not found');
+
           const resp = await fetch('/api/groups/respond-invitation', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -105,7 +154,7 @@ const Notifications = () => {
 
     return (
       <div key={idx} className="notification-item" style={{ background: bg }}>
-        <div className="notification-title">{title}</div>
+        <div className="notification-title"><span className="highlight">{title}</span></div>
   <div className="notification-content">{n.Content || n.content || n.message || (n.Username || n.username ? `${n.Username || n.username} sent a notification` : 'No message')}</div>
   <div className="notification-meta">{n.Username || n.username || ''} — {when}</div>
         {/* Action buttons for actionable notifications */}
@@ -136,7 +185,8 @@ const Notifications = () => {
             )}
           </div>
           {notifications && notifications.length > 0 ? (
-            notifications.slice().reverse().map((n, idx) => renderNotification(n, idx))
+            // Only render allowed notification types
+            notifications.filter(n => allowedNotificationTypes.includes(n.type)).slice().reverse().map((n, idx) => renderNotification(n, idx))
           ) : (
             <div className="notif-empty">No notifications</div>
           )}
@@ -163,6 +213,7 @@ const Notifications = () => {
         .notif-header-left { font-weight:700; color:#0b1220 }
         .btn-clear { background:transparent; border:none; color:#6b7280; cursor:pointer; font-size:13px; padding:6px 8px; border-radius:4px }
         .btn-clear:hover { color:#111827; background:rgba(0,0,0,0.03) }
+        .highlight { background: #fff59d; padding: 2px 6px; border-radius: 6px; font-weight:700; color: #0b1220 }
       `}</style>
     </div>
   );

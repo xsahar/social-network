@@ -225,7 +225,12 @@ func InviteUserToGroup(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *http
 
 	// Try to fetch the newly created invitation id
 	var invitationID int
-	_ = db.QueryRow(`SELECT id FROM group_invitations WHERE group_id = ? AND inviter_id = ? AND invited_id = ? ORDER BY created_at DESC LIMIT 1`, inviteData.GroupID, inviterID, inviteData.UserID).Scan(&invitationID)
+	// column name is invitee_id in the schema (not 'invited_id')
+	if err := db.QueryRow(`SELECT id FROM group_invitations WHERE group_id = ? AND inviter_id = ? AND invitee_id = ? ORDER BY created_at DESC LIMIT 1`, inviteData.GroupID, inviterID, inviteData.UserID).Scan(&invitationID); err != nil {
+		// Log but continue; invitation may have been inserted but we couldn't fetch id
+		fmt.Printf("Warning: could not fetch invitation id after insert: %v\n", err)
+		invitationID = 0
+	}
 
 	// Broadcast a group invitation notification to the invitee
 	if hub != nil {
@@ -233,14 +238,17 @@ func InviteUserToGroup(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *http
 		_ = db.QueryRow("SELECT username FROM users WHERE id = ?", inviterID).Scan(&inviterUsername)
 
 		notif := chat.Frontend{
-			Type:         "group_invitation",
-			From:         inviterID,
-			To:           inviteData.UserID,
-			Username:     inviterUsername,
-			GroupID:      inviteData.GroupID,
-			Content:      fmt.Sprintf("%s invited you to join a group", inviterUsername),
-			Timestamp:    time.Now(),
-			InvitationID: invitationID,
+			Type:      "group_invitation",
+			From:      inviterID,
+			To:        inviteData.UserID,
+			Username:  inviterUsername,
+			GroupID:   inviteData.GroupID,
+			Content:   fmt.Sprintf("%s invited you to join a group", inviterUsername),
+			Timestamp: time.Now(),
+		}
+		// Only attach InvitationID if we successfully retrieved it
+		if invitationID > 0 {
+			notif.InvitationID = invitationID
 		}
 
 		hub.Mutex.RLock()

@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -90,8 +91,27 @@ func HasPendingInvitation(tx *sql.Tx, groupID, userID int) (bool, error) {
 
 // InsertGroupInvitationTx creates a group invitation within a transaction
 func InsertGroupInvitationTx(tx *sql.Tx, groupID, inviterID, inviteeID int) error {
-	query := `INSERT INTO group_invitations (group_id, inviter_id, invitee_id) VALUES (?, ?, ?)`
+	// Try to insert a new pending invitation. If a UNIQUE constraint violation
+	// occurs for (group_id, invitee_id), update the existing row to pending
+	// and set the inviter_id/created_at accordingly. This prevents race
+	// conditions and avoids returning a SQLite UNIQUE constraint error.
+	query := `INSERT INTO group_invitations (group_id, inviter_id, invitee_id, status, created_at) VALUES (?, ?, ?, 'pending', CURRENT_TIMESTAMP)`
 	_, err := tx.Exec(query, groupID, inviterID, inviteeID)
+	if err == nil {
+		return nil
+	}
+
+	// If the error is a UNIQUE constraint on group_id, invitee_id, attempt to
+	// update the existing invitation row to pending instead of failing.
+	if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+		update := `UPDATE group_invitations SET status = 'pending', inviter_id = ?, created_at = CURRENT_TIMESTAMP WHERE group_id = ? AND invitee_id = ?`
+		_, uerr := tx.Exec(update, inviterID, groupID, inviteeID)
+		if uerr != nil {
+			return fmt.Errorf("insert failed: %v; update also failed: %v", err, uerr)
+		}
+		return nil
+	}
+
 	return err
 }
 

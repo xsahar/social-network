@@ -6,13 +6,21 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Normalize incoming body to expected shape
+    const rawRequester = req.body?.requester_id || req.body?.requesterId || req.body?.RequesterID || req.body?.From || req.body?.from;
+    const rawAction = (req.body?.action || req.body?.Action || '').toString().toLowerCase();
+    const payload = {
+      requester_id: Number(rawRequester || 0),
+      action: rawAction,
+    };
+
     const response = await fetch('http://localhost:8080/handle-follow-request', {
       method: 'POST',
       headers: {
         'Cookie': req.headers.cookie || '',
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(req.body),
+      body: JSON.stringify(payload),
     });
     
     // Get response text first to check if it's valid JSON

@@ -6,15 +6,19 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { request_id, action } = req.body;
-    
+    // Be permissive with payload shapes/casing
+    const rawId = req.body?.request_id || req.body?.RequestID || req.body?.requestId || req.body?.id;
+    const rawAction = (req.body?.action || req.body?.Action || req.body?.status || '').toString().toLowerCase();
+    const request_id = Number(rawId || 0);
+    const action = rawAction;
+
     if (!request_id || !action || !['accept', 'decline'].includes(action)) {
       return res.status(400).json({ error: 'Invalid request_id or action' });
     }
 
     // Convert action to status format expected by backend
     const status = action === 'accept' ? 'accepted' : 'declined';
-    
+
     const response = await fetch('http://localhost:8080/respond-join-request', {
       method: 'POST',
       headers: {
@@ -22,7 +26,7 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        request_id: parseInt(request_id),
+        request_id: request_id,
         status: status
       }),
     });

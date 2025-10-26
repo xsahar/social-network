@@ -117,23 +117,21 @@ export const WebSocketProvider = ({ children, userID }) => {
             setMessages(prev => [...prev, data]);
             break;
             
-          // Treat these as visible notifications (not private messages)
-          case 'new_post':
-          case 'new_comment':
-          case 'new_groupPost':
-          case 'new_groupEvent':
-          case 'group_invitation':
-          case 'new_group_created':
-          case 'group_post_comment':
-          case 'group_post_like_update':
-          case 'group_member_update':
-          case 'group_join_request':
-          case 'join_request_sent':
-          case 'invitation_response':
-          case 'new_follower':
+          // Treat only the allowed types as visible notifications (not private messages).
+          // Disabled other notification types for now per product request.
+          // Allowed notification types (plus follow responses/new follower so updates appear in real-time):
+          // - follow_request: when a user with a private profile receives a follow request
+          // - follow_request_response: when a follow request is accepted/declined (show response)
+          // - new_follower: when someone follows a public profile
+          // - group_invitation: when a user is invited to a group
+          // - group_join_request: when a user requests to join a group (for group creators)
+          // - new_groupEvent: when a group event is created (for group members)
           case 'follow_request':
           case 'follow_request_response':
-          case 'group_event_vote_update':
+          case 'new_follower':
+          case 'group_invitation':
+          case 'group_join_request':
+          case 'new_groupEvent':
             setNotifications(prev => [...prev, data]);
             break;
             

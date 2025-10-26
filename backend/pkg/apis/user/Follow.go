@@ -52,10 +52,40 @@ func FollowUser(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *http.Reques
 	}
 
 	if isPrivate {
-		// For private profiles, create a follow request
-		_, err = db.Exec(`
-			INSERT OR IGNORE INTO follow_requests (requester_id, target_id, status) 
-			VALUES (?, ?, 'pending')`, followerID, targetID)
+		// For private profiles, check for existing follow request
+		var existingReqStatus string
+		err = db.QueryRow("SELECT status FROM follow_requests WHERE requester_id = ? AND target_id = ?", followerID, targetID).Scan(&existingReqStatus)
+		if err == nil {
+			// row exists
+			if existingReqStatus == "pending" {
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(map[string]interface{}{
+					"success": false,
+					"message": "Follow request already pending",
+					"status":  "pending",
+				})
+				return
+			}
+			// If previously declined or accepted, allow re-opening by setting to pending
+			_, err = db.Exec("UPDATE follow_requests SET status = 'pending', updated_at = CURRENT_TIMESTAMP WHERE requester_id = ? AND target_id = ?", followerID, targetID)
+			if err != nil {
+				http.Error(w, "Failed to update follow request", http.StatusInternalServerError)
+				return
+			}
+		} else if err == sql.ErrNoRows {
+			// Not found — insert a new pending request
+			_, err = db.Exec(`
+				INSERT INTO follow_requests (requester_id, target_id, status) 
+				VALUES (?, ?, 'pending')`, followerID, targetID)
+			if err != nil {
+				http.Error(w, "Failed to send follow request", http.StatusInternalServerError)
+				return
+			}
+		} else {
+			// Some DB error
+			http.Error(w, "Database error", http.StatusInternalServerError)
+			return
+		}
 
 		if err != nil {
 			http.Error(w, "Failed to send follow request", http.StatusInternalServerError)
@@ -199,24 +229,58 @@ func HandleFollowRequest(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *ht
 		return
 	}
 
+	// Validate requester id and action
+	if req.RequesterID <= 0 {
+		http.Error(w, "Invalid requester_id", http.StatusBadRequest)
+		return
+	}
+	if req.Action != "accept" && req.Action != "decline" {
+		http.Error(w, "Invalid action", http.StatusBadRequest)
+		return
+	}
+
+	// Ensure there is a pending follow request before acting
+	var existingStatus string
+	err := db.QueryRow("SELECT status FROM follow_requests WHERE requester_id = ? AND target_id = ?", req.RequesterID, targetID).Scan(&existingStatus)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "No pending follow request found", http.StatusBadRequest)
+			return
+		}
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+	if existingStatus != "pending" {
+		http.Error(w, "Follow request is not pending", http.StatusBadRequest)
+		return
+	}
+
 	if req.Action == "accept" {
-		// Add to userFollow table
-		_, err := db.Exec("INSERT INTO userFollow (follower_id, following_id) VALUES (?, ?)", req.RequesterID, targetID)
+		// Add to userFollow table. Use INSERT OR IGNORE to avoid UNIQUE constraint
+		// failures if the follow relation already exists.
+		_, err := db.Exec("INSERT OR IGNORE INTO userFollow (follower_id, following_id) VALUES (?, ?)", req.RequesterID, targetID)
 		if err != nil {
 			http.Error(w, "Failed to accept follow request", http.StatusInternalServerError)
 			return
 		}
 
-		// Update request status
-		_, err = db.Exec("UPDATE follow_requests SET status = 'accepted', updated_at = CURRENT_TIMESTAMP WHERE requester_id = ? AND target_id = ?", req.RequesterID, targetID)
+		// Update request status and check affected rows
+		res, err := db.Exec("UPDATE follow_requests SET status = 'accepted', updated_at = CURRENT_TIMESTAMP WHERE requester_id = ? AND target_id = ? AND status = 'pending'", req.RequesterID, targetID)
 		if err != nil {
-			fmt.Printf("Failed to update follow request status: %v", err)
+			http.Error(w, "Failed to update follow request", http.StatusInternalServerError)
+			return
 		}
-		// Notify requester via WebSocket
+		if rr, _ := res.RowsAffected(); rr == 0 {
+			http.Error(w, "No pending follow request to accept", http.StatusBadRequest)
+			return
+		}
+
+		// Notify requester via WebSocket (response) and notify target that they have a new follower
 		if hub != nil {
 			var targetUsername string
 			_ = db.QueryRow("SELECT username FROM users WHERE id = ?", targetID).Scan(&targetUsername)
-			notif := chat.Frontend{
+			// response to requester
+			respNotif := chat.Frontend{
 				Type:      "follow_request_response",
 				From:      targetID,
 				To:        req.RequesterID,
@@ -227,20 +291,44 @@ func HandleFollowRequest(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *ht
 			hub.Mutex.RLock()
 			if client, ok := hub.Clients[req.RequesterID]; ok {
 				select {
-				case client.Send <- notif:
+				case client.Send <- respNotif:
+				default:
+				}
+			}
+			hub.Mutex.RUnlock()
+			// Also notify the target (owner) that they have a new follower
+			var followerUsername string
+			_ = db.QueryRow("SELECT username FROM users WHERE id = ?", req.RequesterID).Scan(&followerUsername)
+			followerNotif := chat.Frontend{
+				Type:      "new_follower",
+				From:      req.RequesterID,
+				To:        targetID,
+				Username:  followerUsername,
+				Content:   fmt.Sprintf("%s started following you", followerUsername),
+				Timestamp: time.Now(),
+			}
+			hub.Mutex.RLock()
+			if client, ok := hub.Clients[targetID]; ok {
+				select {
+				case client.Send <- followerNotif:
 				default:
 				}
 			}
 			hub.Mutex.RUnlock()
 		}
+
 	} else if req.Action == "decline" {
-		// Update request status
-		_, err := db.Exec("UPDATE follow_requests SET status = 'declined', updated_at = CURRENT_TIMESTAMP WHERE requester_id = ? AND target_id = ?", req.RequesterID, targetID)
+		// Decline: update status
+		res, err := db.Exec("UPDATE follow_requests SET status = 'declined', updated_at = CURRENT_TIMESTAMP WHERE requester_id = ? AND target_id = ? AND status = 'pending'", req.RequesterID, targetID)
 		if err != nil {
 			http.Error(w, "Failed to decline follow request", http.StatusInternalServerError)
 			return
 		}
-		// Notify requester via WebSocket
+		if rr, _ := res.RowsAffected(); rr == 0 {
+			http.Error(w, "No pending follow request to decline", http.StatusBadRequest)
+			return
+		}
+		// Notify requester
 		if hub != nil {
 			var targetUsername string
 			_ = db.QueryRow("SELECT username FROM users WHERE id = ?", targetID).Scan(&targetUsername)
@@ -261,9 +349,6 @@ func HandleFollowRequest(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *ht
 			}
 			hub.Mutex.RUnlock()
 		}
-	} else {
-		http.Error(w, "Invalid action", http.StatusBadRequest)
-		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")

@@ -6,15 +6,19 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { invitation_id, action } = req.body;
-    
+    // Be permissive with incoming payloads (many clients may send different casing or types)
+    const rawId = req.body?.invitation_id || req.body?.InvitationID || req.body?.invitationId || req.body?.id;
+    const rawAction = (req.body?.action || req.body?.Action || req.body?.status || '').toString().toLowerCase();
+    const invitation_id = Number(rawId || 0);
+    const action = rawAction;
+
     if (!invitation_id || !action || !['accept', 'decline'].includes(action)) {
       return res.status(400).json({ error: 'Invalid invitation_id or action' });
     }
 
     // Convert action to status format expected by backend
     const status = action === 'accept' ? 'accepted' : 'declined';
-    
+
     const response = await fetch('http://localhost:8080/respond-group-invitation', {
       method: 'POST',
       headers: {
@@ -22,7 +26,7 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        invitation_id: parseInt(invitation_id),
+        invitation_id: invitation_id,
         status: status
       }),
     });

@@ -84,6 +84,22 @@ export default function MyProfile() {
     }
   }, [user?.userID]);
 
+  // Subscribe to WebSocket events to refresh profile in real-time
+  useEffect(() => {
+    if (!user) return;
+    const unsubscribe = useWebSocketContext().subscribe((message) => {
+      // Relevant message types that should refresh this profile view
+      if (message.type === 'follow_request' || message.type === 'follow_request_response' || message.type === 'new_follower' || message.type === 'unfollow_update') {
+        console.log('[MyProfile] WS event received, refreshing profile:', message.type);
+        fetchProfile();
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [user]);
+
 
 
   const handleEditProfile = () => {
