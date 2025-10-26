@@ -113,15 +113,27 @@ export const WebSocketProvider = ({ children, userID }) => {
             
           case 'private_message':
           case 'message':
+            // Private/chat messages are stored separately
             setMessages(prev => [...prev, data]);
             break;
             
+          // Treat these as visible notifications (not private messages)
           case 'new_post':
           case 'new_comment':
-          case 'new_postLike':
-          case 'new_commentLike':
           case 'new_groupPost':
           case 'new_groupEvent':
+          case 'group_invitation':
+          case 'new_group_created':
+          case 'group_post_comment':
+          case 'group_post_like_update':
+          case 'group_member_update':
+          case 'group_join_request':
+          case 'join_request_sent':
+          case 'invitation_response':
+          case 'new_follower':
+          case 'follow_request':
+          case 'follow_request_response':
+          case 'group_event_vote_update':
             setNotifications(prev => [...prev, data]);
             break;
             
@@ -211,7 +223,11 @@ export const WebSocketProvider = ({ children, userID }) => {
     sendMessage,
     disconnect,
     reconnect: () => connectWebSocket(userID),
-    subscribe
+    subscribe,
+    // Clear all notifications (client-side)
+    clearNotifications: () => setNotifications([]),
+    // Setter exposed if needed by components
+    setNotifications
   };
 
   return (

@@ -5,10 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
+
+	"socialnetwork/pkg/apis/chat"
 )
 
 // FollowUser handles follow requests
-func FollowUser(db *sql.DB, w http.ResponseWriter, r *http.Request) {
+func FollowUser(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -59,6 +62,28 @@ func FollowUser(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Broadcast follow request notification to the target user via WebSocket
+		if hub != nil {
+			var requesterUsername string
+			_ = db.QueryRow("SELECT username FROM users WHERE id = ?", followerID).Scan(&requesterUsername)
+			notif := chat.Frontend{
+				Type:      "follow_request",
+				From:      followerID,
+				To:        targetID,
+				Username:  requesterUsername,
+				Content:   fmt.Sprintf("%s wants to follow you", requesterUsername),
+				Timestamp: time.Now(),
+			}
+			hub.Mutex.RLock()
+			if client, ok := hub.Clients[targetID]; ok {
+				select {
+				case client.Send <- notif:
+				default:
+				}
+			}
+			hub.Mutex.RUnlock()
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
@@ -73,6 +98,27 @@ func FollowUser(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Broadcast immediate follow notification to the target user
+		if hub != nil {
+			var followerUsername string
+			_ = db.QueryRow("SELECT username FROM users WHERE id = ?", followerID).Scan(&followerUsername)
+			notif := chat.Frontend{
+				Type:      "new_follower",
+				From:      followerID,
+				To:        targetID,
+				Username:  followerUsername,
+				Content:   fmt.Sprintf("%s started following you", followerUsername),
+				Timestamp: time.Now(),
+			}
+			hub.Mutex.RLock()
+			if client, ok := hub.Clients[targetID]; ok {
+				select {
+				case client.Send <- notif:
+				default:
+				}
+			}
+			hub.Mutex.RUnlock()
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
@@ -129,7 +175,7 @@ func UnfollowUser(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleFollowRequest handles accepting or declining follow requests
-func HandleFollowRequest(db *sql.DB, w http.ResponseWriter, r *http.Request) {
+func HandleFollowRequest(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -166,12 +212,54 @@ func HandleFollowRequest(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			fmt.Printf("Failed to update follow request status: %v", err)
 		}
+		// Notify requester via WebSocket
+		if hub != nil {
+			var targetUsername string
+			_ = db.QueryRow("SELECT username FROM users WHERE id = ?", targetID).Scan(&targetUsername)
+			notif := chat.Frontend{
+				Type:      "follow_request_response",
+				From:      targetID,
+				To:        req.RequesterID,
+				Username:  targetUsername,
+				Content:   fmt.Sprintf("%s accepted your follow request", targetUsername),
+				Timestamp: time.Now(),
+			}
+			hub.Mutex.RLock()
+			if client, ok := hub.Clients[req.RequesterID]; ok {
+				select {
+				case client.Send <- notif:
+				default:
+				}
+			}
+			hub.Mutex.RUnlock()
+		}
 	} else if req.Action == "decline" {
 		// Update request status
 		_, err := db.Exec("UPDATE follow_requests SET status = 'declined', updated_at = CURRENT_TIMESTAMP WHERE requester_id = ? AND target_id = ?", req.RequesterID, targetID)
 		if err != nil {
 			http.Error(w, "Failed to decline follow request", http.StatusInternalServerError)
 			return
+		}
+		// Notify requester via WebSocket
+		if hub != nil {
+			var targetUsername string
+			_ = db.QueryRow("SELECT username FROM users WHERE id = ?", targetID).Scan(&targetUsername)
+			notif := chat.Frontend{
+				Type:      "follow_request_response",
+				From:      targetID,
+				To:        req.RequesterID,
+				Username:  targetUsername,
+				Content:   fmt.Sprintf("%s declined your follow request", targetUsername),
+				Timestamp: time.Now(),
+			}
+			hub.Mutex.RLock()
+			if client, ok := hub.Clients[req.RequesterID]; ok {
+				select {
+				case client.Send <- notif:
+				default:
+				}
+			}
+			hub.Mutex.RUnlock()
 		}
 	} else {
 		http.Error(w, "Invalid action", http.StatusBadRequest)

@@ -3,6 +3,7 @@ import { useWebSocketContext } from '../contexts/WebSocketContext';
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import Notifications from './Notifications';
 
 const Layout = ({ children }) => {
   const { user, loading, logout } = useSession();
@@ -91,6 +92,7 @@ const Layout = ({ children }) => {
                 
                 {/* User Menu */}
                 <div className="nav-user-menu">
+                  <Notifications />
                   <span className="nav-welcome">Welcome, {user.username}</span>
                   <button
                     onClick={handleLogout}

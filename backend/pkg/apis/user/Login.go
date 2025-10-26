@@ -101,13 +101,16 @@ func Login(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 		}
 
 		//  Set session token as a cookie
-		http.SetCookie(w, &http.Cookie{
+		// For local development explicitly set Domain to localhost to avoid host mismatches
+		cookie := &http.Cookie{
 			Name:     "session_token",
 			Value:    sessionToken,
 			Expires:  expiresAt,
 			HttpOnly: true,
 			Path:     "/",
-		})
+			Domain:   "localhost",
+		}
+		http.SetCookie(w, cookie)
 
 		fmt.Println(" Login successful for User ID:", userID)
 

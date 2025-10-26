@@ -1,3 +1,39 @@
+## Social Network — AI development quick reference
+
+This repo is a full-stack social app: Go backend + Next.js frontend. AI agents should focus on two integration surfaces: REST handlers in `backend/web/connectWeb.go` and the WebSocket flow in `backend/pkg/apis/chat/chatHub.go` + `frontend-next/contexts/WebSocketContext.js`.
+
+Essentials (quick):
+- Backend: `server.go` (entry), routes in `backend/web/connectWeb.go`, DB helpers in `backend/pkg/db/*` (plain `database/sql`, no ORM).
+- Frontend: Next.js Pages Router under `frontend-next/pages`, API proxies in `frontend-next/pages/api/*`, global WS in `frontend-next/contexts/WebSocketContext.js`.
+
+Key repo-specific patterns and examples:
+- Sessions: handlers always call session validation. Example:
+  `userID, loggedIn := u.ValidateSession(db, r)` — if not logged in return 401. See many handlers under `backend/*`.
+- CORS/proxy pattern: frontend calls Next API routes which forward cookies to Go. See `pages/api/session.js` and calls that `fetch('http://localhost:8080/...', { headers: { Cookie: req.headers.cookie } })`.
+- WebSockets: single persistent connection per user (managed by `WebSocketProvider` in `_app.js`). Backend broadcasts using `hub.Broadcast <- Frontend{Type: "..."}`; frontend components `subscribe()` and refresh their data on relevant message types (e.g., `new_groupPost`). See `GroupPostsSection.js` for subscription example.
+- Routes: all HTTP endpoints are registered in `backend/web/connectWeb.go`. Most handlers are wrapped with a CORS helper (e.g. `cor.WithCORS(...)`) — keep this when adding new routes.
+
+How to run locally (observed patterns):
+- Backend: cd `backend` && `go run .` (serves :8080, includes `/ws`). There is a helper script `back.sh`.
+- Frontend: cd `frontend-next` && `npm run dev` (serves :3000). There is `front.sh`.
+- Use VS Code tasks "Start Backend Server" and "Start Frontend Server" if configured.
+
+Database & migrations:
+- Uses SQLite in `data/` and SQL migrations under `backend/pkg/db/migrations/sqlite/`. Migrations are applied on backend startup (golang-migrate patterns).
+
+Files to read first (highest value):
+- `backend/web/connectWeb.go` — route registry and wrappers
+- `backend/pkg/apis/chat/chatHub.go` — WebSocket hub and message types
+- `frontend-next/contexts/WebSocketContext.js` — subscription and dispatch model
+- `frontend-next/hooks/useSession.js` — how sessions and cookies are handled client-side
+
+Quick agent rules (do this, not that):
+- DO use existing route registration and CORS wrappers when adding endpoints.
+- DO broadcast backend events via the `hub.Broadcast` channel rather than attempting ad-hoc socket writes.
+- DO prefer refreshing server state when a WS message arrives (components call the REST API) rather than trusting message payloads as source of truth.
+- DO NOT create multiple WebSocket connections per user; reuse `WebSocketContext`.
+
+If anything is unclear, point to the file you want expanded and I will merge more examples or wire small tests.
 # Social Network Application - AI Development Guide
 
 ## Architecture Overview
@@ -20,143 +56,39 @@ Frontend (Next.js):
   - contexts/WebSocketContext.js → Global WS connection manager
   - pages/api/* → Next.js API routes that proxy to Go backend
   - hooks/useSession.js → Session management hook
-```
+## Social Network — AI development quick reference
 
-## Critical Patterns
+This repo is a full-stack social app: Go backend + Next.js frontend. AI agents should focus on two integration surfaces: REST handlers in `backend/web/connectWeb.go` and the WebSocket flow in `backend/pkg/apis/chat/chatHub.go` + `frontend-next/contexts/WebSocketContext.js`.
 
-### 1. Session-Based Authentication
-**Every protected endpoint** requires session validation:
+Essentials (quick):
+- Backend: `server.go` (entry), routes in `backend/web/connectWeb.go`, DB helpers in `backend/pkg/db/*` (plain `database/sql`, no ORM).
+- Frontend: Next.js Pages Router under `frontend-next/pages`, API proxies in `frontend-next/pages/api/*`, global WS in `frontend-next/contexts/WebSocketContext.js`.
 
-```go
-// Backend pattern (used in ALL handlers)
-userID, loggedIn := u.ValidateSession(db, r)
-if !loggedIn {
-    http.Error(w, "Unauthorized", http.StatusUnauthorized)
-    return
-}
-```
+Key repo-specific patterns and examples:
+- Sessions: handlers always call session validation. Example:
+  `userID, loggedIn := u.ValidateSession(db, r)` — if not logged in return 401. See many handlers under `backend/*`.
+- CORS/proxy pattern: frontend calls Next API routes which forward cookies to Go. See `pages/api/session.js` and calls that `fetch('http://localhost:8080/...', { headers: { Cookie: req.headers.cookie } })`.
+- WebSockets: single persistent connection per user (managed by `WebSocketProvider` in `_app.js`). Backend broadcasts using `hub.Broadcast <- Frontend{Type: "..."}`; frontend components `subscribe()` and refresh their data on relevant message types (e.g., `new_groupPost`). See `GroupPostsSection.js` for subscription example.
+- Routes: all HTTP endpoints are registered in `backend/web/connectWeb.go`. Most handlers are wrapped with a CORS helper (e.g. `cor.WithCORS(...)`) — keep this when adding new routes.
 
-Sessions stored in SQLite with UUID tokens, 24hr expiry. Frontend uses cookies via `credentials: 'include'`.
+How to run locally (observed patterns):
+- Backend: cd `backend` && `go run .` (serves :8080, includes `/ws`). There is a helper script `back.sh`.
+- Frontend: cd `frontend-next` && `npm run dev` (serves :3000). There is `front.sh`.
+- Use VS Code tasks "Start Backend Server" and "Start Frontend Server" if configured.
 
-### 2. WebSocket Real-Time Architecture
-**Single persistent connection per user** established in `_app.js` via `WebSocketProvider`. All components subscribe to the same connection.
+Database & migrations:
+- Uses SQLite in `data/` and SQL migrations under `backend/pkg/db/migrations/sqlite/`. Migrations are applied on backend startup (golang-migrate patterns).
 
-**Message Flow**:
-1. Backend broadcasts typed messages via `Hub.Broadcast` channel
-2. `WebSocketContext` receives and distributes to subscribers
-3. Components subscribe with filters (by `type`, `group_id`, etc.)
+Files to read first (highest value):
+- `backend/web/connectWeb.go` — route registry and wrappers
+- `backend/pkg/apis/chat/chatHub.go` — WebSocket hub and message types
+- `frontend-next/contexts/WebSocketContext.js` — subscription and dispatch model
+- `frontend-next/hooks/useSession.js` — how sessions and cookies are handled client-side
 
-**Critical Message Types**:
-- `new_post`, `new_postLike`, `new_comment` → Posts page
-- `new_groupPost`, `group_post_like_update` → Group posts
-- `new_groupEvent` → Group events
-- `group_message` → Group chat
-- `online_users` → User presence
+Quick agent rules (do this, not that):
+- DO use existing route registration and CORS wrappers when adding endpoints.
+- DO broadcast backend events via the `hub.Broadcast` channel rather than attempting ad-hoc socket writes.
+- DO prefer refreshing server state when a WS message arrives (components call the REST API) rather than trusting message payloads as source of truth.
+- DO NOT create multiple WebSocket connections per user; reuse `WebSocketContext`.
 
-**Component Pattern** (see `GroupPostsSection.js`):
-```javascript
-const { subscribe } = useWebSocketContext();
-
-useEffect(() => {
-  const unsubscribe = subscribe((message) => {
-    if (message.type === 'new_groupPost' && message.group_id == groupId) {
-      fetchGroupPosts(); // Refresh data
-    }
-  });
-  return () => unsubscribe();
-}, [groupId, subscribe]);
-```
-
-### 3. API Communication Pattern
-**Frontend → Next.js API Route → Go Backend**
-
-Next.js proxies requests to avoid CORS issues and forward cookies:
-```javascript
-// pages/api/session.js pattern
-const response = await fetch('http://localhost:8080/check-session', {
-  headers: { 'Cookie': req.headers.cookie || '' }
-});
-```
-
-**Direct calls from pages** for simplicity (CORS enabled via `WithCORS` wrapper):
-```javascript
-fetch('http://localhost:8080/groups/${groupId}/posts', {
-  credentials: 'include' // Required for session cookies
-})
-```
-
-### 4. Route Registration (Backend)
-All routes registered in `web/connectWeb.go`:
-```go
-http.HandleFunc("/api/follow", cor.WithCORS(func(w, r) { ... }))
-```
-**CORS wrapper required** for all endpoints accessed from frontend.
-
-### 5. Database Access
-**No ORM** - direct SQL via `database/sql`:
-```go
-database.InsertGroup(db, userID, title, desc) // Helper functions in pkg/db/
-db.Exec("INSERT INTO ...") // Direct queries in handlers
-```
-
-Migrations in `pkg/db/migrations/sqlite/*.up.sql` (auto-run on startup via `golang-migrate`).
-
-## Development Workflow
-
-### Running Locally
-```bash
-# Backend (Terminal 1)
-cd backend && go run .  # Serves :8080, includes WebSocket /ws endpoint
-
-# Frontend (Terminal 2)  
-cd frontend-next && npm run dev  # Serves :3000
-
-# Or use scripts:
-./back.sh
-./front.sh
-```
-
-### VS Code Tasks
-Use **"Start Backend Server"** and **"Start Frontend Server"** tasks (already configured).
-
-### Database Changes
-1. Create migration pair in `backend/pkg/db/migrations/sqlite/`:
-   - `NNNNNN_description.up.sql`
-   - `NNNNNN_description.down.sql`
-2. Restart backend (migrations auto-apply)
-
-### Adding Real-Time Updates
-When adding features that need real-time sync:
-1. **Backend**: Broadcast message via `hub.Broadcast <- Frontend{Type: "new_X", ...}`
-2. **Frontend**: Add `subscribe()` listener in component with type filter
-3. **Refresh data** when message received (don't trust message payload for full state)
-
-## Common Gotchas
-
-- **WebSocket connection per user**: Don't create multiple connections. Use `WebSocketContext`.
-- **Session validation**: Don't forget `ValidateSession` on protected endpoints.
-- **CORS**: Wrap all API handlers with `cor.WithCORS()`.
-- **Group ID types**: Backend uses `int`, frontend may pass strings - convert carefully.
-- **Image uploads**: Use `FormData` and file handling in `createPost.go` patterns.
-- **Privacy levels**: Posts have `privacy` field (public/private/almost_private) enforced in query logic.
-
-## File Upload Pattern
-```go
-// Backend: Parse multipart form
-r.ParseMultipartForm(10 << 20) // 10MB limit
-file, handler, err := r.FormFile("imgOrgif")
-// Save to public/img/posts/ with UUID naming
-```
-
-## Key Files to Read First
-- `backend/web/connectWeb.go` - All routes defined here
-- `backend/pkg/apis/chat/chatHub.go` - WebSocket hub logic
-- `frontend-next/contexts/WebSocketContext.js` - Real-time event system
-- `frontend-next/hooks/useSession.js` - Auth state management
-- `WEBSOCKET_ARCHITECTURE.md` - Real-time flow diagrams
-
-## Documentation
-See project docs for detailed fixes:
-- `WEBSOCKET_ARCHITECTURE.md` - Real-time system design
-- `WEBSOCKET_FIX_SUMMARY.md` - Common issues and solutions
-- `groups.md` - Group feature implementation notes
+If anything is unclear, point to the file you want expanded and I will merge more examples or wire small tests.

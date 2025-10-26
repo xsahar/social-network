@@ -16,19 +16,21 @@ import (
 )
 
 type Frontend struct {
-	From      int       `json:"from"`
-	To        int       `json:"to"`
-	GroupID   int       `json:"group_id"`
-	Content   string    `json:"content"`
-	Username  string    `json:"username"`
-	Timestamp time.Time `json:"timestamp"`
-	Type      string    `json:"type"`
-	PostId    int       `json:"post_id"`
-	CommentId int       `json:"comment_id"`
-	IsLike    bool      `json:"is_like"`
-	YesCount  int       `json:"yes_count,omitempty"`
-	NoCount   int       `json:"no_count,omitempty"`
-	UserVote  string    `json:"user_vote,omitempty"`
+	From         int       `json:"from"`
+	To           int       `json:"to"`
+	GroupID      int       `json:"group_id"`
+	Content      string    `json:"content"`
+	Username     string    `json:"username"`
+	Timestamp    time.Time `json:"timestamp"`
+	Type         string    `json:"type"`
+	PostId       int       `json:"post_id"`
+	CommentId    int       `json:"comment_id"`
+	IsLike       bool      `json:"is_like"`
+	YesCount     int       `json:"yes_count,omitempty"`
+	NoCount      int       `json:"no_count,omitempty"`
+	UserVote     string    `json:"user_vote,omitempty"`
+	RequestID    int       `json:"request_id,omitempty"`
+	InvitationID int       `json:"invitation_id,omitempty"`
 }
 
 type Client struct {

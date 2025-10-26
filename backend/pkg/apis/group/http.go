@@ -179,7 +179,7 @@ func GetGroupDetails(db *sql.DB, w http.ResponseWriter, r *http.Request, groupID
 }
 
 // InviteUserToGroup handles group invitations
-func InviteUserToGroup(db *sql.DB, w http.ResponseWriter, r *http.Request) {
+func InviteUserToGroup(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -221,6 +221,36 @@ func InviteUserToGroup(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Error creating invitation:", err)
 		http.Error(w, "Failed to send invitation", http.StatusInternalServerError)
 		return
+	}
+
+	// Try to fetch the newly created invitation id
+	var invitationID int
+	_ = db.QueryRow(`SELECT id FROM group_invitations WHERE group_id = ? AND inviter_id = ? AND invited_id = ? ORDER BY created_at DESC LIMIT 1`, inviteData.GroupID, inviterID, inviteData.UserID).Scan(&invitationID)
+
+	// Broadcast a group invitation notification to the invitee
+	if hub != nil {
+		var inviterUsername string
+		_ = db.QueryRow("SELECT username FROM users WHERE id = ?", inviterID).Scan(&inviterUsername)
+
+		notif := chat.Frontend{
+			Type:         "group_invitation",
+			From:         inviterID,
+			To:           inviteData.UserID,
+			Username:     inviterUsername,
+			GroupID:      inviteData.GroupID,
+			Content:      fmt.Sprintf("%s invited you to join a group", inviterUsername),
+			Timestamp:    time.Now(),
+			InvitationID: invitationID,
+		}
+
+		hub.Mutex.RLock()
+		if client, ok := hub.Clients[inviteData.UserID]; ok {
+			select {
+			case client.Send <- notif:
+			default:
+			}
+		}
+		hub.Mutex.RUnlock()
 	}
 
 	response := map[string]interface{}{
@@ -293,13 +323,14 @@ func RespondToGroupInvitation(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, 
 
 		// Notify the user who responded
 		userNotif := chat.Frontend{
-			Type:      "invitation_response",
-			From:      userID,
-			To:        userID,
-			Username:  username,
-			GroupID:   groupID,
-			Content:   fmt.Sprintf("You %s the group invitation", responseData.Status),
-			Timestamp: time.Now(),
+			Type:         "invitation_response",
+			From:         userID,
+			To:           userID,
+			Username:     username,
+			GroupID:      groupID,
+			Content:      fmt.Sprintf("You %s the group invitation", responseData.Status),
+			InvitationID: responseData.InvitationID,
+			Timestamp:    time.Now(),
 		}
 
 		hub.Mutex.RLock()
@@ -313,13 +344,14 @@ func RespondToGroupInvitation(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, 
 
 		// Notify the inviter
 		inviterNotif := chat.Frontend{
-			Type:      "invitation_response",
-			From:      userID,
-			To:        inviterID,
-			Username:  username,
-			GroupID:   groupID,
-			Content:   fmt.Sprintf("%s %s your group invitation", username, responseData.Status),
-			Timestamp: time.Now(),
+			Type:         "invitation_response",
+			From:         userID,
+			To:           inviterID,
+			Username:     username,
+			GroupID:      groupID,
+			Content:      fmt.Sprintf("%s %s your group invitation", username, responseData.Status),
+			InvitationID: responseData.InvitationID,
+			Timestamp:    time.Now(),
 		}
 
 		hub.Mutex.RLock()
@@ -591,6 +623,14 @@ func sendJoinRequestNotification(db *sql.DB, hub *chat.Hub, userID int, groupID 
 		GroupID:   groupID,
 		Content:   fmt.Sprintf("%s requested to join your group", username),
 		Timestamp: time.Now(),
+	}
+
+	// Try to include the join request ID so admin can accept/decline
+	var requestID int
+	_ = db.QueryRow(`SELECT id FROM group_members WHERE group_id = ? AND user_id = ? AND status = 'pending' ORDER BY joined_at DESC LIMIT 1`, groupID, userID).Scan(&requestID)
+	if requestID > 0 {
+		adminNotif.RequestID = requestID
+		userNotif.RequestID = requestID
 	}
 
 	hub.Mutex.RLock()

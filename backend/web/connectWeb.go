@@ -82,7 +82,7 @@ func ConnectWeb(db *sql.DB) {
 		json.NewEncoder(w).Encode(map[string]bool{"success": true})
 	}))
 
-	if err := ensureEventPollTables(db); err != nil {
+	if err := ensureEventPollTables(db, chatHub); err != nil {
 		fmt.Println("Error creating event tables:", err)
 	}
 
@@ -594,7 +594,7 @@ func ConnectWeb(db *sql.DB) {
 	}))
 
 	http.HandleFunc("/invite-to-group", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
-		g.InviteUserToGroup(db, w, r)
+		g.InviteUserToGroup(db, chatHub, w, r)
 	}))
 
 	http.HandleFunc("/respond-group-invitation", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
@@ -984,6 +984,7 @@ func ConnectWeb(db *sql.DB) {
 			Expires:  time.Now().Add(-1 * time.Hour), // Expire immediately
 			HttpOnly: true,
 			Path:     "/",
+			Domain:   "localhost",
 		}
 		http.SetCookie(w, cookie)
 
@@ -1256,7 +1257,7 @@ func getTableNames(db *sql.DB) ([]string, error) {
 	return tables, nil
 }
 
-func ensureEventPollTables(db *sql.DB) error {
+func ensureEventPollTables(db *sql.DB, hub *chat.Hub) error {
 	stmts := []string{
 		`CREATE TABLE IF NOT EXISTS events (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1285,7 +1286,7 @@ func ensureEventPollTables(db *sql.DB) error {
 	}))
 
 	http.HandleFunc("/follow-user", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
-		u.FollowUser(db, w, r)
+		u.FollowUser(db, hub, w, r)
 	}))
 
 	http.HandleFunc("/unfollow-user", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
@@ -1293,7 +1294,7 @@ func ensureEventPollTables(db *sql.DB) error {
 	}))
 
 	http.HandleFunc("/handle-follow-request", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
-		u.HandleFollowRequest(db, w, r)
+		u.HandleFollowRequest(db, hub, w, r)
 	}))
 
 	http.HandleFunc("/all-users", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
