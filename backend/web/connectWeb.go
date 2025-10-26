@@ -1306,7 +1306,7 @@ func ensureEventPollTables(db *sql.DB, hub *chat.Hub) error {
 	}))
 
 	http.HandleFunc("/toggle-privacy", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
-		u.TogglePrivacy(db, w, r)
+		u.TogglePrivacy(db, hub, w, r)
 	}))
 
 	http.HandleFunc("/update-profile", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {

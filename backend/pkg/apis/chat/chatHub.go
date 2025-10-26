@@ -26,6 +26,7 @@ type Frontend struct {
 	PostId       int       `json:"post_id"`
 	CommentId    int       `json:"comment_id"`
 	IsLike       bool      `json:"is_like"`
+	IsPrivate    bool      `json:"isPrivate,omitempty"`
 	YesCount     int       `json:"yes_count,omitempty"`
 	NoCount      int       `json:"no_count,omitempty"`
 	UserVote     string    `json:"user_vote,omitempty"`

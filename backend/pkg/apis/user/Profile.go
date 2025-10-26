@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	chat "socialnetwork/pkg/apis/chat"
+
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -721,7 +723,7 @@ func UpdateProfileJSONHandler(db *sql.DB, w http.ResponseWriter, r *http.Request
 }
 
 // TogglePrivacy toggles the user's profile privacy setting
-func TogglePrivacy(db *sql.DB, w http.ResponseWriter, r *http.Request) {
+func TogglePrivacy(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -748,6 +750,27 @@ func TogglePrivacy(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "Failed to update privacy setting", http.StatusInternalServerError)
 		return
+	}
+
+	// Broadcast privacy update to connected clients so UI can refresh (e.g., users list)
+	if hub != nil {
+		var username string
+		_ = db.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
+		notif := chat.Frontend{
+			Type:      "privacy_update",
+			From:      userID,
+			Username:  username,
+			IsPrivate: newPrivacy,
+			Timestamp: time.Now(),
+		}
+		hub.Mutex.RLock()
+		for _, client := range hub.Clients {
+			select {
+			case client.Send <- notif:
+			default:
+			}
+		}
+		hub.Mutex.RUnlock()
 	}
 
 	w.Header().Set("Content-Type", "application/json")

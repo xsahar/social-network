@@ -51,7 +51,7 @@ export default function Users() {
       console.log('[Users] Received WebSocket message:', message);
 
       // Handle follow status updates and follow request responses
-      if (message.type === 'follow_update' || message.type === 'new_follower' || message.type === 'unfollow_update' || message.type === 'follow_request_response' || message.type === 'follow_request') {
+      if (message.type === 'follow_update' || message.type === 'new_follower' || message.type === 'unfollow_update' || message.type === 'follow_request_response' || message.type === 'follow_request' || message.type === 'privacy_update') {
         // Refresh the users list to get updated follow/request status
         fetchUsers();
       }
