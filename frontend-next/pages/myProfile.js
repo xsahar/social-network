@@ -28,7 +28,7 @@ export default function MyProfile() {
     avatarFile: null
   });
   const { user, loading: sessionLoading } = useSession();
-  const { onlineUsers } = useWebSocketContext();
+  const { onlineUsers, subscribe } = useWebSocketContext();
   const { chatOpen, chatWith, startChat, setChatOpen } = useChat();
   const router = useRouter();
 
@@ -87,7 +87,7 @@ export default function MyProfile() {
   // Subscribe to WebSocket events to refresh profile in real-time
   useEffect(() => {
     if (!user) return;
-    const unsubscribe = useWebSocketContext().subscribe((message) => {
+    const unsubscribe = subscribe((message) => {
       // Relevant message types that should refresh this profile view
       if (message.type === 'follow_request' || message.type === 'follow_request_response' || message.type === 'new_follower' || message.type === 'unfollow_update') {
         console.log('[MyProfile] WS event received, refreshing profile:', message.type);
@@ -98,7 +98,7 @@ export default function MyProfile() {
     return () => {
       unsubscribe();
     };
-  }, [user]);
+  }, [user, subscribe]);
 
 
 

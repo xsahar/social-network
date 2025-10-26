@@ -1290,7 +1290,7 @@ func ensureEventPollTables(db *sql.DB, hub *chat.Hub) error {
 	}))
 
 	http.HandleFunc("/unfollow-user", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {
-		u.UnfollowUser(db, w, r)
+		u.UnfollowUser(db, hub, w, r)
 	}))
 
 	http.HandleFunc("/handle-follow-request", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {

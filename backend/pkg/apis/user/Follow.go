@@ -159,7 +159,7 @@ func FollowUser(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *http.Reques
 }
 
 // UnfollowUser handles unfollowing
-func UnfollowUser(db *sql.DB, w http.ResponseWriter, r *http.Request) {
+func UnfollowUser(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -195,6 +195,48 @@ func UnfollowUser(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "Failed to unfollow user", http.StatusInternalServerError)
 		return
+	}
+
+	// Broadcast unfollow/update notifications via WebSocket so UI updates in real-time
+	if hub != nil {
+		var followerUsername string
+		_ = db.QueryRow("SELECT username FROM users WHERE id = ?", followerID).Scan(&followerUsername)
+
+		// Notify the target that someone unfollowed them
+		unfollowNotif := chat.Frontend{
+			Type:      "unfollow_update",
+			From:      followerID,
+			To:        targetID,
+			Username:  followerUsername,
+			Content:   fmt.Sprintf("%s unfollowed you", followerUsername),
+			Timestamp: time.Now(),
+		}
+		hub.Mutex.RLock()
+		if client, ok := hub.Clients[targetID]; ok {
+			select {
+			case client.Send <- unfollowNotif:
+			default:
+			}
+		}
+		hub.Mutex.RUnlock()
+
+		// Notify the actor (follower) that their follow state changed (useful for updating lists)
+		followUpdate := chat.Frontend{
+			Type:      "follow_update",
+			From:      followerID,
+			To:        followerID,
+			Username:  followerUsername,
+			Content:   fmt.Sprintf("You unfollowed user %d", targetID),
+			Timestamp: time.Now(),
+		}
+		hub.Mutex.RLock()
+		if client, ok := hub.Clients[followerID]; ok {
+			select {
+			case client.Send <- followUpdate:
+			default:
+			}
+		}
+		hub.Mutex.RUnlock()
 	}
 
 	w.Header().Set("Content-Type", "application/json")
