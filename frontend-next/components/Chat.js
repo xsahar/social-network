@@ -256,7 +256,7 @@ const Chat = ({ isOpen, onClose, chatWith, userID }) => {
           fontSize: '14px',
           borderRadius: '0'
         }}>
-          ⚠️ {errorMessage}
+          Warning: {errorMessage}
         </div>
       )}
 

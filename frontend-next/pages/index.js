@@ -12,12 +12,12 @@ export default function MainPage() {
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!loading && !user) {
-      console.log('🔄 No user found, redirecting to login...');
+      console.log('No user found, redirecting to login...');
       setTimeout(() => {
         router.push('/login');
       }, 100);
     } else if (user) {
-      console.log('✅ User found:', user);
+      console.log('User found:', user);
     }
   }, [user, loading, router]);
 
@@ -71,40 +71,258 @@ export default function MainPage() {
 
       <main className="main-content">
         <div className="dashboard-container">
-          {/* Main Dashboard Content */}
-          <div className="container">
-          {/* Quick Actions */}
-          <div className="dashboard-grid">
+          <div className="dashboard-content">
+            
+            {/* Professional Hero Section */}
+            <div className="dashboard-hero">
+              {/* Floating Particles Background */}
+              <div className="floating-particles" />
+              
+              {/* Premium Logo */}
+              <div className="inline-flex items-center justify-center w-36 h-36 bg-white/90 backdrop-blur-lg rounded-full shadow-2xl mb-10 animate-float animate-pulse-glow border-4 border-white/30">
+                <div 
+                  className="w-24 h-24 rounded-full animate-gentle-rotate flex items-center justify-center"
+                  style={{ 
+                    background: 'var(--gradient-cosmic)',
+                    boxShadow: '0 0 40px rgba(102, 126, 234, 0.5)'
+                  }}
+                >
+                  <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center">
+                    <div className="text-2xl font-bold text-blue-600">S</div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Professional Welcome */}
+              <div className="relative max-w-5xl mx-auto">
+                <h1 className="dashboard-title">
+                  Welcome back, {user?.username}!
+                </h1>
+                
+                {/* Floating Decorative Elements */}
+                <div className="absolute -top-8 -right-12 w-12 h-12 bg-gradient-to-r from-pink-400 to-red-500 rounded-xl opacity-60 animate-bounce"></div>
+                <div className="absolute -top-4 -left-16 w-10 h-10 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full opacity-50 animate-pulse"></div>
+                <div className="absolute -bottom-6 right-20 w-8 h-8 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full opacity-45 animate-float"></div>
+                
+                <p className="dashboard-subtitle mt-8">
+                  Your <span className="font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">premium social hub</span> awaits! 
+                  Connect with amazing people, share incredible stories, and discover 
+                  <span className="font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent"> magical content</span> 
+                  from your vibrant community!
+                </p>
+              </div>
+              
+              {/* Additional Floating Elements */}
+              <div className="absolute top-16 left-12 w-6 h-6 bg-pink-400 rounded-full opacity-25 animate-float" style={{animationDelay: '1s'}}></div>
+              <div className="absolute top-24 right-20 w-8 h-8 bg-blue-400 rounded-full opacity-30 animate-float" style={{animationDelay: '2s'}}></div>
+              <div className="absolute bottom-12 left-24 w-4 h-4 bg-yellow-400 rounded-full opacity-35 animate-float" style={{animationDelay: '3s'}}></div>
+            </div>
+
+            {/* Professional Stats Section */}
+            <div className="dashboard-stats-grid">
+              {/* Live Users Stats */}
+              <div className="bg-white/90 backdrop-blur-2xl rounded-3xl p-8 shadow-2xl border border-white/30 relative overflow-hidden group hover:scale-105 transition-all duration-500 animate-float">
+                {/* Background Decoration */}
+                <div className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-15 animate-pulse" style={{ background: 'var(--gradient-ocean)' }}></div>
+                <div className="dashboard-card-decoration-small"></div>
+                
+                <div className="flex flex-col items-center text-center relative z-10">
+                  <div className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6 animate-gentle-rotate group-hover:scale-110 transition-transform shadow-lg" style={{ background: 'var(--gradient-ocean)' }}>
+                    <div className="text-white text-2xl font-bold">U</div>
+                  </div>
+                  
+                  <div className="text-5xl font-black mb-2 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent">
+                    {onlineUsers.length}
+                  </div>
+                  
+                  <h3 className="text-xl font-bold text-gray-800 mb-3">Users Online</h3>
+                  
+                  <div className="flex items-center gap-3 bg-green-50/80 px-4 py-2 rounded-full backdrop-blur-sm">
+                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-sm"></div>
+                    <span className="text-sm text-green-700 font-semibold">Live activity!</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Creative Stories Stats */}
+              <div className="bg-white/90 backdrop-blur-2xl rounded-3xl p-8 shadow-2xl border border-white/30 relative overflow-hidden group hover:scale-105 transition-all duration-500 animate-float" style={{animationDelay: '1s'}}>
+                {/* Background Decoration */}
+                <div className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-15 animate-pulse" style={{ background: 'var(--gradient-nature)' }}></div>
+                <div className="dashboard-card-decoration-small"></div>
+                
+                <div className="flex flex-col items-center text-center relative z-10">
+                  <div className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6 animate-gentle-rotate group-hover:scale-110 transition-transform shadow-lg" style={{ background: 'var(--gradient-nature)' }}>
+                    <div className="text-white text-2xl font-bold">P</div>
+                  </div>
+                  
+                  <div className="text-5xl font-black mb-2 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 bg-clip-text text-transparent">
+                    ∞
+                  </div>
+                  
+                  <h3 className="text-xl font-bold text-gray-800 mb-3">Stories to Share</h3>
+                  
+                  <div className="flex items-center gap-3 bg-emerald-50/80 px-4 py-2 rounded-full backdrop-blur-sm">
+                    <div className="w-4 h-4 bg-emerald-600 rounded-full animate-bounce"></div>
+                    <span className="text-sm text-emerald-700 font-semibold">Unlimited creativity!</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Magic Experiences Stats */}
+              <div className="bg-white/90 backdrop-blur-2xl rounded-3xl p-8 shadow-2xl border border-white/30 relative overflow-hidden group hover:scale-105 transition-all duration-500 animate-float" style={{animationDelay: '2s'}}>
+                {/* Background Decoration */}
+                <div className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-15 animate-pulse" style={{ background: 'var(--gradient-magic)' }}></div>
+                <div className="dashboard-card-decoration-small"></div>
+                
+                <div className="flex flex-col items-center text-center relative z-10">
+                  <div className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6 animate-gentle-rotate group-hover:scale-110 transition-transform shadow-lg" style={{ background: 'var(--gradient-magic)' }}>
+                    <div className="text-white text-2xl font-bold">E</div>
+                  </div>
+                  
+                  <div className="text-4xl font-black mb-2 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-800 bg-clip-text text-transparent">
+                    Magic
+                  </div>
+                  
+                  <h3 className="text-xl font-bold text-gray-800 mb-3">New Experiences</h3>
+                  
+                  <div className="flex items-center gap-3 bg-purple-50/80 px-4 py-2 rounded-full backdrop-blur-sm">
+                    <div className="w-4 h-4 bg-purple-600 rounded-full animate-pulse"></div>
+                    <span className="text-sm text-purple-700 font-semibold">Every moment!</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Professional Action Cards Section */}
+            <div className="dashboard-actions-grid">
+              {/* Explore Posts - Ocean Theme */}
             <button 
               onClick={() => router.push('/posts')}
-              className="dashboard-card dashboard-card-blue"
-            >
-              <h3>View Posts</h3>
-              <p>See what's happening in your network</p>
+                className="dashboard-card dashboard-card-blue group"
+              >
+                <div className="dashboard-card-decoration"></div>
+                <div className="dashboard-card-decoration-small"></div>
+                
+                <div className="dashboard-card-icon animate-float group-hover:scale-125 transition-all duration-500">
+                  <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-2xl font-black text-white">
+                    POST
+                  </div>
+                </div>
+                
+                <h3 className="dashboard-card-title">Explore Posts</h3>
+                <p className="dashboard-card-description">
+                  Discover <span className="font-bold text-white/90">incredible content</span> from your amazing network! 
+                  Dive into stories that inspire!
+                </p>
+                
+                <div className="dashboard-card-action group-hover:scale-110">
+                  Let's explore
+                </div>
             </button>
             
+              {/* Create Magic - Nature Theme */}
             <button 
               onClick={() => router.push('/createPost')}
-              className="dashboard-card dashboard-card-green"
-            >
-              <h3>Create Post</h3>
-              <p>Share your thoughts with others</p>
+                className="dashboard-card dashboard-card-green group"
+              >
+                <div className="dashboard-card-decoration"></div>
+                <div className="dashboard-card-decoration-small"></div>
+                
+                <div className="dashboard-card-icon animate-float group-hover:scale-125 transition-all duration-500">
+                  <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-lg font-black text-white">
+                    CREATE
+                  </div>
+                </div>
+                
+                <h3 className="dashboard-card-title">Create Content</h3>
+                <p className="dashboard-card-description">
+                  Share your <span className="font-bold text-white/90">brilliant ideas</span> with the world! 
+                  Inspire others with your creativity!
+                </p>
+                
+                <div className="dashboard-card-action group-hover:scale-110">
+                  Start creating
+                </div>
             </button>
             
+              {/* Join Communities - Magic Theme */}
             <button 
               onClick={() => router.push('/groups')}
-              className="dashboard-card dashboard-card-purple"
-            >
-              <h3>Browse Groups</h3>
-              <p>Join communities that interest you</p>
+                className="dashboard-card dashboard-card-purple group"
+              >
+                <div className="dashboard-card-decoration"></div>
+                <div className="dashboard-card-decoration-small"></div>
+                
+                <div className="dashboard-card-icon animate-float group-hover:scale-125 transition-all duration-500">
+                  <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-lg font-black text-white">
+                    GROUP
+                  </div>
+                </div>
+                
+                <h3 className="dashboard-card-title">Join Communities</h3>
+                <p className="dashboard-card-description">
+                  Find your <span className="font-bold text-white/90">perfect tribe</span> and connect with 
+                  incredible people! Build lasting bonds!
+                </p>
+                
+                <div className="dashboard-card-action group-hover:scale-110">
+                  Explore groups
+                </div>
             </button>
           </div>
 
-          {/* Online Users Sidebar */}
+            {/* Special Featured Card - Find Friends */}
+            <div className="relative mb-16">
+              <button 
+                onClick={() => router.push('/users')}
+                className="w-full bg-white/90 backdrop-blur-2xl rounded-3xl p-12 shadow-2xl border border-white/30 relative overflow-hidden group hover:scale-102 transition-all duration-500 text-center"
+                style={{ 
+                  background: 'linear-gradient(135deg, var(--gradient-cosmic), var(--gradient-sunset))',
+                  color: 'white'
+                }}
+              >
+                {/* Premium Background Effects */}
+                <div className="absolute inset-0 bg-white/5 rounded-3xl"></div>
+                <div className="absolute top-0 right-0 w-48 h-48 rounded-full opacity-10 animate-pulse" style={{ background: 'var(--gradient-fire)' }}></div>
+                <div className="absolute bottom-0 left-0 w-32 h-32 rounded-full opacity-8 animate-float"></div>
+                
+                {/* Content */}
+                <div className="relative z-10">
+                  <div className="mb-8">
+                    <div className="w-24 h-24 bg-white/30 rounded-3xl mx-auto flex items-center justify-center text-3xl font-black text-white shadow-2xl animate-float group-hover:scale-110 transition-all duration-500">
+                      FIND
+                    </div>
+                  </div>
+                  
+                  <h3 className="text-4xl font-black mb-6 text-shadow-lg">
+                    Discover Amazing People
+                  </h3>
+                  
+                  <p className="text-xl font-semibold mb-10 leading-relaxed max-w-3xl mx-auto opacity-95">
+                    Connect with <span className="font-black text-white/95">incredible people</span> who share your passions! 
+                    Build friendships that spark joy and create <span className="font-black text-white/95">amazing memories</span>!
+                  </p>
+                  
+                  <div className="inline-flex items-center text-2xl font-black bg-white/25 border-2 border-white/30 px-10 py-5 rounded-full backdrop-blur-lg group-hover:bg-white/35 group-hover:border-white/50 transition-all duration-300 shadow-xl">
+                    Meet incredible people
+                  </div>
+                </div>
+              </button>
+            </div>
+
+          {/* Online Users Section */}
           <div className="online-users-section">
-            <h2>Online Users ({onlineUsers.filter(u => u.id !== user?.userID).length})</h2>
+            <h2>
+              Community Members Online ({onlineUsers.filter(u => u.id !== user?.userID).length})
+            </h2>
             {onlineUsers.filter(u => u.id !== user?.userID).length === 0 ? (
-              <p>No other users online right now</p>
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center text-2xl font-bold text-gray-500">
+                  0
+                </div>
+                <p className="text-lg font-medium text-gray-600">No users online right now</p>
+                <p className="text-gray-500 mt-2">Be the first to start a conversation!</p>
+              </div>
             ) : (
               <div className="online-users-list">
                 {onlineUsers
@@ -112,7 +330,8 @@ export default function MainPage() {
                   .map((userData) => (
                     <div 
                       key={userData.id} 
-                      className="online-user-item"
+                      className="online-user-item group cursor-pointer"
+                      onClick={() => router.push('/users')}
                     >
                       <div className="user-info">
                         <div className="user-avatar-small">
@@ -120,15 +339,60 @@ export default function MainPage() {
                             {userData.username?.charAt(0)?.toUpperCase() || 'U'}
                           </span>
                         </div>
+                        <div className="flex-1">
                         <span className="username">{userData.username}</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                            <span className="text-xs text-gray-500 font-medium">Active now</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="w-8 h-8 bg-green-100 text-green-600 rounded-full flex items-center justify-center font-bold group-hover:scale-110 transition-transform text-xs">
+                        ONLINE
                       </div>
                     </div>
                   ))}
               </div>
             )}
           </div>
+
+            {/* Premium Call-to-Action Footer */}
+            <div className="text-center mt-20 pb-12">
+              <div className="bg-white/90 backdrop-blur-2xl rounded-3xl p-10 shadow-2xl border border-white/30 relative overflow-hidden max-w-2xl mx-auto">
+                {/* Background Effects */}
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-50/50 via-purple-50/50 to-pink-50/50 rounded-3xl"></div>
+                <div className="absolute top-2 right-2 w-20 h-20 rounded-full opacity-10 animate-pulse" style={{ background: 'var(--gradient-cosmic)' }}></div>
+                
+                <div className="relative z-10">
+                  <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl mx-auto mb-6 flex items-center justify-center text-white font-black text-lg animate-bounce">
+                    GO
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-800 mb-4">Ready for your next adventure?</h3>
+                  <p className="text-lg text-gray-600 font-medium mb-8">
+                    Your journey to <span className="font-bold text-gradient">amazing connections</span> starts now!
+                  </p>
+                  
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                    <button 
+                      onClick={() => router.push('/users')}
+                      className="btn btn-primary btn-lg group relative overflow-hidden"
+                    >
+                      Find Amazing Friends
+                    </button>
+                    
+                    <button 
+                      onClick={() => router.push('/createPost')}
+                      className="btn btn-success btn-lg group relative overflow-hidden"
+                    >
+                      Share Your Story
+                    </button>
+                  </div>
+          </div>
         </div>
         </div>
+            
+          </div> {/* End dashboard-content */}
+        </div> {/* End dashboard-container */}
       </main>
     </div>
   );

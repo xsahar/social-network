@@ -295,52 +295,124 @@ export default function Groups() {
   return (
     <Layout>
       <Head>
-        <title>Groups - Social Network</title>
+        <title>Groups - Join Amazing Communities</title>
+        <meta name="description" content="Find your perfect tribe and connect with incredible people!" />
       </Head>
       
-      <div className="groups-section">
-        <div className="container">
-          {/* Header */}
-          <div className="groups-header">
-            <h1>Groups</h1>
+      <div className="groups-page-modern">
+        {/* Hero Section */}
+        <div className="groups-hero-section">
+          <div className="groups-hero-content">
+            <div className="groups-hero-icon">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="url(#gradient1)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <circle cx="9" cy="7" r="4" stroke="url(#gradient1)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="url(#gradient2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <defs>
+                  <linearGradient id="gradient1" x1="0" y1="0" x2="24" y2="24">
+                    <stop offset="0%" stopColor="#667eea"/>
+                    <stop offset="100%" stopColor="#764ba2"/>
+                  </linearGradient>
+                  <linearGradient id="gradient2" x1="0" y1="0" x2="24" y2="24">
+                    <stop offset="0%" stopColor="#f093fb"/>
+                    <stop offset="100%" stopColor="#f5576c"/>
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+            
+            <h1 className="groups-hero-title">
+              Discover Your Community
+            </h1>
+            
+            <p className="groups-hero-subtitle">
+              Join vibrant groups, share experiences, and connect with like-minded people
+            </p>
+
             <button 
               onClick={() => setShowCreateModal(true)}
-              className="btn btn-primary"
+              className="groups-hero-cta"
             >
-              Create Group
+              <span className="groups-hero-cta-icon">+</span>
+              Create New Group
             </button>
           </div>
+        </div>
+        
+        <div className="groups-section container-professional">
+          <div className="groups-container-modern">
 
-          {/* Create Group Modal */}
+          {/* Modern Create Group Modal */}
           {showCreateModal && (
-            <div className="modal">
-              <div className="modal-content">
-                <span className="close" onClick={() => setShowCreateModal(false)}>&times;</span>
-                <h2>Create New Group</h2>
-                <form onSubmit={handleCreateGroup}>
-                  <div className="form-group">
-                    <label>Group Title:</label>
+            <div className="modal-overlay-modern" onClick={() => setShowCreateModal(false)}>
+              <div className="modal-content-modern" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header-modern">
+                  <div className="modal-header-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2"/>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="2"/>
+                    </svg>
+                  </div>
+                  <h2 className="modal-title-modern">Create New Group</h2>
+                  <button className="modal-close-modern" onClick={() => setShowCreateModal(false)}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+                
+                <form onSubmit={handleCreateGroup} className="modal-form-modern">
+                  <div className="form-group-modern">
+                    <label className="form-label-modern">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Group Name
+                    </label>
                     <input
                       type="text"
+                      className="form-input-modern"
+                      placeholder="Enter a catchy group name..."
                       value={newGroup.title}
                       onChange={(e) => setNewGroup({...newGroup, title: e.target.value})}
                       required
                     />
                   </div>
-                  <div className="form-group">
-                    <label>Description:</label>
+                  
+                  <div className="form-group-modern">
+                    <label className="form-label-modern">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="currentColor" strokeWidth="2"/>
+                        <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Description
+                    </label>
                     <textarea
+                      className="form-textarea-modern"
+                      placeholder="Describe what your group is about..."
                       value={newGroup.description}
                       onChange={(e) => setNewGroup({...newGroup, description: e.target.value})}
                       rows="4"
                       required
                     />
                   </div>
-                  <div className="form-group">
-                    <button type="button" onClick={() => setShowCreateModal(false)} className="btn btn-secondary">
+                  
+                  <div className="modal-actions-modern">
+                    <button 
+                      type="button" 
+                      onClick={() => setShowCreateModal(false)} 
+                      className="modal-btn-modern modal-btn-cancel"
+                    >
                       Cancel
                     </button>
-                    <button type="submit" className="btn btn-primary">
+                    <button 
+                      type="submit" 
+                      className="modal-btn-modern modal-btn-create"
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
                       Create Group
                     </button>
                   </div>
@@ -349,98 +421,164 @@ export default function Groups() {
             </div>
           )}
 
-          {/* Tabs */}
-          <div className="tabs">
-            {['all', 'my', 'invitations', 'pending'].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`tab-button ${activeTab === tab ? 'active' : ''}`}
-              >
-                {tab === 'all' ? 'All Groups' : 
-                 tab === 'my' ? 'My Groups' : 
-                 tab === 'invitations' ? 'Invitations' : 
-                 'Pending Approvals'}
-              </button>
-            ))}
+          {/* Modern Tabs */}
+          <div className="groups-tabs-modern">
+            <button
+              onClick={() => setActiveTab('all')}
+              className={`groups-tab-modern ${activeTab === 'all' ? 'active' : ''}`}
+            >
+              <span className="groups-tab-icon">🌐</span>
+              <span className="groups-tab-label">All Groups</span>
+              <span className="groups-tab-count">{groups.length}</span>
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('my')}
+              className={`groups-tab-modern ${activeTab === 'my' ? 'active' : ''}`}
+            >
+              <span className="groups-tab-icon">👥</span>
+              <span className="groups-tab-label">My Groups</span>
+              <span className="groups-tab-count">{userGroups.length}</span>
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('invitations')}
+              className={`groups-tab-modern ${activeTab === 'invitations' ? 'active' : ''}`}
+            >
+              <span className="groups-tab-icon">✉️</span>
+              <span className="groups-tab-label">Invitations</span>
+              {invitations.length > 0 && (
+                <span className="groups-tab-badge">{invitations.length}</span>
+              )}
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('pending')}
+              className={`groups-tab-modern ${activeTab === 'pending' ? 'active' : ''}`}
+            >
+              <span className="groups-tab-icon">⏳</span>
+              <span className="groups-tab-label">Pending</span>
+              {pendingApprovals.length > 0 && (
+                <span className="groups-tab-badge">{pendingApprovals.length}</span>
+              )}
+            </button>
           </div>
 
-          {/* Groups List */}
-          <div className="groups-grid">
+          {/* Groups Grid */}
+          <div className="groups-grid-modern">
             {getCurrentGroups().map((group) => {
               if (activeTab === 'invitations') {
                 console.log('[Render] Invitation group:', group);
               }
               return (
-              <div key={group.id} className="group-card">
-                {/* Header with gradient background */}
-                <div className="group-header">
-                  <h3>{group.title || group.group_name}</h3>
+              <div key={group.id} className="group-card-modern">
+                {/* Card Header with Gradient */}
+                <div className="group-card-header-modern">
+                  <div className="group-card-icon-wrapper">
+                    <div className="group-card-icon">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                  </div>
                   {group.member_count !== undefined && (
-                    <span className="member-count">{group.member_count || 0} members</span>
+                    <div className="group-card-members-badge">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2"/>
+                        <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2"/>
+                      </svg>
+                      <span>{group.member_count || 0}</span>
+                    </div>
                   )}
                 </div>
                 
-                {/* Card body with white background */}
-                  <div className="group-info">
-                    <p className="group-description">{group.description}</p>
-                    <div className="group-meta">
+                {/* Card Body */}
+                <div className="group-card-body-modern">
+                  <h3 className="group-card-title-modern">{group.title || group.group_name}</h3>
+                  <p className="group-card-description-modern">{group.description}</p>
+                  
+                  <div className="group-card-meta-modern">
+                    <div className="group-card-creator">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
                       <span>
                         {activeTab === 'invitations' 
-                          ? `Invited by ${group.inviter_name || group.inviter}` 
-                          : `Created by ${group.creator_name || group.creator || group.username}`}
+                          ? `${group.inviter_name || group.inviter}` 
+                          : `${group.creator_name || group.creator || group.username}`}
                       </span>
-                      {group.created_at && <span>{new Date(group.created_at).toLocaleDateString()}</span>}
                     </div>
-                  </div>                <div className="group-actions">
+                    {group.created_at && (
+                      <div className="group-card-date">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                          <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        </svg>
+                        <span>{new Date(group.created_at).toLocaleDateString()}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>                {/* Card Actions */}
+                <div className="group-card-actions-modern">
                   {(() => {
                     // Handle different tab types
                     if (activeTab === 'pending') {
                       // For pending approvals tab - show approve/decline buttons
                       return (
-                        <div className="approval-actions">
+                        <>
                           <button
                             onClick={() => handleApproveRequest(group.id, 'accept')}
-                            className="btn btn-success"
+                            className="group-btn-modern group-btn-success"
                           >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
                             Approve
                           </button>
                           <button
                             onClick={() => handleApproveRequest(group.id, 'decline')}
-                            className="btn btn-danger"
+                            className="group-btn-modern group-btn-danger"
                           >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
                             Decline
                           </button>
-                        </div>
+                        </>
                       );
                     }
 
                     if (activeTab === 'invitations') {
-                      // For invitations tab - show accept/decline buttons
-                      // Note: group.id here is actually the invitation ID from the invitations array
                       return (
-                        <div className="invitation-actions">
+                        <>
                           <button
                             onClick={() => handleRespondToInvitation(group.id, 'accept')}
-                            className="btn btn-success"
+                            className="group-btn-modern group-btn-success"
                           >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
                             Accept
                           </button>
                           <button
                             onClick={() => handleRespondToInvitation(group.id, 'decline')}
-                            className="btn btn-danger"
+                            className="group-btn-modern group-btn-secondary"
                           >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
                             Decline
                           </button>
-                        </div>
+                        </>
                       );
                     }
 
                     // Regular group actions for 'all' and 'my' tabs
                     const isCreator = user?.userID === group.creator_id;
                     const membershipStatus = group.user_membership_status;
-                    
-                    // If we're in "My Groups" tab, user is always a member
                     const isMember = activeTab === 'my' || membershipStatus === 'accepted';
                     const isPending = membershipStatus === 'pending';
 
@@ -449,15 +587,12 @@ export default function Groups() {
                         <>
                           <button
                             onClick={() => viewGroupDetails(group.id)}
-                            className="btn btn-primary"
+                            className="group-btn-modern group-btn-primary"
                           >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
                             Enter Group
-                          </button>
-                          <button
-                            onClick={() => viewGroupDetails(group.id)}
-                            className="btn btn-secondary"
-                          >
-                            Manage Group
                           </button>
                         </>
                       );
@@ -466,29 +601,39 @@ export default function Groups() {
                         <>
                           <button
                             onClick={() => viewGroupDetails(group.id)}
-                            className="btn btn-primary"
+                            className="group-btn-modern group-btn-primary"
                           >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
                             Enter Group
                           </button>
                           <button
                             onClick={() => handleLeaveGroup(group.id)}
-                            className="btn btn-danger"
+                            className="group-btn-modern group-btn-danger-outline"
                           >
-                            Leave Group
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                            Leave
                           </button>
                         </>
                       );
                     } else if (isPending) {
                       return (
                         <>
-                          <button disabled className="btn btn-warning">
-                            Request Pending
+                          <button disabled className="group-btn-modern group-btn-pending">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                              <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            </svg>
+                            Pending
                           </button>
                           <button
                             onClick={() => viewGroupDetails(group.id)}
-                            className="btn btn-secondary"
+                            className="group-btn-modern group-btn-secondary"
                           >
-                            View Details
+                            View
                           </button>
                         </>
                       );
@@ -497,15 +642,18 @@ export default function Groups() {
                         <>
                           <button
                             onClick={() => handleJoinGroup(group.id)}
-                            className="btn btn-success"
+                            className="group-btn-modern group-btn-success"
                           >
-                            Join Group
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M12.5 7a4 4 0 11-8 0 4 4 0 018 0zM16 11h6M19 8v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                            Join
                           </button>
                           <button
                             onClick={() => viewGroupDetails(group.id)}
-                            className="btn btn-secondary"
+                            className="group-btn-modern group-btn-secondary"
                           >
-                            View Details
+                            View
                           </button>
                         </>
                       );
@@ -517,16 +665,37 @@ export default function Groups() {
             })}
           </div>
 
-          {getCurrentGroups().length === 0 && (
-            <div className="no-groups-message">
-              <p>
-                {activeTab === 'all' ? 'No groups available' : 
-                 activeTab === 'my' ? 'You haven\'t joined any groups yet' : 
-                 activeTab === 'invitations' ? 'No invitations' :
-                 'No pending approvals'}
-              </p>
-            </div>
-          )}
+            {getCurrentGroups().length === 0 && (
+              <div className="no-groups-message-modern">
+                <div className="no-groups-icon">
+                  {activeTab === 'all' ? '🌐' : 
+                   activeTab === 'my' ? '👥' : 
+                   activeTab === 'invitations' ? '✉️' :
+                   '⏳'}
+                </div>
+                <h3>
+                  {activeTab === 'all' ? 'No groups available yet' : 
+                   activeTab === 'my' ? 'You haven\'t joined any groups' : 
+                   activeTab === 'invitations' ? 'No pending invitations' :
+                   'No pending approvals'}
+                </h3>
+                <p>
+                  {activeTab === 'all' ? 'Be the first to create a community!' : 
+                   activeTab === 'my' ? 'Explore and join groups that interest you' : 
+                   activeTab === 'invitations' ? 'Check back later for new invitations' :
+                   'No requests waiting for your approval'}
+                </p>
+                {activeTab === 'all' && (
+                  <button 
+                    onClick={() => setShowCreateModal(true)}
+                    className="no-groups-cta"
+                  >
+                    Create First Group
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </Layout>

@@ -70,30 +70,56 @@ export default function SignUp() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center py-12 px-4">
+    <div className="min-h-screen flex items-center justify-center py-12 px-6" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
       <Head>
-        <title>Sign Up - SocialNet</title>
+        <title>Join SocialNet</title>
+        <meta name="description" content="Join our amazing community and start your incredible journey!" />
       </Head>
       
-      <div className="max-w-2xl w-full space-y-8">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-blue-600 mb-2">SocialNet</h1>
-          <h2 className="text-2xl font-semibold text-gray-900 mb-2">Create Account</h2>
-          <p className="text-gray-600">Join our community today</p>
+      <div className="max-w-4xl w-full">
+        {/* Professional Header */}
+        <div className="text-center mb-8">
+          <div className="inline-block mb-6">
+            <div className="w-16 h-16 bg-white rounded-2xl shadow-2xl flex items-center justify-center transform hover:rotate-6 transition-transform duration-300">
+              <div className="w-10 h-10 rounded-xl" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}></div>
+            </div>
+          </div>
+          
+          <h1 className="text-4xl font-bold text-white mb-3 tracking-tight">
+            Create Account
+          </h1>
+          
+          <p className="text-lg text-white/80 font-medium">
+            Join SocialNet and connect with people worldwide
+          </p>
         </div>
         
-        <div className="bg-white p-8 rounded-lg shadow-lg border border-gray-200">
+        {/* Professional Form Card */}
+        <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-10">
+          {/* Error Display */}
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-red-700 text-sm">{error}</p>
+            <div className="mb-6 p-4 rounded-xl bg-red-50 border-l-4 border-red-500">
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <svg className="w-5 h-5 text-red-500 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-semibold text-red-800">Registration Error</h3>
+                  <p className="text-sm text-red-700 mt-1">{error}</p>
+                </div>
+              </div>
             </div>
           )}
           
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit}>
+            {/* Form Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Username Field */}
               <div>
-                <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
-                  Username *
+                <label htmlFor="username" className="block text-sm font-semibold text-gray-700 mb-2">
+                  Username <span className="text-red-500">*</span>
                 </label>
                 <input
                   id="username"
@@ -102,14 +128,15 @@ export default function SignUp() {
                   required
                   value={formData.username}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  placeholder="Username"
+                  className="block w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                  placeholder="Choose your username"
                 />
               </div>
               
+              {/* Email Field */}
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                  Email Address *
+                <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
+                  Email Address <span className="text-red-500">*</span>
                 </label>
                 <input
                   id="email"
@@ -118,14 +145,15 @@ export default function SignUp() {
                   required
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  placeholder="example@gmail.com"
+                  className="block w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                  placeholder="your.email@example.com"
                 />
               </div>
               
+              {/* First Name Field */}
               <div>
-                <label htmlFor="fname" className="block text-sm font-medium text-gray-700 mb-1">
-                  First Name *
+                <label htmlFor="fname" className="block text-sm font-semibold text-gray-700 mb-2">
+                  First Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   id="fname"
@@ -134,14 +162,15 @@ export default function SignUp() {
                   required
                   value={formData.fname}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  placeholder="First name"
+                  className="block w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                  placeholder="Your first name"
                 />
               </div>
               
+              {/* Last Name Field */}
               <div>
-                <label htmlFor="lname" className="block text-sm font-medium text-gray-700 mb-1">
-                  Last Name *
+                <label htmlFor="lname" className="block text-sm font-semibold text-gray-700 mb-2">
+                  Last Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   id="lname"
@@ -150,14 +179,31 @@ export default function SignUp() {
                   required
                   value={formData.lname}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  placeholder="Last name"
+                  className="block w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                  placeholder="Your last name"
                 />
               </div>
               
+              {/* Date of Birth Field */}
               <div>
-                <label htmlFor="age" className="block text-sm font-medium text-gray-700 mb-1">
-                  Age *
+                <label htmlFor="dateOfBirth" className="block text-sm font-semibold text-gray-700 mb-2">
+                  Date of Birth <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="dateOfBirth"
+                  name="dateOfBirth"
+                  type="date"
+                  required
+                  value={formData.dateOfBirth}
+                  onChange={handleChange}
+                  className="block w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                />
+              </div>
+              
+              {/* Age Field */}
+              <div>
+                <label htmlFor="age" className="block text-sm font-semibold text-gray-700 mb-2">
+                  Age <span className="text-red-500">*</span>
                 </label>
                 <input
                   id="age"
@@ -168,14 +214,15 @@ export default function SignUp() {
                   required
                   value={formData.age}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  placeholder="Age"
+                  className="block w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                  placeholder="Your age"
                 />
               </div>
               
+              {/* Gender Field */}
               <div>
-                <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-1">
-                  Gender *
+                <label htmlFor="gender" className="block text-sm font-semibold text-gray-700 mb-2">
+                  Gender <span className="text-red-500">*</span>
                 </label>
                 <select
                   id="gender"
@@ -183,7 +230,7 @@ export default function SignUp() {
                   required
                   value={formData.gender}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  className="block w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white cursor-pointer"
                 >
                   <option value="">Select your gender</option>
                   <option value="male">Male</option>
@@ -191,24 +238,10 @@ export default function SignUp() {
                 </select>
               </div>
               
+              {/* Password Field */}
               <div>
-                <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700 mb-1">
-                  Date of Birth *
-                </label>
-                <input
-                  id="dateOfBirth"
-                  name="dateOfBirth"
-                  type="date"
-                  required
-                  value={formData.dateOfBirth}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                  Password *
+                <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
+                  Password <span className="text-red-500">*</span>
                 </label>
                 <input
                   id="password"
@@ -217,14 +250,15 @@ export default function SignUp() {
                   required
                   value={formData.password}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  placeholder="Password"
+                  className="block w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                  placeholder="Create a strong password"
                 />
               </div>
               
+              {/* Nickname Field (Optional) */}
               <div>
-                <label htmlFor="nickname" className="block text-sm font-medium text-gray-700 mb-1">
-                  Nickname (Optional)
+                <label htmlFor="nickname" className="block text-sm font-semibold text-gray-700 mb-2">
+                  Nickname <span className="text-gray-500 font-normal text-xs">(Optional)</span>
                 </label>
                 <input
                   id="nickname"
@@ -232,15 +266,16 @@ export default function SignUp() {
                   type="text"
                   value={formData.nickname}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  placeholder="Nickname"
+                  className="block w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                  placeholder="Your nickname"
                 />
               </div>
             </div>
             
-            <div>
-              <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-1">
-                About Me (Optional)
+            {/* Bio Field - Full Width */}
+            <div className="mt-6">
+              <label htmlFor="bio" className="block text-sm font-semibold text-gray-700 mb-2">
+                About Yourself <span className="text-gray-500 font-normal text-xs">(Optional)</span>
               </label>
               <textarea
                 id="bio"
@@ -248,53 +283,166 @@ export default function SignUp() {
                 rows="4"
                 value={formData.bio}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className="block w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white resize-none"
                 placeholder="Tell us a bit about yourself..."
               />
             </div>
             
-            <div>
-              <label htmlFor="avatarInput" className="block text-sm font-medium text-gray-700 mb-1">
-                Profile Picture (Optional)
+            {/* Avatar Upload Field - Modern Design */}
+            <div className="mt-6">
+              <label htmlFor="avatarInput" className="block text-sm font-semibold text-gray-700 mb-3">
+                Profile Picture <span className="text-gray-500 font-normal text-xs">(Optional)</span>
               </label>
-              <input
-                id="avatarInput"
-                name="avatarInput"
-                type="file"
-                accept="image/jpeg,image/png,image/jpg"
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-              />
-              <p className="text-xs text-gray-500 mt-1">Supports JPEG, PNG formats</p>
+              
+              {!formData.avatarInput ? (
+                <label 
+                  htmlFor="avatarInput"
+                  className="group flex items-center gap-4 p-5 rounded-2xl border-2 border-dashed border-gray-300 hover:border-purple-400 bg-gradient-to-br from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 cursor-pointer transition-all duration-300 hover:shadow-lg"
+                >
+                  <div className="flex-shrink-0">
+                    <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                  </div>
+                  
+                  <div className="flex-1">
+                    <h4 className="text-base font-bold text-gray-800 mb-1 group-hover:text-purple-700 transition-colors">
+                      Upload your profile picture
+                    </h4>
+                    <p className="text-sm text-gray-600 font-medium">
+                      Click to browse • PNG, JPG, JPEG (Max 10MB)
+                    </p>
+                  </div>
+                  
+                  <div className="flex-shrink-0">
+                    <svg className="w-6 h-6 text-purple-500 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                  
+                  <input
+                    id="avatarInput"
+                    name="avatarInput"
+                    type="file"
+                    accept="image/jpeg,image/png,image/jpg"
+                    onChange={handleChange}
+                    className="sr-only"
+                  />
+                </label>
+              ) : (
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-4 border-2 border-green-300 shadow-lg relative overflow-hidden">
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-green-400 to-emerald-500"></div>
+                  
+                  <div className="flex items-center gap-4">
+                    {/* Avatar Preview */}
+                    <div className="flex-shrink-0">
+                      <div className="w-16 h-16 rounded-full overflow-hidden shadow-md border-3 border-white">
+                        <img 
+                          src={URL.createObjectURL(formData.avatarInput)} 
+                          alt="Avatar preview" 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* File Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-sm font-bold text-green-800">Picture uploaded!</span>
+                      </div>
+                      <p className="text-xs text-green-700 font-medium truncate">
+                        {formData.avatarInput.name}
+                      </p>
+                    </div>
+                    
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setFormData({...formData, avatarInput: null});
+                        }}
+                        className="px-3 py-2 bg-white border-2 border-red-300 text-red-700 rounded-lg font-semibold text-xs hover:bg-red-50 hover:border-red-400 transition-all duration-200"
+                      >
+                        Remove
+                      </button>
+                      
+                      <label 
+                        htmlFor="avatarInput-replace"
+                        className="px-3 py-2 bg-white border-2 border-purple-300 text-purple-700 rounded-lg font-semibold text-xs hover:bg-purple-50 hover:border-purple-400 transition-all duration-200 cursor-pointer"
+                      >
+                        Change
+                      </label>
+                      <input
+                        id="avatarInput-replace"
+                        name="avatarInput"
+                        type="file"
+                        accept="image/jpeg,image/png,image/jpg"
+                        onChange={handleChange}
+                        className="sr-only"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
-            >
-              {loading ? (
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                  Creating account...
-                </div>
-              ) : (
-                'Create Account'
-              )}
-            </button>
+            {/* Create Account Button */}
+            <div className="mt-8">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-4 px-6 rounded-xl font-semibold text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Creating your account...
+                  </span>
+                ) : (
+                  'Create Account'
+                )}
+              </button>
+            </div>
           </form>
           
-          <div className="mt-6 text-center">
-            <p className="text-gray-600 text-sm">
-              Already have an account?{' '}
+          {/* Footer */}
+          <div className="mt-8">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-4 bg-white text-gray-500 font-medium">Already have an account?</span>
+              </div>
+            </div>
+            
+            <div className="mt-6 text-center">
               <button
                 onClick={() => router.push('/login')}
-                className="text-blue-600 hover:text-blue-700 font-medium"
+                className="font-semibold text-purple-600 hover:text-purple-700 transition-colors duration-200"
               >
-                Sign in here
+                Sign in
               </button>
-            </p>
+            </div>
           </div>
+        </div>
+        
+        {/* Footer */}
+        <div className="text-center mt-8">
+          <p className="text-white/60 text-sm">
+            © 2024 SocialNet. All rights reserved.
+          </p>
         </div>
       </div>
     </div>

@@ -207,14 +207,26 @@ export default function GroupPostsSection({ groupId, user }) {
   };
 
   return (
-    <div className="group-posts-section">
-      {/* Create Post Button */}
-      <div className="create-post-prompt">
+    <div className="group-posts-section-modern">
+      {/* Modern Create Post Prompt */}
+      <div className="create-post-prompt-modern">
         <button
           onClick={() => setShowCreatePost(true)}
-          className="create-post-button"
+          className="create-post-button-modern"
         >
-          <span>✏️ What's on your mind? Share with your group...</span>
+          <div className="create-post-avatar">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <span className="create-post-placeholder">What's on your mind? Share with your group...</span>
+          <div className="create-post-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="currentColor" strokeWidth="2"/>
+              <path d="M8.5 10a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM21 15l-5-5L5 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
         </button>
       </div>
 
@@ -306,38 +318,21 @@ export default function GroupPostsSection({ groupId, user }) {
           </button>
         </div>
       ) : (
-        <div className="posts-container">
+        <div className="posts-grid-modern">
           {posts.map(post => (
-            <div key={post.id} className="post-card">
+            <div key={post.id} className="post-card-modern">
               {/* Post Header */}
-              <div className="post-header">
-                <div className="post-author">
+              <div className="post-header-modern">
+                <div className="post-author-modern">
                   {post.avatar_url && post.avatar_url !== '' ? (
                     <img
                       src={post.avatar_url}
                       alt={`${post.username || 'User'}'s avatar`}
-                      className="post-avatar"
-                      style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #e5e7eb', background: '#f3f4f6' }}
+                      className="post-avatar-modern"
                       onError={e => { e.target.src = '/img/avatars/images.png'; }}
                     />
                   ) : (
-                    <div
-                      className="post-avatar-fallback"
-                      style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '50%',
-                        background: '#e5e7eb',
-                        color: '#374151',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 700,
-                        fontSize: '1.2rem',
-                        border: '2px solid #e5e7eb',
-                        textTransform: 'uppercase',
-                      }}
-                    >
+                    <div className="post-avatar-fallback-modern">
                       {post.firstname && post.firstname.length > 0
                         ? post.firstname[0]
                         : (post.username && post.username.length > 0
@@ -345,53 +340,68 @@ export default function GroupPostsSection({ groupId, user }) {
                             : '?')}
                     </div>
                   )}
-                  <div className="post-author-info">
-                    <h3>{post.username || 'Unknown User'}</h3>
-                    <div className="post-meta">
-                      {new Date(post.created_at).toLocaleDateString()}
+                  <div className="post-author-info-modern">
+                    <h3 className="post-author-name">{post.username || 'Unknown User'}</h3>
+                    <div className="post-meta-modern">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                        <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      </svg>
+                      {new Date(post.created_at).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Post Content */}
-              <h2>{post.title}</h2>
-              <p className="post-content">{post.content}</p>
+              <div className="post-body-modern">
+                <h2 className="post-title-modern">{post.title}</h2>
+                <p className="post-content-modern">{post.content}</p>
 
-              {/* Post Image */}
-              {post.image && (
-                <div className="post-image-container">
-                  <img
-                    src={post.image}
-                    alt="Post image"
-                  />
-                </div>
-              )}
+                {/* Post Image */}
+                {post.image && (
+                  <div className="post-image-modern">
+                    <img src={post.image} alt="Post image" />
+                  </div>
+                )}
+              </div>
 
               {/* Post Actions */}
-              <div className="post-actions">
-                <div className="like-buttons">
-                  <button
-                    onClick={() => handleLike(post.id)}
-                    className={`icon-btn like-btn ${post.is_liked ? 'active' : ''}`}
-                  >
-                    👍 Like ({post.like_count || 0})
-                  </button>
-                  
-                  <button
-                    onClick={() => handleDislike(post.id)}
-                    className={`icon-btn dislike-btn ${post.is_disliked ? 'active' : ''}`}
-                  >
-                    👎 Dislike ({post.dislike_count || 0})
-                  </button>
-                  
-                  <button
-                    onClick={() => router.push(`/comments?postId=${post.id}&type=group&groupId=${groupId}`)}
-                    className="icon-btn comment-btn"
-                  >
-                    💬 Comments ({post.comment_count || 0})
-                  </button>
-                </div>
+              <div className="post-actions-modern">
+                <button
+                  onClick={() => handleLike(post.id)}
+                  className={`post-action-btn ${post.is_liked ? 'active liked' : ''}`}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M7 22V11M2 13v6a2 2 0 002 2h2.4M2 13l6.5-6.5M2 13h6M22 13l-4-9H7l4 9h11zM18 13l-2.5 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <span>{post.like_count || 0}</span>
+                </button>
+                
+                <button
+                  onClick={() => handleDislike(post.id)}
+                  className={`post-action-btn ${post.is_disliked ? 'active disliked' : ''}`}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M17 2v11M22 11V5a2 2 0 00-2-2h-2.4M22 11l-6.5 6.5M22 11h-6M2 11l4 9h11l-4-9H2zM6 11l2.5-9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <span>{post.dislike_count || 0}</span>
+                </button>
+                
+                <button
+                  onClick={() => router.push(`/comments?postId=${post.id}&type=group&groupId=${groupId}`)}
+                  className="post-action-btn"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <span>{post.comment_count || 0}</span>
+                </button>
               </div>
             </div>
           ))}

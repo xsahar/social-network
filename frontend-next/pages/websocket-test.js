@@ -26,23 +26,23 @@ export default function WebSocketTest() {
     const newSocket = new WebSocket(url);
 
     newSocket.onopen = (event) => {
-      addLog('✅ WebSocket connected successfully!');
+      addLog('WebSocket connected successfully!');
       setConnectionStatus('Connected');
       setSocket(newSocket);
     };
 
     newSocket.onclose = (event) => {
-      addLog(`❌ WebSocket closed. Code: ${event.code}, Reason: ${event.reason || 'No reason'}`);
+      addLog(`WebSocket closed. Code: ${event.code}, Reason: ${event.reason || 'No reason'}`);
       setConnectionStatus(`Disconnected (${event.code})`);
     };
 
     newSocket.onerror = (event) => {
-      addLog('❌ WebSocket error occurred');
+      addLog('WebSocket error occurred');
       setConnectionStatus('Error');
     };
 
     newSocket.onmessage = (event) => {
-      addLog(`📩 Message received: ${event.data}`);
+      addLog(`Message received: ${event.data}`);
     };
   };
 
@@ -56,9 +56,9 @@ export default function WebSocketTest() {
         timestamp: new Date().toISOString()
       };
       socket.send(JSON.stringify(testMessage));
-      addLog(`📤 Sent test message: ${JSON.stringify(testMessage)}`);
+      addLog(`Sent test message: ${JSON.stringify(testMessage)}`);
     } else {
-      addLog('❌ Cannot send message - WebSocket not connected');
+      addLog('Cannot send message - WebSocket not connected');
     }
   };
 

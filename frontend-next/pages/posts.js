@@ -83,7 +83,7 @@ export default function Posts() {
             return [postWithAvatar, ...prev];
           });
           if (message.username && message.from !== user.userID) {
-            console.log(`✨ New post from ${message.username}: ${postData.title}`);
+            console.log(`New post from ${message.username}: ${postData.title}`);
           }
         } catch (e) {
           console.error('[Posts] Failed to parse post data:', e);
@@ -110,7 +110,7 @@ export default function Posts() {
             return [groupPostWithAvatar, ...prev];
           });
           if (message.username && message.from !== user.userID) {
-            console.log(`✨ New group post from ${message.username}: ${groupPostData.title}`);
+            console.log(`New group post from ${message.username}: ${groupPostData.title}`);
           }
         } catch (e) {
           console.error('[Posts] Failed to parse group post data:', e);
@@ -232,63 +232,113 @@ export default function Posts() {
   return (
     <Layout>
       <Head>
-        <title>Posts - Social Network</title>
+        <title>Posts - Discover Amazing Content</title>
+        <meta name="description" content="Explore incredible stories from your community!" />
       </Head>
       
-      <div className={`posts-layout ${chatOpen ? 'chat-open' : ''}`}>
-        {/* Main Content */}
-        <div className="posts-main-content">
-          <div className="posts-header">
-            <button 
-              className="button-create"
-              onClick={() => router.push('/createPost')}
-            >
-              Create New Post
-            </button>
-          </div>
+      <div className="posts-page-bg">
+        <div className={`posts-layout ${chatOpen ? 'chat-open' : ''}`}>
+          {/* Professional Main Content */}
+          <div className="posts-main-content container-professional">
+            
+            {/* Modern Posts Header */}
+            <div className="text-center mb-12">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-white/90 backdrop-blur-lg rounded-2xl shadow-xl mb-6 animate-float">
+                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center animate-gentle-rotate">
+                  <div className="text-white text-xl font-bold">P</div>
+                </div>
+              </div>
+              
+              <h1 className="text-4xl font-bold text-gradient mb-4">
+                Discover Amazing Stories!
+              </h1>
+              
+              <p className="text-lg text-gray-700 font-medium mb-8 max-w-2xl mx-auto">
+                Explore incredible content from your vibrant community! Every story matters and inspires others.
+              </p>
+              
+              <button 
+                className="button-create group relative overflow-hidden"
+                onClick={() => router.push('/createPost')}
+                style={{ 
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                  color: 'white',
+                  padding: '16px 32px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  fontSize: '18px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 8px 32px rgba(59, 130, 246, 0.3)'
+                }}
+              >
+                Create New Post
+                
+                {/* Button decoration */}
+                <div className="absolute top-1 right-2 w-2 h-2 bg-white/30 rounded-full animate-pulse"></div>
+              </button>
+            </div>
 
-          {/* Posts Container */}
-          <div className="posts-container">
-            {loading ? (
-              <div className="loading-message">
-                <p>Loading posts...</p>
-              </div>
-            ) : posts.length === 0 ? (
-              <div className="no-posts-message">
-                <p>No posts found</p>
-                <p>Try creating a new post</p>
-              </div>
-            ) : (
+            {/* Professional Posts Container */}
+            <div className="posts-container">
+              {loading ? (
+                <div className="bg-white/90 backdrop-blur-lg rounded-3xl p-12 shadow-xl border border-white/30 text-center animate-pulse">
+                  <div className="text-6xl mb-6 animate-spin flex items-center justify-center" style={{animationDuration: '2s'}}>
+                    <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full"></div>
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-700 mb-4">Loading amazing stories...</h3>
+                  <p className="text-lg text-gray-600">Preparing incredible content for you!</p>
+                  <div className="loading-spinner mt-6"></div>
+                </div>
+              ) : posts.length === 0 ? (
+                <div className="bg-white/90 backdrop-blur-lg rounded-3xl p-16 shadow-xl border border-white/30 text-center relative overflow-hidden">
+                  <div className="absolute top-4 right-4 w-6 h-6 bg-yellow-400 rounded-full opacity-20 animate-float"></div>
+                  <div className="absolute bottom-4 left-4 w-4 h-4 bg-purple-400 rounded-full opacity-15 animate-bounce"></div>
+                  
+                  <div className="text-8xl mb-8 animate-float flex items-center justify-center">
+                    <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center">
+                      <div className="text-white text-4xl font-bold">+</div>
+                    </div>
+                  </div>
+                  <h3 className="text-3xl font-bold text-gray-800 mb-4">No posts yet!</h3>
+                  <p className="text-xl text-gray-600 mb-8">
+                    Be the first to share something <span className="font-bold text-gradient">amazing</span>!
+                  </p>
+                  <button 
+                    onClick={() => router.push('/createPost')}
+                    className="btn btn-primary btn-lg"
+                    style={{ 
+                      background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                      color: 'white',
+                      border: 'none',
+                      padding: '12px 24px',
+                      borderRadius: '12px',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      boxShadow: '0 4px 16px rgba(59, 130, 246, 0.3)'
+                    }}
+                  >
+                    Create Your First Post
+                  </button>
+                </div>
+              ) : (
               posts.map((post) => (
-                <div key={post.id} className="post-card">
-                  <div className="post-header">
-                    <div className="post-author">
+                <div key={post.id} className="enhanced-post-card">
+                  {/* Post Card Header */}
+                  <div className="enhanced-post-header">
+                    <div className="enhanced-post-author">
                       {post.avatar_url && post.avatar_url !== '/img/avatars/images.png' && post.avatar_url !== '' ? (
                         <img
                           src={post.avatar_url}
                           alt={`${post.username}'s avatar`}
-                          className="post-avatar"
-                          style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #e5e7eb', background: '#f3f4f6' }}
+                          className="enhanced-post-avatar"
                           onError={e => { e.target.src = '/img/avatars/images.png'; }}
                         />
                       ) : (
-                        <div
-                          className="post-avatar-fallback"
-                          style={{
-                            width: '48px',
-                            height: '48px',
-                            borderRadius: '50%',
-                            background: '#e5e7eb',
-                            color: '#374151',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontWeight: 700,
-                            fontSize: '1.5rem',
-                            border: '2px solid #e5e7eb',
-                            textTransform: 'uppercase',
-                          }}
-                        >
+                        <div className="enhanced-post-avatar-fallback">
                           {post.firstname && post.firstname.length > 0
                             ? post.firstname[0]
                             : (post.username && post.username.length > 0
@@ -296,51 +346,59 @@ export default function Posts() {
                                 : '?')}
                         </div>
                       )}
-                      <div className="post-author-info">
-                        <h3>{post.username}</h3>
-                        <p className="post-meta">
+                      <div className="enhanced-post-author-info">
+                        <h3 className="enhanced-post-username">{post.username}</h3>
+                        <p className="enhanced-post-date">
                           {new Date(post.createdAt).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
                     {post.category && (
-                      <span className="post-category">
+                      <span className="enhanced-post-category">
                         {post.category}
                       </span>
                     )}
                   </div>
 
-                  <h2>{post.title}</h2>
-                  <p className="post-content">{post.content}</p>
+                  {/* Post Content */}
+                  <div className="enhanced-post-body">
+                    <h2 className="enhanced-post-title">{post.title}</h2>
+                    <p className="enhanced-post-content">{post.content}</p>
 
-                  {post.image && (
-                    <div className="post-image-container">
-                      <img
-                        src={post.image}
-                        alt="Post image"
-                      />
-                    </div>
-                  )}
+                    {post.image && (
+                      <div className="enhanced-post-image-container">
+                        <img
+                          src={post.image}
+                          alt="Post image"
+                          className="enhanced-post-image"
+                        />
+                      </div>
+                    )}
+                  </div>
 
-                  <div className="post-actions">
-                    <div className="like-buttons">
+                  {/* Post Actions */}
+                  <div className="enhanced-post-actions">
+                    <div className="enhanced-action-buttons">
                       <button
                         onClick={() => handleLike(post.id)}
-                        className="icon-btn like-btn"
+                        className="enhanced-action-btn like-btn-enhanced"
                       >
-                        👍 Like ({post.likes_count || 0})
+                        <div className="action-icon">+</div>
+                        <span>Like ({post.likes_count || 0})</span>
                       </button>
                       <button
                         onClick={() => handleDislike(post.id)}
-                        className="icon-btn dislike-btn"
+                        className="enhanced-action-btn dislike-btn-enhanced"
                       >
-                        👎 Dislike ({post.dislikes_count || 0})
+                        <div className="action-icon">-</div>
+                        <span>Dislike ({post.dislikes_count || 0})</span>
                       </button>
                       <button
                         onClick={() => router.push(`/comments?postId=${post.id}`)}
-                        className="icon-btn comment-btn"
+                        className="enhanced-action-btn comment-btn-enhanced"
                       >
-                        💬 Comments ({post.comments || 0})
+                        <div className="action-icon">C</div>
+                        <span>Comments ({post.comments || 0})</span>
                       </button>
                     </div>
                   </div>
@@ -385,6 +443,7 @@ export default function Posts() {
           </div>
         )}
       </div>
+      </div> {/* Close posts-page-bg */}
 
       {/* Chat Component */}
       <Chat

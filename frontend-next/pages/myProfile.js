@@ -248,13 +248,13 @@ export default function MyProfile() {
                     {/* Additional Profile Info */}
                     <div style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '0.5rem' }}>
                       {profile?.email && (
-                        <div style={{ marginBottom: '0.25rem' }}>📧 {profile.email}</div>
+                        <div style={{ marginBottom: '0.25rem' }}>Email: {profile.email}</div>
                       )}
                       {profile?.age && profile?.gender && (
-                        <div style={{ marginBottom: '0.25rem' }}>👤 {profile.age} years old • {profile.gender}</div>
+                        <div style={{ marginBottom: '0.25rem' }}>{profile.age} years old - {profile.gender}</div>
                       )}
                       {profile?.dateOfBirth && (
-                        <div>🎂 Born {new Date(profile.dateOfBirth).toLocaleDateString()}</div>
+                        <div>Born {new Date(profile.dateOfBirth).toLocaleDateString()}</div>
                       )}
                     </div>
                     
@@ -278,14 +278,14 @@ export default function MyProfile() {
                     className="icon-btn like-btn"
                     style={{ minWidth: '120px' }}
                   >
-                    ✏️ Edit Profile
+                    Edit Profile
                   </button>
                   <button
                     onClick={togglePrivacy}
                     className={isPrivate ? 'icon-btn dislike-btn' : 'icon-btn comment-btn'}
                     style={{ minWidth: '120px' }}
                   >
-                    {isPrivate ? '🔒 Private' : '🌍 Public'}
+                    {isPrivate ? 'Private' : 'Public'}
                   </button>
                 </div>
               </div>
@@ -414,23 +414,118 @@ export default function MyProfile() {
                   </div>
 
                   <div style={{ marginBottom: '1rem' }}>
-                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#374151', marginBottom: '0.75rem' }}>
                       Profile Picture (Optional)
                     </label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <img
-                        src={profile?.avatar || '/css/icon.png'}
-                        alt="Current avatar"
-                        style={{ width: '64px', height: '64px', borderRadius: '50%', border: '2px solid #e5e7eb' }}
-                      />
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/gif"
-                        onChange={(e) => setEditForm({...editForm, avatarFile: e.target.files[0]})}
-                        style={{ flex: 1, fontSize: '0.875rem' }}
-                      />
-                    </div>
-                    <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>Supported: JPEG, PNG, GIF</p>
+                    
+                    {!editForm.avatarFile ? (
+                      <label 
+                        htmlFor="avatar-upload"
+                        style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '1rem', 
+                          padding: '1rem',
+                          border: '2px dashed #d1d5db',
+                          borderRadius: '1rem',
+                          background: 'linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)',
+                          cursor: 'pointer',
+                          transition: 'all 0.3s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = '#8b5cf6';
+                          e.currentTarget.style.background = 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = '#d1d5db';
+                          e.currentTarget.style.background = 'linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)';
+                        }}
+                      >
+                        <div style={{ flexShrink: 0 }}>
+                          <img
+                            src={profile?.avatar || '/css/icon.png'}
+                            alt="Current avatar"
+                            style={{ width: '64px', height: '64px', borderRadius: '50%', border: '3px solid white', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}
+                          />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: '600', color: '#374151', marginBottom: '0.25rem', fontSize: '0.9rem' }}>
+                            Click to change profile picture
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                            JPEG, PNG, GIF • Max 10MB
+                          </div>
+                        </div>
+                        <div style={{ flexShrink: 0 }}>
+                          <svg style={{ width: '24px', height: '24px', color: '#8b5cf6' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                          </svg>
+                        </div>
+                        <input
+                          id="avatar-upload"
+                          type="file"
+                          accept="image/jpeg,image/png,image/gif"
+                          onChange={(e) => setEditForm({...editForm, avatarFile: e.target.files[0]})}
+                          style={{ display: 'none' }}
+                        />
+                      </label>
+                    ) : (
+                      <div 
+                        style={{ 
+                          padding: '1rem', 
+                          borderRadius: '1rem', 
+                          background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
+                          border: '2px solid #10b981'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                          <div style={{ flexShrink: 0 }}>
+                            <div style={{ width: '64px', height: '64px', borderRadius: '50%', overflow: 'hidden', border: '3px solid white', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+                              <img
+                                src={URL.createObjectURL(editForm.avatarFile)}
+                                alt="New avatar preview"
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              />
+                            </div>
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                              <svg style={{ width: '20px', height: '20px', color: '#10b981' }} fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                              <span style={{ fontWeight: '600', color: '#047857', fontSize: '0.9rem' }}>New picture selected!</span>
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: '#059669' }}>
+                              {editForm.avatarFile.name}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setEditForm({...editForm, avatarFile: null})}
+                            style={{ 
+                              flexShrink: 0,
+                              padding: '0.5rem 1rem',
+                              background: 'white',
+                              border: '2px solid #ef4444',
+                              borderRadius: '0.5rem',
+                              color: '#ef4444',
+                              fontWeight: '600',
+                              fontSize: '0.875rem',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = '#fef2f2';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'white';
+                            }}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div style={{ display: 'flex', gap: '0.75rem' }}>
@@ -439,7 +534,7 @@ export default function MyProfile() {
                       className="icon-btn like-btn"
                       style={{ minWidth: '120px' }}
                     >
-                      💾 Save Changes
+                      Save Changes
                     </button>
                     <button
                       type="button"
@@ -485,14 +580,14 @@ export default function MyProfile() {
                           className="icon-btn like-btn"
                           style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}
                         >
-                          ✓ Accept
+                          Accept
                         </button>
                         <button
                           onClick={() => handleFollowRequest(request.id, 'decline')}
                           className="icon-btn dislike-btn"
                           style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}
                         >
-                          ✗ Decline
+                          Decline
                         </button>
                       </div>
                     </div>
@@ -512,7 +607,7 @@ export default function MyProfile() {
                     onClick={() => router.push('/createPost')}
                     className="icon-btn like-btn"
                   >
-                    ✏️ Create Your First Post
+                    Create Your First Post
                   </button>
                 </div>
               ) : (
@@ -549,10 +644,10 @@ export default function MyProfile() {
                       
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', paddingTop: '0.75rem', borderTop: '1px solid #e5e7eb' }}>
                         {/* <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                          👍 {post.likes || 0}
+                          Likes: {post.likes || 0}
                         </span> */}
                         {/* <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                          💬 {post.comments || 0}
+                          Comments: {post.comments || 0}
                         </span> */}
                         <button
                           onClick={() => router.push(`/comments?postId=${post.id}`)}
@@ -599,7 +694,7 @@ export default function MyProfile() {
                           className="icon-btn comment-btn"
                           style={{ fontSize: '0.875rem', padding: '0.25rem 0.5rem' }}
                         >
-                          💬
+                          Chat
                         </button>
                       </div>
                     ))}
@@ -636,7 +731,7 @@ export default function MyProfile() {
                           className="icon-btn comment-btn"
                           style={{ fontSize: '0.875rem', padding: '0.25rem 0.5rem' }}
                         >
-                          💬
+                          Chat
                         </button>
                       </div>
                     ))}

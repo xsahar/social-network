@@ -1,4 +1,5 @@
 import "@/styles/globals.css";
+import "@/styles/groups-modern.css";
 import { WebSocketProvider } from '../contexts/WebSocketContext';
 import { useSession } from '../hooks/useSession';
 

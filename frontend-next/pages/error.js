@@ -8,7 +8,7 @@ export default function ErrorPage() {
       </Head>
       <div className="max-w-md w-full text-center">
         <div className="bg-white p-8 rounded-lg shadow-lg border border-gray-200">
-          <div className="text-red-500 text-6xl mb-4">⚠</div>
+          <div className="text-red-500 text-6xl mb-4 font-bold">ERROR</div>
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Oops! Something went wrong</h1>
           <p className="text-gray-600 mb-6">Please try again later or contact support if the problem persists.</p>
           <button 
