@@ -58,7 +58,7 @@ export const WebSocketProvider = ({ children, userID }) => {
     const url = `ws://localhost:8080/ws?user_id=${userId}`;
     console.log('[WebSocket] Connecting to:', url);
     
-    const socket = new WebSocket(url);
+      const socket = new WebSocket(url);
     
     socket.onopen = () => {
       console.log('[WebSocket] Connected successfully');
@@ -114,7 +114,24 @@ export const WebSocketProvider = ({ children, userID }) => {
           case 'private_message':
           case 'message':
             // Private/chat messages are stored separately
-            setMessages(prev => [...prev, data]);
+            // Avoid duplicates: compare from/content and timestamp proximity (3s)
+            setMessages(prev => {
+              try {
+                const isDup = prev.some(m => {
+                  if (!m || !m.content) return false;
+                  if (m.type !== data.type) return false;
+                  if (m.from !== data.from) return false;
+                  if (m.content !== data.content) return false;
+                  const t1 = new Date(m.timestamp || m.Timestamp || Date.now()).getTime();
+                  const t2 = new Date(data.timestamp || data.Timestamp || Date.now()).getTime();
+                  return Math.abs(t1 - t2) < 3000; // 3 seconds
+                });
+                if (isDup) return prev;
+              } catch (err) {
+                // fallback: append if detection fails
+              }
+              return [...prev, data];
+            });
             break;
             
           // Treat only the allowed types as visible notifications (not private messages).
@@ -136,11 +153,34 @@ export const WebSocketProvider = ({ children, userID }) => {
             break;
             
           case 'group_message':
-            setMessages(prev => [...prev, data]);
+            // Group messages — dedupe similar to private messages
+            setMessages(prev => {
+              try {
+                const isDup = prev.some(m => {
+                  if (!m || !m.content) return false;
+                  if (m.type !== data.type) return false;
+                  if ((m.group_id || m.GroupID) !== (data.group_id || data.GroupID)) return false;
+                  if (m.from !== data.from) return false;
+                  if (m.content !== data.content) return false;
+                  const t1 = new Date(m.timestamp || m.Timestamp || Date.now()).getTime();
+                  const t2 = new Date(data.timestamp || data.Timestamp || Date.now()).getTime();
+                  return Math.abs(t1 - t2) < 3000;
+                });
+                if (isDup) return prev;
+              } catch (err) {}
+              return [...prev, data];
+            });
             break;
             
           default:
-            setMessages(prev => [...prev, data]);
+            // For other types we still append but try to avoid simple duplicates
+            setMessages(prev => {
+              try {
+                const isDup = prev.some(m => m && m.type === data.type && m.from === data.from && m.content === data.content);
+                if (isDup) return prev;
+              } catch (err) {}
+              return [...prev, data];
+            });
         }
         
         // Notify all subscribers

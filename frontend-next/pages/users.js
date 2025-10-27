@@ -8,7 +8,6 @@ import { useWebSocketContext } from '../contexts/WebSocketContext';
 export default function Users() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedUser, setSelectedUser] = useState(null);
   const [search, setSearch] = useState("");
   const { user, loading: sessionLoading } = useSession();
   const { subscribe } = useWebSocketContext();
@@ -239,7 +238,7 @@ export default function Users() {
                       <div
                         key={u.id}
                         className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-xl border border-white/40 p-8 relative overflow-hidden group hover:scale-102 transition-all duration-300 cursor-pointer"
-                        onClick={() => setSelectedUser(u)}
+                        onClick={() => router.push(`/profile/${encodeURIComponent(u.username)}`)}
                         style={{
                           background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.85) 100%)'
                         }}
@@ -257,7 +256,8 @@ export default function Users() {
                               <img
                                 src={u.avatar || '/img/avatars/images.png'}
                                 alt={u.username}
-                                className="w-20 h-20 rounded-2xl object-cover border-3 border-white shadow-lg group-hover:scale-110 transition-transform duration-300"
+                                className="rounded-full object-cover border-2 border-white shadow-sm transition duration-200"
+                                style={{ width: 64, height: 64, minWidth: 64, minHeight: 64 }}
                                 onError={e => { e.target.src = '/img/avatars/images.png'; }}
                               />
                               {/* Online Status Indicator */}
@@ -330,157 +330,7 @@ export default function Users() {
         </div>
       </div>
       
-      {/* User Details Modal */}
-      {selectedUser && (
-          <div
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 1000
-            }}
-            onClick={() => setSelectedUser(null)}
-          >
-            <div
-              className="user-modal-card"
-              style={{
-                maxWidth: '500px',
-                width: '90%',
-                margin: '1rem',
-                background: '#fff',
-                border: '1.5px solid #e5e7eb',
-                borderRadius: '1rem',
-                boxShadow: '0 2px 16px rgba(0,0,0,0.12)',
-                padding: '2rem',
-              }}
-              onClick={e => e.stopPropagation()}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937' }}>User Profile</h2>
-                <button
-                  onClick={() => setSelectedUser(null)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    fontSize: '2rem',
-                    color: '#6b7280',
-                    cursor: 'pointer',
-                    lineHeight: 1
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginBottom: '1.5rem' }}>
-                <img
-                  src={selectedUser.avatar || '/img/avatars/images.png'}
-                  alt={selectedUser.username}
-                  className="post-avatar"
-                  style={{ width: '90px', height: '90px', borderRadius: '50%', border: '2px solid #e5e7eb', background: '#f3f4f6', objectFit: 'cover' }}
-                  onError={e => { e.target.src = '/img/avatars/images.png'; }}
-                />
-                <div style={{ flex: 1 }}>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#1f2937', marginBottom: '0.25rem' }}>
-                    {selectedUser.firstname} {selectedUser.lastname}
-                  </h3>
-                  {selectedUser.nickname && (
-                    <p style={{ color: '#6b7280', fontSize: '0.95rem', fontStyle: 'italic' }}>
-                      "{selectedUser.nickname}"
-                    </p>
-                  )}
-                  <p style={{ color: '#6b7280', fontSize: '0.95rem' }}>@{selectedUser.username}</p>
-                </div>
-              </div>
-              {/* User Details - Only shown if public or following */}
-              {(!selectedUser.isPrivate || selectedUser.isFollowing) && (
-                <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#f9fafb', borderRadius: '0.5rem' }}>
-                  {selectedUser.email && (
-                    <div style={{ marginBottom: '0.75rem' }}>
-                      <h4 style={{ fontWeight: '600', color: '#374151', marginBottom: '0.25rem', fontSize: '0.95rem' }}>Email</h4>
-                      <p style={{ color: '#6b7280', fontSize: '0.95rem' }}>{selectedUser.email}</p>
-                    </div>
-                  )}
-                  {selectedUser.dateOfBirth && (
-                    <div style={{ marginBottom: '0.75rem' }}>
-                      <h4 style={{ fontWeight: '600', color: '#374151', marginBottom: '0.25rem', fontSize: '0.95rem' }}>Date of Birth</h4>
-                      <p style={{ color: '#6b7280', fontSize: '0.95rem' }}>{new Date(selectedUser.dateOfBirth).toLocaleDateString()}</p>
-                    </div>
-                  )}
-                  {selectedUser.bio && (
-                    <div>
-                      <h4 style={{ fontWeight: '600', color: '#374151', marginBottom: '0.25rem', fontSize: '0.95rem' }}>About Me</h4>
-                      <p style={{ color: '#6b7280', fontSize: '0.95rem' }}>{selectedUser.bio}</p>
-                    </div>
-                  )}
-                </div>
-              )}
-              {/* Privacy Notice for Private Profiles */}
-                {selectedUser.isPrivate && !selectedUser.isFollowing && (
-                <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#fef3c7', borderRadius: '0.5rem', textAlign: 'center' }}>
-                  <p style={{ color: '#92400e', fontSize: '0.95rem' }}>
-                    This is a private profile. Follow to see more details.
-                  </p>
-                </div>
-              )}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                {selectedUser.isPrivate && (
-                  <span style={{ fontSize: '0.8rem', backgroundColor: '#fee2e2', color: '#dc2626', padding: '0.5rem 0.75rem', borderRadius: '0.375rem' }}>
-                    Private Profile
-                  </span>
-                )}
-                {selectedUser.isFollowing && (
-                  <span style={{ fontSize: '0.8rem', backgroundColor: '#d1fae5', color: '#059669', padding: '0.5rem 0.75rem', borderRadius: '0.375rem' }}>
-                    Following
-                  </span>
-                )}
-                {selectedUser.requestStatus === 'pending' && (
-                  <span style={{ fontSize: '0.8rem', backgroundColor: '#fef3c7', color: '#d97706', padding: '0.5rem 0.75rem', borderRadius: '0.375rem' }}>
-                    Follow Request Sent
-                  </span>
-                )}
-              </div>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                {selectedUser.isFollowing ? (
-                  <button
-                    onClick={() => {
-                      handleUnfollow(selectedUser.username);
-                      setSelectedUser(null);
-                    }}
-                    className="icon-btn dislike-btn"
-                    style={{ flex: 1 }}
-                  >
-                    Unfollow
-                  </button>
-                ) : selectedUser.requestStatus === 'pending' ? (
-                  <button
-                    disabled
-                    className="icon-btn"
-                    style={{ flex: 1, opacity: '0.5', cursor: 'not-allowed', backgroundColor: '#9ca3af' }}
-                  >
-                    Request Sent
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => {
-                      handleFollow(selectedUser.username);
-                      setSelectedUser(null);
-                    }}
-                    className="icon-btn like-btn"
-                    style={{ flex: 1 }}
-                  >
-                    {selectedUser.isPrivate ? 'Request to Follow' : 'Follow'}
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+    {/* Modal removed — users navigate to /profile/[username] page now */}
       </Layout>
     );
   }

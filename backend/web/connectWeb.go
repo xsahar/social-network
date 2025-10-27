@@ -95,11 +95,11 @@ func ConnectWeb(db *sql.DB) {
 
 		var followers, following int
 
-		// Count who follows you
-		err1 := db.QueryRow(`SELECT COUNT(*) FROM userFollow WHERE following_id = ?`, userID).Scan(&followers)
+		// Count who follows you (distinct follower ids)
+		err1 := db.QueryRow(`SELECT COUNT(DISTINCT follower_id) FROM userFollow WHERE following_id = ?`, userID).Scan(&followers)
 
-		// Count who you're following
-		err2 := db.QueryRow(`SELECT COUNT(*) FROM userFollow WHERE follower_id = ?`, userID).Scan(&following)
+		// Count who you're following (distinct following ids)
+		err2 := db.QueryRow(`SELECT COUNT(DISTINCT following_id) FROM userFollow WHERE follower_id = ?`, userID).Scan(&following)
 
 		if err1 != nil || err2 != nil {
 			http.Error(w, "Database error", http.StatusInternalServerError)
@@ -241,79 +241,7 @@ func ConnectWeb(db *sql.DB) {
 			return
 		}
 
-		rows, err := db.Query(`
-			SELECT DISTINCT
-				p.id, u.username, p.title, p.content,
-				COALESCE(p.privacy_level, 0) AS privacy_level,
-				p.imgOrgif,
-				p.created_at,
-				COALESCE(likes.count, 0)    AS likes_count,
-				COALESCE(dislikes.count, 0) AS dislikes_count
-			FROM posts p
-			JOIN users u ON p.user_id = u.id
-			LEFT JOIN (
-			SELECT post_id, COUNT(*) AS count FROM likes
-			WHERE is_like = 1 AND comment_id IS NULL GROUP BY post_id
-			) likes    ON p.id = likes.post_id
-			LEFT JOIN (
-			SELECT post_id, COUNT(*) AS count FROM likes
-			WHERE is_like = 0 AND comment_id IS NULL GROUP BY post_id
-			) dislikes ON p.id = dislikes.post_id
-			WHERE p.user_id = ?
-			AND (
-				COALESCE(p.privacy_level,0) = 0                         -- Public
-				OR (? = p.user_id)                                         -- Viewer is owner
-				OR (COALESCE(p.privacy_level,0) = 1 AND EXISTS (           -- Followers-only
-					SELECT 1 FROM userFollow f
-					WHERE f.follower_id = ? AND f.following_id = p.user_id
-				))
-				OR (COALESCE(p.privacy_level,0) = 2 AND EXISTS (           -- Selected followers
-					SELECT 1 FROM post_permissions pp
-					WHERE pp.post_id = p.id AND pp.user_id = ?
-				))
-			)
-			ORDER BY p.created_at DESC
-		`, uid, viewerID, viewerID, viewerID)
-		if err != nil {
-			e.ErrorHandler(w, r, 500)
-			fmt.Println("Error fetching posts for username:", username, "Error:", err)
-			return
-		}
-		defer rows.Close()
-
-		var posts []map[string]interface{}
-		for rows.Next() {
-			var (
-				postID, privacyLevel, likesCount, dislikesCount int
-				postUsername, title, content, imgOrgif          string
-				createdAt                                       time.Time
-			)
-			if err := rows.Scan(
-				&postID, &postUsername, &title, &content,
-				&privacyLevel, &imgOrgif, &createdAt, &likesCount, &dislikesCount,
-			); err != nil {
-				e.ErrorHandler(w, r, 500)
-				return
-			}
-
-			categories, _ := database.GetCategoriesByPostID(db, postID)
-			privacyText := map[int]string{0: "Public", 1: "Followers", 2: "Private"}[privacyLevel]
-
-			posts = append(posts, map[string]interface{}{
-				"id":             postID,
-				"username":       postUsername,
-				"title":          title,
-				"content":        content,
-				"privacy_level":  privacyLevel,
-				"privacy_text":   privacyText,
-				"imgOrgif":       imgOrgif,
-				"categories":     categories,
-				"likes_count":    likesCount,
-				"dislikes_count": dislikesCount,
-				"createdAt":      createdAt.Format("2006-01-02 15:04:05"),
-			})
-		}
-
+		// Fetch profile privacy and basic profile fields first
 		var existingBio sql.NullString
 		var (
 			id             int
@@ -329,12 +257,12 @@ func ConnectWeb(db *sql.DB) {
 			followingCount int
 		)
 		err = db.QueryRow(`
-			SELECT u.id, u.firstname, u.lastname, u.email, u.age, u.gender, u.bio, u.avatar_url, isPrivate,
-				(SELECT COUNT(*) FROM userFollow WHERE following_id = u.id),
-				(SELECT COUNT(*) FROM userFollow WHERE follower_id  = u.id)
-			FROM users u
-			WHERE u.username = ?
-		`, username).Scan(&id, &fname, &lname, &email, &age, &gender, &existingBio, &avatar, &isPrivate, &followerCount, &followingCount)
+				SELECT u.id, u.firstname, u.lastname, u.email, u.age, u.gender, u.bio, u.avatar_url, isPrivate,
+					(SELECT COUNT(DISTINCT f.follower_id) FROM userFollow f JOIN users uf ON uf.id = f.follower_id WHERE f.following_id = u.id),
+					(SELECT COUNT(DISTINCT f.following_id) FROM userFollow f JOIN users uf2 ON uf2.id = f.following_id WHERE f.follower_id = u.id)
+				FROM users u
+				WHERE u.username = ?
+			`, username).Scan(&id, &fname, &lname, &email, &age, &gender, &existingBio, &avatar, &isPrivate, &followerCount, &followingCount)
 		if err != nil {
 			http.Error(w, "Profile lookup error", http.StatusInternalServerError)
 			fmt.Println("Error fetching profile for username:", username, "Error:", err)
@@ -346,19 +274,156 @@ func ConnectWeb(db *sql.DB) {
 			bio = ""
 		}
 
+		// Determine whether the viewer can see the full profile
+		canView := false
+		if !isPrivate || viewerID == uid {
+			canView = true
+		} else {
+			// Check if viewer follows the target user
+			var cnt int
+			err = db.QueryRow(`SELECT COUNT(*) FROM userFollow WHERE follower_id = ? AND following_id = ?`, viewerID, uid).Scan(&cnt)
+			if err == nil && cnt > 0 {
+				canView = true
+			}
+		}
+
+		// Determine follow relationship and pending request status between viewer and target
+		isFollowing := false
+		_ = db.QueryRow(`SELECT COUNT(*) > 0 FROM userFollow WHERE follower_id = ? AND following_id = ?`, viewerID, uid).Scan(&isFollowing)
+
+		var requestStatus string
+		_ = db.QueryRow(`SELECT status FROM follow_requests WHERE requester_id = ? AND target_id = ?`, viewerID, uid).Scan(&requestStatus)
+
+		var posts []map[string]interface{}
+		if canView {
+			rows, err := db.Query(`
+				SELECT DISTINCT
+					p.id, u.username, p.title, p.content,
+					COALESCE(p.privacy_level, 0) AS privacy_level,
+					p.imgOrgif,
+					p.created_at,
+					COALESCE(likes.count, 0)    AS likes_count,
+					COALESCE(dislikes.count, 0) AS dislikes_count
+				FROM posts p
+				JOIN users u ON p.user_id = u.id
+				LEFT JOIN (
+				SELECT post_id, COUNT(*) AS count FROM likes
+				WHERE is_like = 1 AND comment_id IS NULL GROUP BY post_id
+				) likes    ON p.id = likes.post_id
+				LEFT JOIN (
+				SELECT post_id, COUNT(*) AS count FROM likes
+				WHERE is_like = 0 AND comment_id IS NULL GROUP BY post_id
+				) dislikes ON p.id = dislikes.post_id
+				WHERE p.user_id = ?
+				AND (
+					COALESCE(p.privacy_level,0) = 0                         -- Public
+					OR (? = p.user_id)                                         -- Viewer is owner
+					OR (COALESCE(p.privacy_level,0) = 1 AND EXISTS (           -- Followers-only
+						SELECT 1 FROM userFollow f
+						WHERE f.follower_id = ? AND f.following_id = p.user_id
+					))
+					OR (COALESCE(p.privacy_level,0) = 2 AND EXISTS (           -- Selected followers
+						SELECT 1 FROM post_permissions pp
+						WHERE pp.post_id = p.id AND pp.user_id = ?
+					))
+				)
+				ORDER BY p.created_at DESC
+			`, uid, viewerID, viewerID, viewerID)
+			if err != nil {
+				e.ErrorHandler(w, r, 500)
+				fmt.Println("Error fetching posts for username:", username, "Error:", err)
+				return
+			}
+			defer rows.Close()
+
+			for rows.Next() {
+				var (
+					postID, privacyLevel, likesCount, dislikesCount int
+					postUsername, title, content, imgOrgif          string
+					createdAt                                       time.Time
+				)
+				if err := rows.Scan(
+					&postID, &postUsername, &title, &content,
+					&privacyLevel, &imgOrgif, &createdAt, &likesCount, &dislikesCount,
+				); err != nil {
+					e.ErrorHandler(w, r, 500)
+					return
+				}
+
+				categories, _ := database.GetCategoriesByPostID(db, postID)
+				privacyText := map[int]string{0: "Public", 1: "Followers", 2: "Private"}[privacyLevel]
+
+				posts = append(posts, map[string]interface{}{
+					"id":             postID,
+					"username":       postUsername,
+					"title":          title,
+					"content":        content,
+					"privacy_level":  privacyLevel,
+					"privacy_text":   privacyText,
+					"imgOrgif":       imgOrgif,
+					"categories":     categories,
+					"likes_count":    likesCount,
+					"dislikes_count": dislikesCount,
+					"createdAt":      createdAt.Format("2006-01-02 15:04:05"),
+				})
+			}
+		} else {
+			// Viewer cannot view private profile details
+			posts = []map[string]interface{}{}
+		}
+		// (posts already populated above when canView == true)
+
+		// If viewer can see, include followers and following lists; otherwise keep them empty
+		var followersData []map[string]interface{}
+		var followingData []map[string]interface{}
+		if canView {
+			// Fetch raw lists from DB
+			rawFollowers, _ := database.GetUserFollowers(db, uid)
+			rawFollowing, _ := database.GetUserFollowing(db, uid)
+
+			// Deduplicate by id to ensure counts match unique users
+			followersMap := make(map[int]map[string]interface{})
+			for _, f := range rawFollowers {
+				if id, ok := f["id"].(int); ok {
+					followersMap[id] = f
+				}
+			}
+			for _, v := range followersMap {
+				followersData = append(followersData, v)
+			}
+
+			followingMap := make(map[int]map[string]interface{})
+			for _, f := range rawFollowing {
+				if id, ok := f["id"].(int); ok {
+					followingMap[id] = f
+				}
+			}
+			for _, v := range followingMap {
+				followingData = append(followingData, v)
+			}
+		} else {
+			followersData = []map[string]interface{}{}
+			followingData = []map[string]interface{}{}
+		}
+
 		profileObj := map[string]interface{}{
 			"id":             id,
 			"username":       username,
 			"fname":          fname,
 			"lname":          lname,
-			"email":          email,
-			"age":            age,
-			"gender":         gender,
-			"bio":            bio,
+			"email":          map[bool]interface{}{true: email, false: ""}[canView],
+			"age":            map[bool]interface{}{true: age, false: 0}[canView],
+			"gender":         map[bool]interface{}{true: gender, false: ""}[canView],
+			"bio":            map[bool]interface{}{true: bio, false: ""}[canView],
 			"avatar":         avatar,
 			"isPrivate":      isPrivate,
+			"isFollowing":    isFollowing,
+			"requestStatus":  requestStatus,
 			"followerCount":  followerCount,
 			"followingCount": followingCount,
+			"followers":      followersData,
+			"following":      followingData,
+			"canView":        canView,
 		}
 
 		w.Header().Set("Content-Type", "application/json")

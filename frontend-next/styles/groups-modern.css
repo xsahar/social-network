@@ -1119,6 +1119,9 @@
   font-size: 0.95rem;
   line-height: 1.5;
   word-wrap: break-word;
+  /* Ensure emoji-capable fonts are used for message text */
+  /* Put color-emoji fonts first to ensure emoji glyphs render */
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', var(--font-family-body);
 }
 
 .message-time {
@@ -1175,6 +1178,13 @@
   font-size: 0.95rem;
   color: var(--gray-900);
   outline: none;
+}
+
+/* Force input and bubbles to use emoji-capable font stack as well */
+.chat-input-field,
+.message-bubble-modern,
+.message-username {
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', var(--font-family-body);
 }
 
 .chat-input-field::placeholder {
@@ -1640,6 +1650,9 @@
   width: 100%;
   height: auto;
   display: block;
+  /* Prevent very tall or huge images from overflowing the card */
+  max-height: 500px;
+  object-fit: contain;
 }
 
 /* Post Actions */

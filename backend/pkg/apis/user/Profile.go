@@ -159,6 +159,18 @@ func UpdateProfileHandler(db *sql.DB, w http.ResponseWriter, r *http.Request, cu
 		}
 		fmt.Println("[UpdateProfile] Successfully parsed multipart form")
 
+		// Debug: log received multipart form keys and files
+		if r.MultipartForm != nil {
+			for k, v := range r.MultipartForm.Value {
+				fmt.Printf("[UpdateProfile] Form value %s: %v\n", k, v)
+			}
+			for k, files := range r.MultipartForm.File {
+				for _, fh := range files {
+					fmt.Printf("[UpdateProfile] Form file field %s: filename=%s, size=%d, header=%v\n", k, fh.Filename, fh.Size, fh.Header)
+				}
+			}
+		}
+
 		// Convert form values to map
 		formValues = make(map[string]string)
 		for key, values := range r.PostForm {
@@ -202,24 +214,42 @@ func UpdateProfileHandler(db *sql.DB, w http.ResponseWriter, r *http.Request, cu
 	} else if strings.Contains(contentType, "multipart/form-data") {
 		// Only try to read form file if content-type is multipart
 		file, header, err := r.FormFile("avatarInput")
-		if err != nil && err != http.ErrMissingFile {
-			http.Error(w, "error reading avatar", http.StatusBadRequest)
-			return
+		if err != nil {
+			if err == http.ErrMissingFile {
+				// no file provided - that's fine
+				fmt.Println("[UpdateProfile] No avatar file provided")
+			} else {
+				fmt.Println("[UpdateProfile] FormFile error:", err)
+				http.Error(w, "error reading avatar: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
 		}
-		if err == nil && header != nil && header.Filename != "" {
+		if err == nil && header.Filename != "" {
 			defer file.Close()
 
 			// Read a small header to detect MIME
+			// Prefer the Content-Type provided in the multipart header (browsers set this).
+			// Fall back to content sniffing only if the header is absent.
+			headerMime := ""
+			if header != nil {
+				headerMime = header.Header.Get("Content-Type")
+			}
+			// Read up to 512 bytes for detection if needed
 			head := make([]byte, 512)
-			n, _ := io.ReadFull(file, head)
-			mime := http.DetectContentType(head[:n])
-			// Reset reader to start
+			n, _ := file.Read(head)
+			detected := http.DetectContentType(head[:n])
+			// reset
 			if _, err := file.Seek(0, io.SeekStart); err != nil {
 				http.Error(w, "could not read avatar", http.StatusInternalServerError)
 				return
 			}
-			if mime != "image/png" && mime != "image/jpeg" {
-				http.Error(w, "Image must be PNG or JPG.", http.StatusBadRequest)
+			mime := headerMime
+			if mime == "" {
+				mime = detected
+			}
+			fmt.Println("[UpdateProfile] header mime:", headerMime, "detected:", detected, "using:", mime)
+			if !strings.HasPrefix(mime, "image/") {
+				http.Error(w, "Uploaded file is not an image", http.StatusBadRequest)
 				return
 			}
 
@@ -234,10 +264,18 @@ func UpdateProfileHandler(db *sql.DB, w http.ResponseWriter, r *http.Request, cu
 			base := filepath.Base(strings.ReplaceAll(header.Filename, " ", "-"))
 			ext := strings.ToLower(filepath.Ext(base))
 			if ext == "" {
-				// derive from MIME if missing
-				if mime == "image/png" {
+				// derive from MIME if missing (support common image types)
+				switch mime {
+				case "image/png":
 					ext = ".png"
-				} else if mime == "image/jpeg" {
+				case "image/jpeg":
+					ext = ".jpg"
+				case "image/gif":
+					ext = ".gif"
+				case "image/webp":
+					ext = ".webp"
+				default:
+					// fallback to jpg if unknown image subtype
 					ext = ".jpg"
 				}
 			}
@@ -254,11 +292,13 @@ func UpdateProfileHandler(db *sql.DB, w http.ResponseWriter, r *http.Request, cu
 			}
 			defer dst.Close()
 
-			if _, err := io.Copy(dst, file); err != nil {
+			copied, err := io.Copy(dst, file)
+			if err != nil {
 				log.Println("avatar save: Copy error:", err)
 				http.Error(w, "could not save avatar", http.StatusInternalServerError)
 				return
 			}
+			fmt.Println("[UpdateProfile] avatar saved:", dstPath, "bytesCopied:", copied)
 			avatarURL = "/img/avatars/" + finalName
 		}
 	}

@@ -56,15 +56,24 @@ export default function GroupChat({ groupId, user, isOpen, onClose, connected, m
       
       if (newMessages.length > 0) {
         setGroupMessages(prev => {
+          // Merge and dedupe by from+content and timestamp proximity (3s window)
           const combined = [...prev, ...newMessages];
-          // Remove duplicates and sort by timestamp
-          const unique = combined.filter((msg, index, arr) => 
-            index === arr.findIndex(m => 
-              m.content === msg.content && 
-              m.from === msg.from && 
-              Math.abs(new Date(m.timestamp) - new Date(msg.timestamp)) < 1000
-            )
-          );
+          const unique = [];
+          for (const m of combined) {
+            try {
+              const isSeen = unique.some(u => {
+                if (!u) return false;
+                if ((u.from || u.From) !== (m.from || m.From)) return false;
+                if ((u.content || u.Content) !== (m.content || m.Content)) return false;
+                const t1 = new Date(u.timestamp || u.Timestamp || Date.now()).getTime();
+                const t2 = new Date(m.timestamp || m.Timestamp || Date.now()).getTime();
+                return Math.abs(t1 - t2) < 3000; // within 3 seconds => duplicate
+              });
+              if (!isSeen) unique.push(m);
+            } catch (err) {
+              unique.push(m);
+            }
+          }
           return unique.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         });
       }

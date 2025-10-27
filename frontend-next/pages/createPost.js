@@ -575,32 +575,21 @@ export default function CreatePost() {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="flex-1 text-white py-7 px-10 rounded-2xl font-black text-2xl transition-all duration-500 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group shadow-2xl hover:shadow-[0_35px_70px_-15px_rgba(59,130,246,0.6)]"
+                      className="flex-1 text-white py-4 px-6 rounded-2xl font-black text-lg transition-transform duration-200 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group shadow-md hover:shadow-lg hover:-translate-y-1"
                       style={{ 
                         background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)',
                         textTransform: 'uppercase',
-                        letterSpacing: '2px',
-                        transform: 'perspective(1000px)',
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!loading) {
-                          e.target.style.transform = 'translateY(-8px) scale(1.02) perspective(1000px) rotateX(2deg)';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!loading) {
-                          e.target.style.transform = 'translateY(0) scale(1) perspective(1000px) rotateX(0deg)';
-                        }
+                        letterSpacing: '1px'
                       }}
                     >
                       {/* Animated gradient overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
                       
                       {/* Premium Shimmer Effect */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none"></div>
                       
                       {/* Glow effect */}
-                      <div className="absolute inset-0 rounded-2xl bg-white opacity-0 group-hover:opacity-20 blur-2xl transition-all duration-500"></div>
+                      <div className="absolute inset-0 rounded-2xl bg-white opacity-0 group-hover:opacity-20 blur-2xl transition-all duration-500 pointer-events-none"></div>
                       
                       {/* Button Content */}
                       <div className="relative z-10 flex items-center justify-center gap-4">
@@ -611,11 +600,11 @@ export default function CreatePost() {
                           </>
                         ) : (
                           <>
-                            <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" />
                             </svg>
                             <span className="font-black tracking-wider">Create Post</span>
-                            <svg className="w-6 h-6 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-5 h-5 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
                             </svg>
                           </>
@@ -623,26 +612,20 @@ export default function CreatePost() {
                       </div>
                       
                       {/* Floating particles */}
-                      <div className="absolute top-3 right-5 w-2 h-2 bg-white/30 rounded-full animate-bounce opacity-70"></div>
-                      <div className="absolute bottom-3 left-7 w-2 h-2 bg-white/30 rounded-full animate-pulse opacity-60"></div>
-                      <div className="absolute top-1/2 right-10 w-1 h-1 bg-white/40 rounded-full animate-ping opacity-50"></div>
+                      <div className="absolute top-3 right-5 w-2 h-2 bg-white/30 rounded-full animate-bounce opacity-70 pointer-events-none"></div>
+                      <div className="absolute bottom-3 left-7 w-2 h-2 bg-white/30 rounded-full animate-pulse opacity-60 pointer-events-none"></div>
+                      <div className="absolute top-1/2 right-10 w-1 h-1 bg-white/40 rounded-full animate-ping opacity-50 pointer-events-none"></div>
                     </button>
                     
                     {/* Cancel Button */}
                     <button
                       type="button"
                       onClick={() => router.push('/posts')}
-                      className="sm:w-auto px-10 py-7 bg-white border-3 border-gray-300 text-gray-800 rounded-2xl font-black text-xl transition-all duration-500 hover:bg-gray-50 hover:border-gray-400 hover:shadow-xl hover:scale-105 shadow-lg relative overflow-hidden group"
+                      className="w-full sm:w-auto px-6 py-4 bg-white border-3 border-gray-300 text-gray-800 rounded-2xl font-black text-base transition-transform duration-200 hover:bg-gray-50 hover:border-gray-400 hover:shadow-lg hover:-translate-y-0.5 shadow relative overflow-hidden group"
                       style={{ borderWidth: '3px', textTransform: 'uppercase', letterSpacing: '1px' }}
-                      onMouseEnter={(e) => {
-                        e.target.style.transform = 'translateY(-4px) scale(1.05)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.transform = 'translateY(0) scale(1)';
-                      }}
                     >
                       {/* Shimmer effect */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-200/50 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-200/50 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none"></div>
                       <span className="relative z-10 flex items-center justify-center gap-3">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" />

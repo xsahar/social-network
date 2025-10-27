@@ -1,3 +1,50 @@
+## Social Network — Copilot instructions (concise)
+
+This repo is a full-stack social app: Go backend + Next.js frontend. The goal of these notes is to get an AI coding agent productive quickly with minimal hand-holding.
+
+- Backend: Go (entry: `backend/server.go`), routes in `backend/web/connectWeb.go`, DB helpers under `backend/pkg/db/*` (plain `database/sql`, no ORM). SQLite DB file lives in `backend/data/`.
+- Frontend: Next.js (Pages Router) under `frontend-next/`. API proxy routes live in `frontend-next/pages/api/*`. Global WebSocket state in `frontend-next/contexts/WebSocketContext.js`.
+
+Key patterns you must follow (do not deviate):
+- Sessions: every handler validates session. Use the same pattern as other handlers: `userID, loggedIn := u.ValidateSession(db, r)` and return 401 when not logged in.
+- CORS & route wiring: register HTTP endpoints in `backend/web/connectWeb.go` and wrap handlers with the project's CORS helper (example: `cor.WithCORS(...)`).
+- WebSocket model: single persistent WS per user. Backend hub is `backend/pkg/apis/chat/chatHub.go`. Broadcast events via the hub (`hub.Broadcast <- Frontend{Type: "..."}`) rather than writing ad-hoc socket code.
+- Frontend WS usage: `frontend-next/contexts/WebSocketContext.js` opens one connection per user. Components should subscribe to message types and then refresh server state by calling REST endpoints (do not treat WS message payloads as source-of-truth).
+
+How to run locally (observed commands):
+- Backend: from repo root: `cd backend && go run .` (there's also `back.sh` helper). The server listens on :8080 and registers `/ws` for WebSockets.
+- Frontend: `cd frontend-next && npm run dev` (there's also `front.sh`). Next API routes proxy cookies to the Go backend when forwarding requests.
+
+Important code examples to copy when adding features:
+- Session check pattern: `userID, loggedIn := u.ValidateSession(db, r)` — follow this exactly to avoid auth regressions.
+- Broadcast pattern: `hub.Broadcast <- Frontend{Type: "new_groupPost"}` — use the hub for cross-user events.
+- Proxy call from Next API: `fetch('http://localhost:8080/...', { headers: { Cookie: req.headers.cookie } })` — preserve cookies when calling backend from Next API routes.
+
+Database/Schema notes:
+- Migrations: `backend/pkg/db/migrations/sqlite/`. DB access code lives under `backend/pkg/db/*.go`. Expect raw SQL and helper functions (no ORM). Keep SQL changes consistent with existing query helpers.
+
+Conventions and small gotchas:
+- Do not open multiple WebSocket connections per user. Use the existing `WebSocketContext` provider.
+- When adding a REST handler, always use `connectWeb.go` registration style and wrap with `cor.WithCORS`.
+- Prefer broadcasting a short message type (e.g. `new_groupPost`) and let the frontend refresh state via REST endpoints.
+- Use existing DB helper functions where possible (look for `select.go`, `insert.go`, etc.) rather than duplicating SQL.
+
+Files to read first (high-value):
+- `backend/web/connectWeb.go` — route registration and CORS usage.
+- `backend/pkg/apis/chat/chatHub.go` — WebSocket hub and message types.
+- `frontend-next/contexts/WebSocketContext.js` — how the client manages the single WS connection and subscriptions.
+- `frontend-next/hooks/useSession.js` — session usage on client side.
+
+If you need to add endpoints or broadcast events:
+1. Add the handler and register it in `backend/web/connectWeb.go` using `cor.WithCORS`.
+2. Validate sessions with the project's helper.
+3. If the change affects multiple users, broadcast via `hub.Broadcast <- Frontend{Type: "..."}`.
+4. On the frontend, subscribe to the message type and call the appropriate REST API to refresh UI state.
+
+When updating this file: keep it short and concrete. If anything here is unclear, point to the file you want expanded and I will add exact examples or small tests.
+
+---
+Last-updated: automated edit to consolidate repo-specific AI guidance.
 ## Social Network — AI development quick reference
 
 This repo is a full-stack social app: Go backend + Next.js frontend. AI agents should focus on two integration surfaces: REST handlers in `backend/web/connectWeb.go` and the WebSocket flow in `backend/pkg/apis/chat/chatHub.go` + `frontend-next/contexts/WebSocketContext.js`.

@@ -74,7 +74,7 @@ const Chat = ({ isOpen, onClose, chatWith, userID }) => {
             const isDuplicate = prev.some(msg => 
               msg.content === message.content &&
               msg.from === message.from &&
-              Math.abs(new Date(msg.timestamp) - new Date(message.timestamp)) < 1000
+              Math.abs(new Date(msg.timestamp) - new Date(message.timestamp)) < 3000
             );
             if (isDuplicate) return prev;
             

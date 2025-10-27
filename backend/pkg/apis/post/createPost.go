@@ -171,10 +171,11 @@ func CreatePost(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *http.Reques
 			"categories": cats,
 		}
 
-		// Get user avatar if exists
-		db.QueryRow("SELECT profile_picture FROM users WHERE id = ?", userID).Scan(&avatar)
+		// Get user avatar if exists (use the same column other helpers expect)
+		db.QueryRow("SELECT avatar_url FROM users WHERE id = ?", userID).Scan(&avatar)
 		if avatar.Valid {
-			postData["userAvatar"] = avatar.String
+			// frontend expects `avatar_url` in post objects
+			postData["avatar_url"] = avatar.String
 		}
 
 		postNotification := chat.Frontend{
