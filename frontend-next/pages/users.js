@@ -169,7 +169,7 @@ export default function Users() {
           {/* Professional Users Header */}
           <div className="text-center mb-12">
             <div className="inline-flex items-center justify-center w-28 h-28 bg-white/90 backdrop-blur-lg rounded-3xl shadow-xl mb-8 animate-float animate-pulse-glow">
-              <div className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">U</div>
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600"></div>
             </div>
             
             <h1 className="text-5xl font-bold text-gradient mb-6">

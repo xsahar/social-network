@@ -5,7 +5,12 @@ export default function GroupEvents({ groupId, user }) {
   const [events, setEvents] = useState([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
-  const [newEvent, setNewEvent] = useState({ title: '', description: '' });
+  const [newEvent, setNewEvent] = useState({ 
+    title: '', 
+    description: '', 
+    date: '',
+    time: ''
+  });
   const { subscribe } = useWebSocketContext();
 
   useEffect(() => {
@@ -89,26 +94,33 @@ export default function GroupEvents({ groupId, user }) {
 
   const handleCreateEvent = async (e) => {
     e.preventDefault();
-    if (!newEvent.title.trim() || !newEvent.description.trim()) {
-      alert('Please fill in both title and description');
+    if (!newEvent.title.trim() || !newEvent.description.trim() || !newEvent.date || !newEvent.time) {
+      alert('Please fill in all fields');
       return;
     }
     
     try {
+      const datetime = new Date(`${newEvent.date}T${newEvent.time}`);
+      if (datetime < new Date()) {
+        alert('Event cannot be scheduled in the past');
+        return;
+      }
+
       const response = await fetch('http://localhost:8080/create-event', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           group_id: parseInt(groupId),
           title: newEvent.title.trim(),
-          description: newEvent.description.trim()
+          description: newEvent.description.trim(),
+          event_date: datetime.toISOString()
         }),
         credentials: 'include'
       });
       
       if (response.ok) {
         setShowCreateEvent(false);
-        setNewEvent({ title: '', description: '' });
+        setNewEvent({ title: '', description: '', date: '', time: '' });
         fetchGroupEvents(); // Refresh events
         alert('Event created successfully!');
       } else {
@@ -186,12 +198,33 @@ export default function GroupEvents({ groupId, user }) {
                   required
                 />
               </div>
-              
+
               <div className="form-group">
-                <button type="button" onClick={() => setShowCreateEvent(false)} className="btn btn-secondary">
+                <label>Date</label>
+                <input
+                  type="date"
+                  value={newEvent.date}
+                  onChange={(e) => setNewEvent({...newEvent, date: e.target.value})}
+                  required
+                  min={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Time</label>
+                <input
+                  type="time"
+                  value={newEvent.time}
+                  onChange={(e) => setNewEvent({...newEvent, time: e.target.value})}
+                  required
+                />
+              </div>
+              
+              <div className="button-group-modern">
+                <button type="button" onClick={() => setShowCreateEvent(false)} className="btn-secondary">
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary">
+                <button type="submit" className="btn-primary">
                   Create Event
                 </button>
               </div>

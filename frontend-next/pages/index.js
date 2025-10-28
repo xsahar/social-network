@@ -88,7 +88,7 @@ export default function MainPage() {
                   }}
                 >
                   <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center">
-                    <div className="text-2xl font-bold text-blue-600">S</div>
+                    {/* <div className="text-2xl font-bold text-blue-600">S</div> */}
                   </div>
                 </div>
               </div>
@@ -104,12 +104,12 @@ export default function MainPage() {
                 <div className="absolute -top-4 -left-16 w-10 h-10 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full opacity-50 animate-pulse"></div>
                 <div className="absolute -bottom-6 right-20 w-8 h-8 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full opacity-45 animate-float"></div>
                 
-                <p className="dashboard-subtitle mt-8">
+                {/* <p className="dashboard-subtitle mt-8">
                   Your <span className="font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">premium social hub</span> awaits! 
                   Connect with amazing people, share incredible stories, and discover 
                   <span className="font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent"> magical content</span> 
                   from your vibrant community!
-                </p>
+                </p> */}
               </div>
               
               {/* Additional Floating Elements */}
@@ -271,45 +271,7 @@ export default function MainPage() {
             </button>
           </div>
 
-            {/* Special Featured Card - Find Friends */}
-            <div className="relative mb-16">
-              <button 
-                onClick={() => router.push('/users')}
-                className="w-full bg-white/90 backdrop-blur-2xl rounded-3xl p-12 shadow-2xl border border-white/30 relative overflow-hidden group hover:scale-102 transition-all duration-500 text-center"
-                style={{ 
-                  background: 'linear-gradient(135deg, var(--gradient-cosmic), var(--gradient-sunset))',
-                  color: 'white'
-                }}
-              >
-                {/* Premium Background Effects */}
-                <div className="absolute inset-0 bg-white/5 rounded-3xl"></div>
-                <div className="absolute top-0 right-0 w-48 h-48 rounded-full opacity-10 animate-pulse" style={{ background: 'var(--gradient-fire)' }}></div>
-                <div className="absolute bottom-0 left-0 w-32 h-32 rounded-full opacity-8 animate-float"></div>
-                
-                {/* Content */}
-                <div className="relative z-10">
-                  <div className="mb-8">
-                    <div className="w-24 h-24 bg-white/30 rounded-3xl mx-auto flex items-center justify-center text-3xl font-black text-white shadow-2xl animate-float group-hover:scale-110 transition-all duration-500">
-                      FIND
-                    </div>
-                  </div>
-                  
-                  <h3 className="text-4xl font-black mb-6 text-shadow-lg">
-                    Discover Amazing People
-                  </h3>
-                  
-                  <p className="text-xl font-semibold mb-10 leading-relaxed max-w-3xl mx-auto opacity-95">
-                    Connect with <span className="font-black text-white/95">incredible people</span> who share your passions! 
-                    Build friendships that spark joy and create <span className="font-black text-white/95">amazing memories</span>!
-                  </p>
-                  
-                  <div className="inline-flex items-center text-2xl font-black bg-white/25 border-2 border-white/30 px-10 py-5 rounded-full backdrop-blur-lg group-hover:bg-white/35 group-hover:border-white/50 transition-all duration-300 shadow-xl">
-                    Meet incredible people
-                  </div>
-                </div>
-              </button>
-            </div>
-
+            
           {/* Online Users Section */}
           <div className="online-users-section">
             <h2>
@@ -364,9 +326,9 @@ export default function MainPage() {
                 <div className="absolute top-2 right-2 w-20 h-20 rounded-full opacity-10 animate-pulse" style={{ background: 'var(--gradient-cosmic)' }}></div>
                 
                 <div className="relative z-10">
-                  <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl mx-auto mb-6 flex items-center justify-center text-white font-black text-lg animate-bounce">
+                  {/* <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl mx-auto mb-6 flex items-center justify-center text-white font-black text-lg animate-bounce">
                     GO
-                  </div>
+                  </div> */}
                   <h3 className="text-2xl font-bold text-gray-800 mb-4">Ready for your next adventure?</h3>
                   <p className="text-lg text-gray-600 font-medium mb-8">
                     Your journey to <span className="font-bold text-gradient">amazing connections</span> starts now!
@@ -380,12 +342,12 @@ export default function MainPage() {
                       Find Amazing Friends
                     </button>
                     
-                    <button 
+                    {/* <button 
                       onClick={() => router.push('/createPost')}
                       className="btn btn-success btn-lg group relative overflow-hidden"
                     >
                       Share Your Story
-                    </button>
+                    </button> */}
                   </div>
           </div>
         </div>

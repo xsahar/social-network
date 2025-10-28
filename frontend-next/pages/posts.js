@@ -245,7 +245,7 @@ export default function Posts() {
             <div className="text-center mb-12">
               <div className="inline-flex items-center justify-center w-20 h-20 bg-white/90 backdrop-blur-lg rounded-2xl shadow-xl mb-6 animate-float">
                 <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center animate-gentle-rotate">
-                  <div className="text-white text-xl font-bold">P</div>
+                  {/* <div className="text-white text-xl font-bold">P</div> */}
                 </div>
               </div>
               
