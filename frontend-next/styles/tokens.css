@@ -3,16 +3,16 @@
    ================================ */
 :root {
   /* Colors */
-  --primary-50: #e6f3ff;
-  --primary-100: #ccebff;
-  --primary-200: #99d6ff;
-  --primary-300: #66c2ff;
-  --primary-400: #33adff;
-  --primary-500: #0099ff;
-  --primary-600: #007acc;
-  --primary-700: #005c99;
-  --primary-800: #003d66;
-  --primary-900: #001f33;
+  --primary-50: #eef2ff;
+  --primary-100: #e0e7ff;
+  --primary-200: #c7d2fe;
+  --primary-300: #a5b4fc;
+  --primary-400: #818cf8;
+  --primary-500: #667eea;
+  --primary-600: #5a67d8;
+  --primary-700: #4c51bf;
+  --primary-800: #434190;
+  --primary-900: #3c366b;
 
   --accent-primary: var(--primary-500);
   --accent-secondary: #f59e0b;

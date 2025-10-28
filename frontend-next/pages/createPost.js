@@ -142,25 +142,19 @@ export default function CreatePost() {
         <meta name="description" content="Create amazing content and inspire your community!" />
       </Head>
       
-      <div className="posts-page-bg min-h-screen">
+      <div className="create-post-page">
         <div className="container-professional">
           
           {/* Professional Header */}
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center justify-center w-28 h-28 bg-white/90 backdrop-blur-lg rounded-3xl shadow-2xl mb-8 animate-float animate-pulse-glow">
-              <div 
-                className="w-16 h-16 rounded-2xl animate-gentle-rotate"
-                style={{ background: 'var(--gradient-cosmic)' }}
-              />
+          <div className="create-post-hero">
+            <div className="create-post-hero-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
             </div>
-            
-            <h1 className="text-5xl font-bold text-gradient mb-6">
-              Create Something Amazing
-            </h1>
-            
-            <p className="text-xl text-gray-700 font-medium mb-8 max-w-2xl mx-auto">
-              Share your <span className="font-bold text-gradient">brilliant thoughts</span> with the world! 
-              Every story matters and inspires others.
+            <h1 className="create-post-hero-title">Create Something Amazing</h1>
+            <p className="create-post-hero-subtitle">
+              Share your story with the world! Every voice matters.
             </p>
             
             {/* Back Button */}
@@ -173,12 +167,7 @@ export default function CreatePost() {
           </div>
 
           {/* Ultra-Professional Form Container */}
-          <div 
-            className="bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/40 relative overflow-hidden max-w-4xl mx-auto"
-            style={{ 
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 100px rgba(102, 126, 234, 0.1)' 
-            }}
-          >
+          <div className="create-post-form-container">
             {/* Top gradient bar */}
             <div className="absolute top-0 left-0 right-0 h-2" style={{ background: 'var(--gradient-cosmic)' }}></div>
             
@@ -569,69 +558,40 @@ export default function CreatePost() {
                     </div>
                   )}
 
-                  {/* ULTIMATE SUBMIT BUTTONS */}
-                  <div className="flex flex-col sm:flex-row gap-6 pt-10">
+                  {/* Themed Submit Buttons */}
+                  <div className="flex flex-row gap-6 pt-8">
                     {/* Create Post Button */}
                     <button
                       type="submit"
                       disabled={loading}
-                      className="flex-1 text-white py-4 px-6 rounded-2xl font-black text-lg transition-transform duration-200 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group shadow-md hover:shadow-lg hover:-translate-y-1"
-                      style={{ 
-                        background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)',
-                        textTransform: 'uppercase',
-                        letterSpacing: '1px'
-                      }}
+                      className="flex-1 relative group overflow-hidden bg-gradient-to-br from-purple-500 via-blue-600 to-purple-700 text-white px-10 py-5 rounded-2xl font-black text-lg hover:from-purple-600 hover:via-blue-700 hover:to-purple-800 transform hover:-translate-y-1 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-4 shadow-[0_8px_25px_-4px_rgba(147,51,234,0.4)] hover:shadow-[0_12px_35px_-3px_rgba(147,51,234,0.6)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none"
+                      style={{ minWidth: '200px' }}
                     >
-                      {/* Animated gradient overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
-                      
-                      {/* Premium Shimmer Effect */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none"></div>
-                      
-                      {/* Glow effect */}
-                      <div className="absolute inset-0 rounded-2xl bg-white opacity-0 group-hover:opacity-20 blur-2xl transition-all duration-500 pointer-events-none"></div>
-                      
-                      {/* Button Content */}
-                      <div className="relative z-10 flex items-center justify-center gap-4">
-                        {loading ? (
-                          <>
-                            <div className="w-7 h-7 border-4 border-white border-b-transparent rounded-full animate-spin" />
-                            <span className="text-xl font-black tracking-wider">Creating Post...</span>
-                          </>
-                        ) : (
-                          <>
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" />
-                            </svg>
-                            <span className="font-black tracking-wider">Create Post</span>
-                            <svg className="w-5 h-5 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
-                            </svg>
-                          </>
-                        )}
-                      </div>
-                      
-                      {/* Floating particles */}
-                      <div className="absolute top-3 right-5 w-2 h-2 bg-white/30 rounded-full animate-bounce opacity-70 pointer-events-none"></div>
-                      <div className="absolute bottom-3 left-7 w-2 h-2 bg-white/30 rounded-full animate-pulse opacity-60 pointer-events-none"></div>
-                      <div className="absolute top-1/2 right-10 w-1 h-1 bg-white/40 rounded-full animate-ping opacity-50 pointer-events-none"></div>
+                      <div className="absolute inset-0 bg-gradient-to-r from-purple-400/0 via-white/20 to-purple-400/0 transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                      {loading ? (
+                        <>
+                          <div className="w-6 h-6 border-3 border-white border-b-transparent rounded-full animate-spin" />
+                          <span className="text-lg tracking-wider">Creating...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="tracking-wider">Create Post</span>
+                          <span className="text-2xl bg-white/20 w-8 h-8 flex items-center justify-center rounded-lg">✓</span>
+                        </>
+                      )}
+                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
                     </button>
                     
                     {/* Cancel Button */}
                     <button
                       type="button"
                       onClick={() => router.push('/posts')}
-                      className="w-full sm:w-auto px-6 py-4 bg-white border-3 border-gray-300 text-gray-800 rounded-2xl font-black text-base transition-transform duration-200 hover:bg-gray-50 hover:border-gray-400 hover:shadow-lg hover:-translate-y-0.5 shadow relative overflow-hidden group"
-                      style={{ borderWidth: '3px', textTransform: 'uppercase', letterSpacing: '1px' }}
+                      className="relative group overflow-hidden px-8 py-5 bg-gradient-to-br from-rose-500 to-red-600 text-white rounded-2xl font-black text-lg hover:from-rose-600 hover:to-red-700 transform hover:-translate-y-1 active:translate-y-0 transition-all duration-200 flex items-center gap-4 shadow-[0_8px_25px_-4px_rgba(244,63,94,0.4)] hover:shadow-[0_12px_35px_-3px_rgba(244,63,94,0.6)] min-w-[160px] justify-center"
                     >
-                      {/* Shimmer effect */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-200/50 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none"></div>
-                      <span className="relative z-10 flex items-center justify-center gap-3">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                        Cancel
-                      </span>
+                      <div className="absolute inset-0 bg-gradient-to-r from-rose-400/0 via-white/20 to-rose-400/0 transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                      <span className="tracking-wider">Cancel</span>
+                      <span className="text-2xl bg-white/20 w-8 h-8 flex items-center justify-center rounded-lg">❌</span>
+                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
                     </button>
                   </div>
                   

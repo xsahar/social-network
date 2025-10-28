@@ -1,0 +1,215 @@
+/* ========================================
+   GROUP POSTS - MODERN DESIGN
+   ======================================== */
+
+.group-posts-section-modern {
+  padding: 24px;
+}
+
+/* Create Post Prompt */
+.create-post-prompt-modern {
+  margin-bottom: 24px;
+}
+
+.create-post-button-modern {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.create-post-button-modern:hover {
+  background: var(--gray-50);
+  border-color: var(--gray-300);
+}
+
+.create-post-avatar {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 50%;
+  color: white;
+}
+
+.create-post-placeholder {
+  flex: 1;
+  text-align: left;
+  color: var(--gray-500);
+  font-size: 0.95rem;
+}
+
+.create-post-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-500);
+}
+
+/* Posts Grid */
+.posts-grid-modern {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Post Card */
+.post-card-modern {
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.post-card-modern:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+.post-header-modern {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.post-author-modern {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.post-avatar-modern {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--gray-200);
+}
+
+.post-avatar-fallback-modern {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.2rem;
+  text-transform: uppercase;
+}
+
+.post-author-info-modern {
+  flex: 1;
+}
+
+.post-author-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin: 0 0 4px 0;
+}
+
+.post-meta-modern {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--gray-500);
+}
+
+.post-meta-modern svg {
+  color: var(--gray-400);
+}
+
+.post-body-modern {
+  padding: 24px;
+}
+
+.post-title-modern {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--gray-900);
+  margin: 0 0 12px 0;
+  line-height: 1.3;
+}
+
+.post-content-modern {
+  font-size: 1rem;
+  color: var(--gray-700);
+  line-height: 1.6;
+  margin: 0 0 16px 0;
+}
+
+.post-image-modern {
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 16px auto 0;
+  background: #f8f9fa;
+  max-width: 800px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.post-image-modern img {
+  width: 100%;
+  height: auto;
+  max-height: 600px;
+  display: block;
+  object-fit: contain;
+  border-radius: 12px;
+  margin: 0 auto;
+}
+
+/* Post Actions */
+.post-actions-modern {
+  display: flex;
+  gap: 8px;
+  padding: 16px 24px;
+  background: var(--gray-50);
+  border-top: 1px solid var(--gray-200);
+}
+
+.post-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: white;
+  border: 2px solid var(--gray-200);
+  border-radius: 10px;
+  color: var(--gray-600);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.post-action-btn:hover {
+  border-color: var(--gray-300);
+  background: var(--gray-100);
+}
+
+.post-action-btn.active.liked {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-color: #667eea;
+  color: white;
+}
+
+.post-action-btn.active.disliked {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  border-color: #ef4444;
+  color: white;
+}
