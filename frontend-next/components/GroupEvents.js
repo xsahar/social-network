@@ -122,7 +122,6 @@ export default function GroupEvents({ groupId, user }) {
         setShowCreateEvent(false);
         setNewEvent({ title: '', description: '', date: '', time: '' });
         fetchGroupEvents(); // Refresh events
-        alert('Event created successfully!');
       } else {
         const errorText = await response.text();
         alert(`Failed to create event: ${errorText}`);

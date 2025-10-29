@@ -138,8 +138,7 @@ export default function GroupPostsSection({ groupId, user }) {
         setShowCreatePost(false);
         setNewPost({ title: '', content: '' });
         setPostImage(null);
-        fetchGroupPosts(); // Refresh posts
-        alert('Post created successfully!');
+  fetchGroupPosts(); // Refresh posts
       } else {
         const errorText = await response.text();
         alert(`Failed to create post: ${errorText}`);
