@@ -26,10 +26,36 @@ func main() {
 
 	fmt.Println("✅ Database tables checked and initialized.")
 
-	staticDir := "../frontend-next"
-	fs := http.FileServer(http.Dir(staticDir))
+	// Determine frontend directory robustly so backend can be started from repo root or backend/
+	cwd, _ := os.Getwd()
+	candidates := []string{
+		filepath.Join(cwd, "frontend-next"),       // run from repo root
+		filepath.Join(cwd, "..", "frontend-next"), // run from backend/
+		filepath.Join(cwd, "backend", "frontend-next"),
+	}
+	var frontendPath string
+	for _, c := range candidates {
+		if fi, err := os.Stat(c); err == nil && fi.IsDir() {
+			frontendPath = c
+			break
+		}
+	}
+	if frontendPath == "" {
+		// fallback to ../frontend-next (old behavior) — may still fail if path missing
+		frontendPath = "../frontend-next"
+	}
+
+	// Export STATIC_DIR for handlers that need to save files into the frontend public folder
+	absFrontend, _ := filepath.Abs(frontendPath)
+	_ = os.Setenv("STATIC_DIR", absFrontend)
+
+	// Ensure public upload directories exist so file writes don't fail on fresh clones
+	_ = os.MkdirAll(filepath.Join(absFrontend, "public", "img", "posts"), 0o755)
+	_ = os.MkdirAll(filepath.Join(absFrontend, "public", "img", "avatars"), 0o755)
+
+	fs := http.FileServer(http.Dir(frontendPath))
 	http.Handle("/", fs)
-	fmt.Printf("✅ Serving static files from %s\n", staticDir)
+	fmt.Printf("✅ Serving static files from %s\n", frontendPath)
 
 	web.ConnectWeb(db)
 

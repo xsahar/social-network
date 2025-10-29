@@ -75,27 +75,35 @@ func CreatePost(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *http.Reques
 			return
 		}
 
-		// generate a safe filename
-    uploadDir := filepath.Join("..", "frontend-next", "public", "img", "posts")
-        if err := os.MkdirAll(uploadDir, 0o755); err != nil {
-            log.Println("mkdir error:", err)
-            http.Error(w, "Server error", http.StatusInternalServerError)
-            return
-        }
+		// determine upload directory from STATIC_DIR if present so backend can be run
+		// from repo root or backend/ without breaking paths
+		staticDir := os.Getenv("STATIC_DIR")
+		uploadDir := ""
+		if staticDir != "" {
+			uploadDir = filepath.Join(staticDir, "public", "img", "posts")
+		} else {
+			// fallback to original relative path
+			uploadDir = filepath.Join("..", "frontend-next", "public", "img", "posts")
+		}
+		if err := os.MkdirAll(uploadDir, 0o755); err != nil {
+			log.Println("mkdir error:", err)
+			http.Error(w, "Server error", http.StatusInternalServerError)
+			return
+		}
 
-        // generate a safe, timestamped filename to avoid collisions and missing-dir issues
-        base := filepath.Base(strings.ReplaceAll(header.Filename, " ", "-"))
-        ext = strings.ToLower(filepath.Ext(base))
-        nameNoExt := strings.TrimSuffix(base, ext)
-        if ext == "" {
-            // fallback to .jpg if extension missing
-            ext = ".jpg"
-        }
-        stamp := time.Now().UTC().Format("20060102T150405")
-        finalName := fmt.Sprintf("%s_%s%s", nameNoExt, stamp, ext)
+		// generate a safe, timestamped filename to avoid collisions and missing-dir issues
+		base := filepath.Base(strings.ReplaceAll(header.Filename, " ", "-"))
+		ext = strings.ToLower(filepath.Ext(base))
+		nameNoExt := strings.TrimSuffix(base, ext)
+		if ext == "" {
+			// fallback to .jpg if extension missing
+			ext = ".jpg"
+		}
+		stamp := time.Now().UTC().Format("20060102T150405")
+		finalName := fmt.Sprintf("%s_%s%s", nameNoExt, stamp, ext)
 
-        dstPath := filepath.Join(uploadDir, finalName)
-        dstFile, err := os.Create(dstPath)
+		dstPath := filepath.Join(uploadDir, finalName)
+		dstFile, err := os.Create(dstPath)
 		if err != nil {
 			log.Println("file create error:", err)
 			http.Error(w, "Server error", http.StatusInternalServerError)

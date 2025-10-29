@@ -1,5 +1,55 @@
 ## Social Network — Copilot instructions (concise)
 
+This repo is a full-stack social app: Go backend + Next.js frontend. The purpose of this file is to get an AI coding agent productive quickly with concrete, project-specific patterns, files, and commands.
+
+Quick run (what humans do locally)
+- Backend: from repo root -> `cd backend && go run .` (or `./back.sh`). Server listens on :8080 and exposes `/ws` for WebSockets.
+- Frontend: `cd frontend-next && npm run dev` (or `./front.sh`). Next runs on :3000 and Next API routes proxy cookies to the Go backend.
+
+Key files to read first
+- `backend/web/connectWeb.go` — central HTTP route registration and CORS wrapper usage.
+- `backend/server.go` — backend entrypoint and DB startup.
+- `backend/pkg/apis/chat/chatHub.go` — WebSocket hub and broadcast channel.
+- `backend/pkg/db/*` — DB helpers (select/insert/update); migrations at `backend/pkg/db/migrations/sqlite/`.
+- `frontend-next/contexts/WebSocketContext.js` — global WS connection and subscription model.
+- `frontend-next/pages/api/*` — Next API proxy routes that forward cookies to the backend.
+
+Project-specific rules and examples (copy these)
+- Session validation: every backend handler must validate sessions using the existing helper.
+  Example: `userID, loggedIn := u.ValidateSession(db, r)` — return 401 when not logged in.
+- Register handlers only in `backend/web/connectWeb.go` and wrap with the CORS helper: `cor.WithCORS(...)`.
+- WebSocket model: single persistent connection per user. Use the backend hub for cross-user events.
+  Broadcast example: `hub.Broadcast <- Frontend{Type: "new_groupPost"}`.
+- Frontend WS usage: `WebSocketContext` opens one connection; components subscribe to a message type, then fetch REST data to refresh UI (WS messages are signals, not authoritative payloads).
+- Next API proxy pattern: Next API routes must forward cookies to the backend when calling it.
+  Example: `fetch('http://localhost:8080/api', { headers: { Cookie: req.headers.cookie } })`.
+
+Database & migrations
+- DB file: `backend/data/` (SQLite). Migrations: `backend/pkg/db/migrations/sqlite/`.
+- DB helpers use raw SQL (`database/sql`). Reuse `backend/pkg/db/*` helper functions — avoid duplicating SQL patterns.
+
+How to add a new endpoint (minimal checklist)
+1. Implement handler in `backend/*`, reusing DB helpers.
+2. Validate session with `u.ValidateSession(db, r)`.
+3. Register route in `backend/web/connectWeb.go` and wrap with `cor.WithCORS(...)`.
+4. If change impacts multiple users, broadcast via `hub.Broadcast <- Frontend{Type: "..."}`.
+5. On frontend, subscribe to the event in `WebSocketContext` and call the REST endpoint to refresh UI state.
+
+Conventions & gotchas
+- Do NOT open multiple WebSocket connections per user — use the single `WebSocketContext` provider.
+- Keep WS messages small; treat them as triggers to fetch canonical state via REST.
+- Reuse existing DB helper functions (`select.go`, `insert.go`, etc.). Keep naming/param styles consistent.
+
+Developer workflows & verification
+- Start backend and frontend as above; check backend logs (console) on :8080 and frontend console for subscription/refresh calls.
+- Helper scripts: `back.sh` and `front.sh` at repo root.
+
+If you want more
+- Say which file or pattern you want expanded (e.g., a handler template, broadcast + frontend subscription example, or a tiny test). I will add a runnable snippet and verification steps.
+
+Last-updated: concise update to focus AI agent onboarding.
+## Social Network — Copilot instructions (concise)
+
 This repo is a full-stack social app: Go backend + Next.js frontend. The goal of these notes is to get an AI coding agent productive quickly with minimal hand-holding.
 
 - Backend: Go (entry: `backend/server.go`), routes in `backend/web/connectWeb.go`, DB helpers under `backend/pkg/db/*` (plain `database/sql`, no ORM). SQLite DB file lives in `backend/data/`.

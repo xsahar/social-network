@@ -253,8 +253,15 @@ func UpdateProfileHandler(db *sql.DB, w http.ResponseWriter, r *http.Request, cu
 				return
 			}
 
-			// Save into Next.js public dir (consider making this configurable)
-			uploadDir := filepath.Join("..", "frontend-next", "public", "img", "avatars")
+			// Save into Next.js public dir — prefer STATIC_DIR when provided so the
+			// backend can be started from different working directories.
+			staticDir := os.Getenv("STATIC_DIR")
+			var uploadDir string
+			if staticDir != "" {
+				uploadDir = filepath.Join(staticDir, "public", "img", "avatars")
+			} else {
+				uploadDir = filepath.Join("..", "frontend-next", "public", "img", "avatars")
+			}
 			if err := os.MkdirAll(uploadDir, 0o755); err != nil {
 				log.Println("avatar save: MkdirAll error:", err)
 				http.Error(w, "could not save avatar", http.StatusInternalServerError)
