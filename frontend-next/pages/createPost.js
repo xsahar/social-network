@@ -366,10 +366,7 @@ export default function CreatePost() {
                             className="w-5 h-5 mr-4 text-indigo-600 focus:ring-indigo-500 rounded border-2"
                           />
                           <div className="flex items-center gap-3 flex-1">
-                            <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md">
-                              {follower.username?.charAt(0) || ''}
-                            </div>
-                            <span className="text-base font-bold text-gray-900">{follower.username && follower.username.length > 1 ? follower.username : ''}</span>
+                            <span className="text-base font-bold text-gray-900">{follower.username ? `@${follower.username}` : ''}</span>
                           </div>
                           {formData.selectedFollowers.includes(follower.id) 
                           }
