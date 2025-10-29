@@ -253,10 +253,6 @@ export default function Posts() {
                 Discover Amazing Stories!
               </h1>
               
-              <p className="text-lg text-gray-700 font-medium mb-8 max-w-2xl mx-auto">
-                Explore incredible content from your vibrant community! Every story matters and inspires others.
-              </p>
-              
               <button 
                 className="button-create group relative overflow-hidden"
                 onClick={() => router.push('/createPost')}
@@ -415,21 +411,25 @@ export default function Posts() {
               Chat ({followingUsers.length})
             </h3>
             <div className="chat-users-list">
-              {followingUsers.length > 0 ? (
+                    {followingUsers.length > 0 ? (
                 followingUsers.map((followingUser) => {
                   const isOnline = onlineUsers.some(u => u.id === followingUser.id);
                   return (
-                    <div key={followingUser.id} className="chat-user-item">
+                    <div
+                      key={followingUser.id}
+                      className="chat-user-item"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => startChat(followingUser)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') startChat(followingUser); }}
+                    >
                       <div className="chat-user-info">
                         <div className={`chat-status-dot ${isOnline ? 'online' : 'offline'}`}></div>
+                        <div className="user-avatar-small">
+                          <span>{followingUser.emoji || (followingUser.username ? followingUser.username.charAt(0).toUpperCase() : '?')}</span>
+                        </div>
                         <span className="chat-username">{followingUser.username}</span>
                       </div>
-                      <button
-                        onClick={() => startChat(followingUser)}
-                        className="chat-button"
-                      >
-                        Chat
-                      </button>
                     </div>
                   );
                 })

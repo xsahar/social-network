@@ -9,6 +9,12 @@ export default function MainPage() {
   const { user, loading, logout } = useSession();
   const { onlineUsers } = useWebSocketContext();
 
+  // Ensure body-level background is applied (helps when child elements cover container)
+  useEffect(() => {
+    document.body.classList.add('index-page-bg');
+    return () => document.body.classList.remove('index-page-bg');
+  }, []);
+
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!loading && !user) {
@@ -43,7 +49,7 @@ export default function MainPage() {
   }
 
   return (
-    <div className="layout-container">
+  <div className="layout-container index-page-bg">
       <Head>
         <title>Social Network - Dashboard</title>
       </Head>
@@ -112,38 +118,6 @@ export default function MainPage() {
                 </p> */}
               </div>
               
-              {/* Additional Floating Elements */}
-              <div className="absolute top-16 left-12 w-6 h-6 bg-pink-400 rounded-full opacity-25 animate-float" style={{animationDelay: '1s'}}></div>
-              <div className="absolute top-24 right-20 w-8 h-8 bg-blue-400 rounded-full opacity-30 animate-float" style={{animationDelay: '2s'}}></div>
-              <div className="absolute bottom-12 left-24 w-4 h-4 bg-yellow-400 rounded-full opacity-35 animate-float" style={{animationDelay: '3s'}}></div>
-            </div>
-
-            {/* Professional Stats Section */}
-            <div className="dashboard-stats-grid">
-              {/* Live Users Stats */}
-              <div className="bg-white/90 backdrop-blur-2xl rounded-3xl p-8 shadow-2xl border border-white/30 relative overflow-hidden group hover:scale-105 transition-all duration-500 animate-float">
-                {/* Background Decoration */}
-                <div className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-15 animate-pulse" style={{ background: 'var(--gradient-ocean)' }}></div>
-                <div className="dashboard-card-decoration-small"></div>
-                
-                <div className="flex flex-col items-center text-center relative z-10">
-                  <div className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6 animate-gentle-rotate group-hover:scale-110 transition-transform shadow-lg" style={{ background: 'var(--gradient-ocean)' }}>
-                    <div className="text-white text-2xl font-bold">U</div>
-                  </div>
-                  
-                  <div className="text-5xl font-black mb-2 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent">
-                    {onlineUsers.length}
-                  </div>
-                  
-                  <h3 className="text-xl font-bold text-gray-800 mb-3">Users Online</h3>
-                  
-                  <div className="flex items-center gap-3 bg-green-50/80 px-4 py-2 rounded-full backdrop-blur-sm">
-                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-sm"></div>
-                    <span className="text-sm text-green-700 font-semibold">Live activity!</span>
-                  </div>
-                </div>
-              </div>
-              
               {/* Creative Stories Stats */}
               <div className="bg-white/90 backdrop-blur-2xl rounded-3xl p-8 shadow-2xl border border-white/30 relative overflow-hidden group hover:scale-105 transition-all duration-500 animate-float" style={{animationDelay: '1s'}}>
                 {/* Background Decoration */}
@@ -152,7 +126,7 @@ export default function MainPage() {
                 
                 <div className="flex flex-col items-center text-center relative z-10">
                   <div className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6 animate-gentle-rotate group-hover:scale-110 transition-transform shadow-lg" style={{ background: 'var(--gradient-nature)' }}>
-                    <div className="text-white text-2xl font-bold">P</div>
+                   
                   </div>
                   
                   <div className="text-5xl font-black mb-2 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 bg-clip-text text-transparent">
@@ -176,7 +150,6 @@ export default function MainPage() {
                 
                 <div className="flex flex-col items-center text-center relative z-10">
                   <div className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6 animate-gentle-rotate group-hover:scale-110 transition-transform shadow-lg" style={{ background: 'var(--gradient-magic)' }}>
-                    <div className="text-white text-2xl font-bold">E</div>
                   </div>
                   
                   <div className="text-4xl font-black mb-2 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-800 bg-clip-text text-transparent">

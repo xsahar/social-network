@@ -935,7 +935,7 @@
   position: fixed;
   right: 0;
   top: 64px;
-  width: 400px;
+  width: 350px;
   height: calc(100vh - 64px);
   background: white;
   box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
@@ -988,6 +988,7 @@
   font-size: 1.125rem;
   font-weight: 600;
   margin: 0 0 4px 0;
+  color: white; /* keep username/title inside the header readable */
 }
 
 .group-chat-status {
@@ -1732,5 +1733,52 @@
 /* Invite Members Modern */
 .invite-members-modern {
   padding: 24px;
+}
+
+/* ========================================
+   PRIVATE CHAT HELPERS
+   - when private chat is open, give the page right padding so underlying buttons aren't covered
+   - improve timestamp contrast for message bubbles
+   ======================================== */
+
+/* body.private-chat-open was removed — pages use their own .chat-open class to create space */
+
+.message-time {
+  color: var(--gray-900); /* make timestamps darker/black inside chat */
+  opacity: 1;
+  font-weight: 600;
+}
+
+/* Ensure any nested elements (some browsers may wrap AM/PM or separators) inherit the color */
+.message-time, .message-time * {
+  color: #0b0b0b !important; /* enforce near-black for all parts of the time */
+  opacity: 1 !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+}
+
+/* Make sure the chat input and emoji picker are not clipped */
+.group-chat-input-modern {
+  position: relative;
+  z-index: 30; /* above messages so picker and buttons remain visible */
+  overflow: visible;
+}
+
+.chat-emoji-btn {
+  z-index: 40;
+}
+
+.chat-emoji-picker-modern {
+  right: 16px;
+  bottom: 72px; /* lift slightly above the input */
+  z-index: 1000;
+}
+
+/* Sidebar chat title (Chat (n)) should use the site's gradient heading treatment */
+.chat-sidebar-title {
+  background: var(--accent-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 

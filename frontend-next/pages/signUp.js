@@ -70,7 +70,7 @@ export default function SignUp() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-6" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+    <div className="login-page-bg min-h-screen flex items-center justify-center py-12 px-6">
       <Head>
         <title>Join SocialNet</title>
         <meta name="description" content="Join our amazing community and start your incredible journey!" />
@@ -88,10 +88,6 @@ export default function SignUp() {
           <h1 className="text-4xl font-bold text-white mb-3 tracking-tight">
             Create Account
           </h1>
-          
-          <p className="text-lg text-white/80 font-medium">
-            Join SocialNet and connect with people worldwide
-          </p>
         </div>
         
         {/* Professional Form Card */}

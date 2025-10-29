@@ -65,7 +65,7 @@
 .dashboard-title {
   font-size: clamp(2.5rem, 5vw, 4rem);
   font-weight: 800;
-  background: var(--gradient-cosmic);
+  background: var(--gradient-title-magic-ice,linear-gradient(135deg, #6C5CE7 0%, #74B9FF 100%));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

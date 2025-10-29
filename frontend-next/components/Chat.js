@@ -192,57 +192,26 @@ const Chat = ({ isOpen, onClose, chatWith, userID }) => {
   if (!isOpen) return null;
 
   return (
-    <div style={{
-      position: 'fixed',
-      right: 0,
-      top: '64px',
-      width: '350px',
-      height: 'calc(100vh - 64px)',
-      backgroundColor: 'white',
-      boxShadow: '-2px 0 8px rgba(0,0,0,0.15)',
-      display: 'flex',
-      flexDirection: 'column',
-      zIndex: 999
-    }}>
+    <div className="group-chat-modern">
       {/* Chat Header */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        padding: '16px',
-        borderBottom: '1px solid #e4e6ea',
-        backgroundColor: '#f8f9fa'
-      }}>
-        <h3 style={{fontSize: '18px', fontWeight: '500', color: '#1c1e21', margin: 0}}>
-          {chatWith?.username || 'User'}
-        </h3>
-        <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-          <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
-            <span style={{ 
-              display: 'inline-block', 
-              width: '8px', 
-              height: '8px', 
-              borderRadius: '50%', 
-              backgroundColor: connected ? '#42b883' : '#e0245e' 
-            }}></span>
-            <span style={{fontSize: '12px', color: '#65676b'}}>
-              {connected ? 'Connected' : 'Disconnected'}
+      <div className="group-chat-header-modern">
+        <div className="group-chat-header-content">
+          <div className="group-chat-header-icon">
+            {/* show emoji if provided, otherwise initial fallback */}
+            <span style={{fontWeight: 700, fontSize: '18px', color: 'white'}}>
+              {chatWith?.emoji || (chatWith?.username ? chatWith.username.charAt(0).toUpperCase() : '🙂')}
             </span>
           </div>
-          <button 
-            onClick={onClose} 
-            style={{ 
-              background: 'none', 
-              border: 'none', 
-              fontSize: '24px', 
-              cursor: 'pointer', 
-              color: '#65676b',
-              padding: '0',
-              lineHeight: '1'
-            }}
-          >
-            ×
-          </button>
+          <div className="group-chat-header-info">
+            <div className="group-chat-header-title">{chatWith?.username || 'User'}</div>
+            <div className="group-chat-status">
+              <div className={`group-chat-status-dot ${connected ? '' : 'disconnected'}`}></div>
+              <div style={{fontSize: '12px', color: 'rgba(255,255,255,0.9)'}}>{connected ? 'Connected' : 'Disconnected'}</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <button onClick={onClose} className="group-chat-close-btn">×</button>
         </div>
       </div>
 
@@ -261,15 +230,7 @@ const Chat = ({ isOpen, onClose, chatWith, userID }) => {
       )}
 
       {/* Chat Messages */}
-      <div
-        ref={chatWindowRef}
-        style={{ 
-          flex: 1, 
-          overflowY: 'auto', 
-          padding: '16px',
-          backgroundColor: '#f8f9fa'
-        }}
-      >
+      <div ref={chatWindowRef} className="group-chat-messages-modern">
         {isLoadingHistory ? (
           <div style={{textAlign: 'center', color: '#65676b', padding: '32px'}}>
             <p>Loading messages...</p>
@@ -282,17 +243,13 @@ const Chat = ({ isOpen, onClose, chatWith, userID }) => {
           chatMessages.map((msg, index) => {
             const isMyMessage = msg.from === userID;
             return (
-              <div key={`${msg.timestamp}-${index}`} className={`chat-message ${isMyMessage ? 'my-message' : 'other-message'}`}>
-                <div className="bubble">
-                  {!isMyMessage && (
-                    <div className="meta">
-                      <span style={{fontWeight: '500'}}>{msg.username || chatWith?.username || `User ${msg.from}`}</span>
-                    </div>
-                  )}
-                  <div className="text">{msg.content || msg.message}</div>
-                  <div className="meta" style={{justifyContent: isMyMessage ? 'flex-end' : 'flex-start'}}>
-                    <span>{formatTime(msg.timestamp)}</span>
-                  </div>
+              <div key={`${msg.timestamp}-${index}`} className={`group-chat-message-modern ${isMyMessage ? 'my-message' : 'other-message'}`}>
+                {!isMyMessage && (
+                  <div className="message-username">{msg.username || chatWith?.username || `User ${msg.from}`}</div>
+                )}
+                <div className="message-bubble-modern">
+                  <div className="message-content">{msg.content || msg.message}</div>
+                  <div className="message-time">{formatTime(msg.timestamp)}</div>
                 </div>
               </div>
             );
@@ -301,99 +258,48 @@ const Chat = ({ isOpen, onClose, chatWith, userID }) => {
       </div>
 
       {/* Chat Input */}
-      <form 
-        onSubmit={handleSendMessage} 
-        style={{
-          padding: '16px',
-          borderTop: '1px solid #e4e6ea',
-          backgroundColor: 'white',
-          display: 'flex',
-          gap: '8px'
-        }}
-      >
-        <input
-          type="text"
-          ref={inputRef}
-          value={messageInput}
-          onChange={(e) => setMessageInput(e.target.value)}
-          placeholder={connected ? "Type your message..." : "Connecting..."}
-          disabled={!connected}
-          style={{ 
-            flex: 1, 
-            padding: '10px 12px', 
-            border: '1px solid #dddfe2', 
-            borderRadius: '20px', 
-            fontSize: '14px',
-            outline: 'none'
-          }}
-        />
-        <div style={{position: 'relative', display: 'flex', alignItems: 'center', gap: '8px'}}>
+      <form onSubmit={handleSendMessage} className="group-chat-input-modern">
+        <div className="chat-input-wrapper">
           <button
             id="emoji-button"
             type="button"
             onClick={() => setShowEmojiPicker(s => !s)}
             title="Insert emoji"
             disabled={!connected}
-            style={{
-              padding: '8px 12px',
-              background: !connected ? '#f3f4f6' : 'none',
-              border: '1px solid #dddfe2',
-              borderRadius: '20px',
-              cursor: !connected ? 'not-allowed' : 'pointer',
-              fontSize: '18px',
-              lineHeight: 1
-            }}
+            className="chat-emoji-btn"
           >
             🙂
           </button>
-
-          {showEmojiPicker && (
-            <div id="emoji-picker" style={{
-              position: 'absolute',
-              bottom: '52px',
-              right: 0,
-              width: '320px',
-              background: 'white',
-              border: '1px solid #e4e6ea',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-              borderRadius: '8px',
-              padding: '8px',
-              zIndex: 1000
-            }}>
-              {EmojiPicker ? (
-                <EmojiPicker
-                  onEmojiClick={(emojiData) => {
-                    // emojiData.emoji is the unicode character
-                    const char = emojiData?.emoji || '';
-                    insertAtCaret(char);
-                    setShowEmojiPicker(false);
-                  }}
-                  preload={true}
-                />
-              ) : (
-                <div style={{padding: 12}}>Loading emojis…</div>
-              )}
-            </div>
-          )}
-
-          <button 
-          type="submit"
-          disabled={!connected || !messageInput.trim()}
-          style={{ 
-            padding: '10px 20px', 
-            backgroundColor: connected && messageInput.trim() ? '#4267B2' : '#e4e6ea', 
-            color: connected && messageInput.trim() ? 'white' : '#65676b', 
-            border: 'none', 
-            borderRadius: '20px', 
-            fontSize: '14px', 
-            fontWeight: '500', 
-            cursor: connected && messageInput.trim() ? 'pointer' : 'not-allowed',
-            whiteSpace: 'nowrap'
-          }}
-        >
-          Send
-        </button>
+          <input
+            type="text"
+            ref={inputRef}
+            value={messageInput}
+            onChange={(e) => setMessageInput(e.target.value)}
+            placeholder={connected ? "Type your message..." : "Connecting..."}
+            disabled={!connected}
+            className="chat-input-field"
+          />
+          <button type="submit" disabled={!connected || !messageInput.trim()} className={`chat-send-btn ${connected && messageInput.trim() ? 'active' : ''}`}>
+            Send
+          </button>
         </div>
+
+        {showEmojiPicker && (
+          <div id="emoji-picker" className="chat-emoji-picker-modern">
+            {EmojiPicker ? (
+              <EmojiPicker
+                onEmojiClick={(emojiData) => {
+                  const char = emojiData?.emoji || '';
+                  insertAtCaret(char);
+                  setShowEmojiPicker(false);
+                }}
+                preload={true}
+              />
+            ) : (
+              <div style={{padding: 12}}>Loading emojis…</div>
+            )}
+          </div>
+        )}
       </form>
     </div>
   );

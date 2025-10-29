@@ -147,25 +147,19 @@ export default function CreatePost() {
           
           {/* Professional Header */}
           <div className="create-post-hero">
-            <div className="create-post-hero-icon">
+            {/* <div className="create-post-hero-icon">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
-            </div>
-            <h1 className="create-post-hero-title">Create Something Amazing</h1>
-            <p className="create-post-hero-subtitle">
-              Share your story with the world! Every voice matters.
-            </p>
-            
-            {/* Back Button */}
+            </div> */}
+            <h1 className="create-post-hero-title">Create Something Amazing</h1> 
             <button
               onClick={() => router.back()}
-              className="inline-flex items-center gap-3 text-gray-600 hover:text-blue-600 font-bold text-lg transition-all duration-300 hover:underline decoration-2 underline-offset-4 mb-8"
+              className="back-button"
             >
-              Back to Posts
+              ← Back to Posts
             </button>
           </div>
-
           {/* Ultra-Professional Form Container */}
           <div className="create-post-form-container">
             {/* Top gradient bar */}
@@ -180,7 +174,7 @@ export default function CreatePost() {
                 <h2 className="text-3xl font-bold text-gray-800 mb-4">
                   Share Your Story
                 </h2>
-                <p className="text-lg text-gray-600 font-medium">Create content that sparks joy and inspires others!</p>
+               
               </div>
 
               <form onSubmit={handleSubmit}>

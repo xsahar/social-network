@@ -186,9 +186,6 @@ export default function Users() {
             <div className="absolute top-0 left-0 right-0 h-1" style={{ background: 'var(--gradient-cosmic)' }}></div>
             
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-3 flex items-center justify-center gap-3">
-                Find Your Next Connection
-              </h2>
               <p className="text-gray-600 font-medium">Search for amazing people by name or username</p>
             </div>
             
