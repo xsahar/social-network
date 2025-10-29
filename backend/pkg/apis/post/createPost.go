@@ -76,8 +76,26 @@ func CreatePost(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *http.Reques
 		}
 
 		// generate a safe filename
-		fname := strings.ReplaceAll(header.Filename, " ", "-")
-		dstFile, err := os.Create("../frontend-next/public/img/posts/" + fname)
+    uploadDir := filepath.Join("..", "frontend-next", "public", "img", "posts")
+        if err := os.MkdirAll(uploadDir, 0o755); err != nil {
+            log.Println("mkdir error:", err)
+            http.Error(w, "Server error", http.StatusInternalServerError)
+            return
+        }
+
+        // generate a safe, timestamped filename to avoid collisions and missing-dir issues
+        base := filepath.Base(strings.ReplaceAll(header.Filename, " ", "-"))
+        ext = strings.ToLower(filepath.Ext(base))
+        nameNoExt := strings.TrimSuffix(base, ext)
+        if ext == "" {
+            // fallback to .jpg if extension missing
+            ext = ".jpg"
+        }
+        stamp := time.Now().UTC().Format("20060102T150405")
+        finalName := fmt.Sprintf("%s_%s%s", nameNoExt, stamp, ext)
+
+        dstPath := filepath.Join(uploadDir, finalName)
+        dstFile, err := os.Create(dstPath)
 		if err != nil {
 			log.Println("file create error:", err)
 			http.Error(w, "Server error", http.StatusInternalServerError)
@@ -92,7 +110,7 @@ func CreatePost(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *http.Reques
 		}
 
 		// this is the URL your frontend can use to display the image
-		imgOrGif = "/img/posts/" + fname
+		imgOrGif = "/img/posts/" + finalName
 	} else if err != http.ErrMissingFile {
 		http.Error(w, "Error reading uploaded file", http.StatusBadRequest)
 		return

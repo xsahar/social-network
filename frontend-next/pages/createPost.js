@@ -367,11 +367,12 @@ export default function CreatePost() {
                           />
                           <div className="flex items-center gap-3 flex-1">
                             <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md">
-                              {follower.username?.charAt(0).toUpperCase()}
+                              {follower.username?.charAt(0) || ''}
                             </div>
-                            <span className="text-base font-bold text-gray-900">{follower.username}</span>
+                            <span className="text-base font-bold text-gray-900">{follower.username && follower.username.length > 1 ? follower.username : ''}</span>
                           </div>
-                          {formData.selectedFollowers.includes(follower.id) }
+                          {formData.selectedFollowers.includes(follower.id) 
+                          }
                         </label>
                       ))}
                     </div>
@@ -402,10 +403,11 @@ export default function CreatePost() {
                       <div className="relative">
                         <label 
                           htmlFor="image"
-                          className="group flex items-center gap-4 p-6 rounded-2xl border-2 border-dashed border-gray-300 hover:border-purple-400 bg-gradient-to-br from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 cursor-pointer transition-all duration-300 hover:shadow-lg"
+                          className="group flex items-center gap-4 p-6 rounded-2xl border-2 border-dashed cursor-pointer transition-all duration-300 hover:shadow-lg"
+                          style={{ background: 'var(--primary-50)', borderColor: 'var(--primary-200)' }}
                         >
                           <div className="flex-shrink-0">
-                            <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                            <div className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300" style={{ background: 'linear-gradient(135deg, var(--primary-500), var(--primary-600))' }}>
                               <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
                               </svg>
@@ -413,7 +415,7 @@ export default function CreatePost() {
                           </div>
                           
                           <div className="flex-1">
-                            <h4 className="text-lg font-bold text-gray-800 mb-1 group-hover:text-purple-700 transition-colors">
+                            <h4 className="text-lg font-bold text-gray-800 mb-1 transition-colors" style={{ color: 'var(--gray-800)' }}>
                               Click to upload an image
                             </h4>
                             <p className="text-sm text-gray-600 font-medium">
@@ -421,10 +423,11 @@ export default function CreatePost() {
                             </p>
                           </div>
                           
-                          <div className="flex-shrink-0">
-                            <svg className="w-6 h-6 text-purple-500 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <div className="flex-shrink-0 flex items-center gap-3">
+                            <svg className="w-6 h-6" style={{color: 'var(--primary-500)'}} viewBox="0 0 24 24" fill="none" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
                             </svg>
+                            <span className="btn btn-primary btn-sm" style={{ pointerEvents: 'none' }}>Choose file</span>
                           </div>
                         </label>
                         
@@ -549,7 +552,7 @@ export default function CreatePost() {
                       className="btn btn-secondary"
                     >
                       <span className="tracking-wider">Cancel</span>
-                      <span className="text-2xl bg-transparent w-8 h-8 flex items-center justify-center rounded-lg">❌</span>
+                     
                     </button>
                   </div>
                   
