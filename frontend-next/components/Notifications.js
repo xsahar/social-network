@@ -54,8 +54,11 @@
         'new_follower': 'New follower'
       };
       const title = titleMap[n.type] || n.type;
-    const rawTs = n.Timestamp || n.timestamp || n.time || n.Time;
-    const when = rawTs ? new Date(rawTs).toLocaleString() : '';
+  const rawTs = n.Timestamp || n.timestamp || n.time || n.Time;
+  const when = rawTs ? new Date(rawTs).toLocaleString() : '';
+  // Prefer explicit event date when present (server may include event_date)
+  const rawEventDate = n.EventDate || n.event_date || n.eventDate || n.event || null;
+  const eventWhen = rawEventDate ? new Date(rawEventDate).toLocaleString() : null;
 
       const handleAction = async (action) => {
         try {
@@ -194,24 +197,121 @@
               {n.Content || n.content || n.message || (n.Username || n.username ? `${n.Username || n.username} sent a notification` : 'No message')}
             </div>
 
-            {(n.type === 'follow_request' || n.type === 'group_join_request' || n.type === 'group_invitation') && (
-              <div className="notification-actions">
-                <button className="btn-accept" onClick={() => handleAction('accept')} aria-label="Accept request">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden className="btn-icon">
-                    <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  <span>Accept</span>
-                </button>
+            {n.type === 'new_groupEvent' && (
+              <div className="notification-meta" style={{ marginTop: 8 }}>
+                <strong>Event date:</strong> {eventWhen || when || '—'}
+              </div>
+            )}
 
-                <button className="btn-decline" onClick={() => handleAction('decline')} aria-label="Decline request">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden className="btn-icon">
-                    <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  <span>Decline</span>
-                </button>
+            {(n.type === 'follow_request' || n.type === 'group_join_request' || n.type === 'group_invitation' || n.type === 'new_groupEvent') && (
+              <div className="notification-actions">
+                {/* follow/join/invite actions use generic accept/decline handler */}
+                {(n.type === 'follow_request' || n.type === 'group_join_request' || n.type === 'group_invitation') && (
+                  <>
+                    <button className="btn-accept" onClick={() => handleAction('accept')} aria-label="Accept request">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden className="btn-icon">
+                        <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      <span>Accept</span>
+                    </button>
+
+                    <button className="btn-decline" onClick={() => handleAction('decline')} aria-label="Decline request">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden className="btn-icon">
+                        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      <span>Decline</span>
+                    </button>
+                  </>
+                )}
+
+                {/* new_groupEvent: show Yes/No vote UI that calls backend vote endpoint */}
+                {n.type === 'new_groupEvent' && (
+                  <EventVoteButtons notification={n} />
+                )}
               </div>
             )}
           </div>
+        </div>
+      );
+    };
+
+    // Inline small component for event voting inside notifications
+    const EventVoteButtons = ({ notification }) => {
+      const [loading, setLoading] = useState(false);
+      const [voted, setVoted] = useState(notification.UserVote || notification.user_vote || null);
+
+      const handleVoteClick = async (choice) => {
+        if (loading) return;
+        setLoading(true);
+        try {
+          const eventId = notification.PostId || notification.post_id || notification.postId || notification.PostId || 0;
+          if (!eventId || Number(eventId) <= 0) {
+            console.error('Missing event id on notification');
+            setLoading(false);
+            return;
+          }
+          const resp = await fetch(`http://localhost:8080/groups/events/vote?event_id=${eventId}&choice=${choice}`, {
+            method: 'POST',
+            credentials: 'include'
+          });
+          if (!resp.ok) {
+            const txt = await resp.text().catch(() => '');
+            console.error('Failed to vote on event', resp.status, txt);
+            setLoading(false);
+            return;
+          }
+          // Mark voted locally; real counts will arrive via WebSocket
+          setVoted(choice);
+          // Remove the notification from the bell/dropdown since user acted on it
+          try {
+            const actedPostId = Number(eventId);
+            const matchesActed = (item) => {
+              if (!item) return false;
+              const pid = item.PostId || item.post_id || item.postId || item.PostId || 0;
+              if (pid && Number(pid) === actedPostId) return true;
+              // fallback: same type and same content
+              if (item.type === notification.type && item.content === notification.content) return true;
+              return false;
+            };
+            setNotifications(prev => prev ? prev.filter(item => !matchesActed(item)) : prev);
+          } catch (e) {
+            // don't block on removal errors
+            console.error('Failed to remove notification after vote', e);
+          }
+        } catch (err) {
+          console.error('Error voting on event:', err);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      return (
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <button
+            className={`btn-accept ${voted === 'yes' ? 'active' : ''}`}
+            onClick={() => handleVoteClick('yes')}
+            disabled={loading}
+            aria-label="Vote Yes"
+            title={voted === 'yes' ? 'You voted Yes' : 'Vote Yes'}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden className="btn-icon">
+              <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span>{voted === 'yes' ? 'Yes ✓' : 'Yes'}</span>
+          </button>
+
+          <button
+            className={`btn-decline ${voted === 'no' ? 'active' : ''}`}
+            onClick={() => handleVoteClick('no')}
+            disabled={loading}
+            aria-label="Vote No"
+            title={voted === 'no' ? 'You voted No' : 'Vote No'}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden className="btn-icon">
+              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span>{voted === 'no' ? 'No ✗' : 'No'}</span>
+          </button>
         </div>
       );
     };

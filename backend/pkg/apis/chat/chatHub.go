@@ -32,6 +32,7 @@ type Frontend struct {
 	UserVote     string    `json:"user_vote,omitempty"`
 	RequestID    int       `json:"request_id,omitempty"`
 	InvitationID int       `json:"invitation_id,omitempty"`
+	EventDate    string    `json:"event_date,omitempty"`
 }
 
 type Client struct {

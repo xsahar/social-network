@@ -739,6 +739,7 @@ func ConnectWeb(db *sql.DB) {
 			GroupID     int    `json:"group_id"`
 			Title       string `json:"title"`
 			Description string `json:"description"`
+			EventDate   string `json:"event_date"` // optional ISO datetime from client
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, "Bad JSON", http.StatusBadRequest)
@@ -758,11 +759,18 @@ func ConnectWeb(db *sql.DB) {
 			http.Error(w, "Forbidden", http.StatusForbidden)
 			return
 		}
-		// Insert event
+		// Insert event (store optional event_date)
+		var evDate interface{}
+		if strings.TrimSpace(req.EventDate) == "" {
+			evDate = nil
+		} else {
+			evDate = req.EventDate
+		}
+
 		res, err := db.Exec(`
-        INSERT INTO events (group_id, creator_id, title, description, created_at)
-        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-    `, req.GroupID, userID, req.Title, req.Description)
+		INSERT INTO events (group_id, creator_id, title, description, event_date, created_at)
+		VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+	`, req.GroupID, userID, req.Title, req.Description, evDate)
 		if err != nil {
 			http.Error(w, "DB error", http.StatusInternalServerError)
 			return
@@ -792,6 +800,7 @@ func ConnectWeb(db *sql.DB) {
 			GroupID:   req.GroupID,
 			PostId:    int(id),
 			Content:   req.Title + ": " + req.Description,
+			EventDate: req.EventDate,
 			Timestamp: time.Now(),
 			YesCount:  yesCount,
 			NoCount:   noCount,
@@ -816,6 +825,10 @@ func ConnectWeb(db *sql.DB) {
 
 			chatHub.Mutex.RLock()
 			for _, memberID := range memberIDs {
+				// Do not send the event notification back to the creator
+				if memberID == userID {
+					continue
+				}
 				if client, ok := chatHub.Clients[memberID]; ok {
 					select {
 					case client.Send <- eventNotification:
@@ -889,11 +902,11 @@ func ConnectWeb(db *sql.DB) {
 			}
 
 			rows, err := db.Query(`
-            SELECT id, title, description, datetime(created_at)
-            FROM events
-            WHERE group_id = ?
-            ORDER BY created_at DESC
-        `, groupID)
+			SELECT id, title, description, datetime(created_at), event_date
+			FROM events
+			WHERE group_id = ?
+			ORDER BY created_at DESC
+		`, groupID)
 			if err != nil {
 				http.Error(w, "DB error", http.StatusInternalServerError)
 				return
@@ -905,6 +918,7 @@ func ConnectWeb(db *sql.DB) {
 				Title       string  `json:"title"`
 				Description string  `json:"description"`
 				CreatedAt   string  `json:"created_at"`
+				EventDate   *string `json:"event_date"`
 				YesCount    int     `json:"yes_count"`
 				NoCount     int     `json:"no_count"`
 				UserVote    *string `json:"user_vote"` // "yes"|"no"|nil
@@ -913,7 +927,7 @@ func ConnectWeb(db *sql.DB) {
 			var out []EventOut
 			for rows.Next() {
 				var ev EventOut
-				if err := rows.Scan(&ev.ID, &ev.Title, &ev.Description, &ev.CreatedAt); err == nil {
+				if err := rows.Scan(&ev.ID, &ev.Title, &ev.Description, &ev.CreatedAt, &ev.EventDate); err == nil {
 					_ = db.QueryRow(`SELECT COUNT(*) FROM event_votes WHERE event_id = ? AND choice='yes'`, ev.ID).Scan(&ev.YesCount)
 					_ = db.QueryRow(`SELECT COUNT(*) FROM event_votes WHERE event_id = ? AND choice='no'`, ev.ID).Scan(&ev.NoCount)
 					var uv sql.NullString
@@ -1325,13 +1339,14 @@ func getTableNames(db *sql.DB) ([]string, error) {
 func ensureEventPollTables(db *sql.DB, hub *chat.Hub) error {
 	stmts := []string{
 		`CREATE TABLE IF NOT EXISTS events (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            group_id   INTEGER NOT NULL,
-            creator_id INTEGER NOT NULL,
-            title       TEXT NOT NULL,
-            description TEXT NOT NULL,
-            created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
-        );`,
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			group_id   INTEGER NOT NULL,
+			creator_id INTEGER NOT NULL,
+			title       TEXT NOT NULL,
+			description TEXT NOT NULL,
+			event_date  DATETIME,
+			created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+		);`,
 		`CREATE TABLE IF NOT EXISTS event_votes (
             event_id INTEGER NOT NULL,
             user_id  INTEGER NOT NULL,
@@ -1344,6 +1359,9 @@ func ensureEventPollTables(db *sql.DB, hub *chat.Hub) error {
 			return err
 		}
 	}
+
+	// Try to add event_date column if the table already existed without it. Ignore error if it already exists.
+	_, _ = db.Exec(`ALTER TABLE events ADD COLUMN event_date DATETIME`)
 
 	// Add comprehensive profile and follow endpoints
 	http.HandleFunc("/profile/complete", cor.WithCORS(func(w http.ResponseWriter, r *http.Request) {

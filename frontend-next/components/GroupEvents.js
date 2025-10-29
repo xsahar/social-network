@@ -44,6 +44,7 @@ export default function GroupEvents({ groupId, user }) {
                 title: message.content.split(':')[0]?.trim() || '',
                 description: message.content.split(':').slice(1).join(':').trim() || '',
                 created_at: message.timestamp,
+                event_date: message.event_date || message.EventDate || null,
                 yes_count: message.yes_count,
                 no_count: message.no_count,
                 user_vote: message.user_vote || null
@@ -274,10 +275,15 @@ export default function GroupEvents({ groupId, user }) {
                     <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
                     <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                   </svg>
-                  <span>{new Date(event.created_at).toLocaleDateString('en-US', { 
-                    month: 'short', 
-                    day: 'numeric' 
-                  })}</span>
+                  {/* Prefer scheduled event_date when available, fallback to created_at */}
+                  {(() => {
+                    const d = event.event_date || event.eventDate || event.created_at || event.createdAt;
+                    try {
+                      return <span>{new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>;
+                    } catch (e) {
+                      return <span>—</span>;
+                    }
+                  })()}
                 </div>
               </div>
 
