@@ -166,8 +166,8 @@ export default function CreatePost() {
             <div className="absolute top-0 left-0 right-0 h-2" style={{ background: 'var(--gradient-cosmic)' }}></div>
             
             {/* Floating decorations */}
-            <div className="absolute top-6 right-6 w-8 h-8 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full opacity-15 animate-spin" style={{animationDuration: '15s'}}></div>
-            <div className="absolute bottom-8 left-8 w-6 h-6 bg-gradient-to-r from-pink-400 to-red-500 rounded-full opacity-20 animate-bounce"></div>
+            <div className="absolute top-6 right-6 w-8 h-8 rounded-full opacity-15 animate-spin" style={{animationDuration: '15s', background: 'linear-gradient(90deg, var(--primary-300), var(--primary-500))'}}></div>
+            <div className="absolute bottom-8 left-8 w-6 h-6 rounded-full opacity-20 animate-bounce" style={{background: 'linear-gradient(90deg, var(--primary-100), var(--primary-200))'}}></div>
             
             <div className="p-12">
               <div className="text-center mb-10">
@@ -281,9 +281,10 @@ export default function CreatePost() {
                       {privacyOptions.map((option) => {
                         const isSelected = formData.privacy === option.value;
                         const gradients = {
-                          'public': 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                          'almost-private': 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                          'private': 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)'
+                          // use light purple tones for all privacy options
+                          'public': 'linear-gradient(135deg, #e2e2faff 0%, #e2c9fdff 100%)',
+                          'almost-private': 'linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%)',
+                          'private': 'linear-gradient(135deg, #f5f3ff 0%, #eadfff 100%)'
                         };
                         const icons = {
                           'public': '🌍',
@@ -554,17 +555,16 @@ export default function CreatePost() {
 
                   {/* Themed Submit Buttons */}
                   <div className="flex flex-row gap-6 pt-8">
-                    {/* Create Post Button */}
+                    {/* Create Post Button - use group share styles */}
                     <button
                       type="submit"
                       disabled={loading}
-                      className="flex-1 relative group overflow-hidden bg-gradient-to-br from-purple-500 via-blue-600 to-purple-700 text-white px-10 py-5 rounded-2xl font-black text-lg hover:from-purple-600 hover:via-blue-700 hover:to-purple-800 transform hover:-translate-y-1 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-4 shadow-[0_8px_25px_-4px_rgba(147,51,234,0.4)] hover:shadow-[0_12px_35px_-3px_rgba(147,51,234,0.6)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none"
+                      className="btn btn-primary flex-1"
                       style={{ minWidth: '200px' }}
                     >
-                      <div className="absolute inset-0 bg-gradient-to-r from-purple-400/0 via-white/20 to-purple-400/0 transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
                       {loading ? (
                         <>
-                          <div className="w-6 h-6 border-3 border-white border-b-transparent rounded-full animate-spin" />
+                          <div className="w-6 h-6 border-3 border-white border-b-transparent rounded-full animate-spin mr-3" />
                           <span className="text-lg tracking-wider">Creating...</span>
                         </>
                       ) : (
@@ -573,19 +573,16 @@ export default function CreatePost() {
                           <span className="text-2xl bg-white/20 w-8 h-8 flex items-center justify-center rounded-lg">✓</span>
                         </>
                       )}
-                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
                     </button>
-                    
-                    {/* Cancel Button */}
+
+                    {/* Cancel Button - use group share secondary style */}
                     <button
                       type="button"
                       onClick={() => router.push('/posts')}
-                      className="relative group overflow-hidden px-8 py-5 bg-gradient-to-br from-rose-500 to-red-600 text-white rounded-2xl font-black text-lg hover:from-rose-600 hover:to-red-700 transform hover:-translate-y-1 active:translate-y-0 transition-all duration-200 flex items-center gap-4 shadow-[0_8px_25px_-4px_rgba(244,63,94,0.4)] hover:shadow-[0_12px_35px_-3px_rgba(244,63,94,0.6)] min-w-[160px] justify-center"
+                      className="btn btn-secondary"
                     >
-                      <div className="absolute inset-0 bg-gradient-to-r from-rose-400/0 via-white/20 to-rose-400/0 transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
                       <span className="tracking-wider">Cancel</span>
-                      <span className="text-2xl bg-white/20 w-8 h-8 flex items-center justify-center rounded-lg">❌</span>
-                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
+                      <span className="text-2xl bg-transparent w-8 h-8 flex items-center justify-center rounded-lg">❌</span>
                     </button>
                   </div>
                   
