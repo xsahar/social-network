@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useWebSocketContext } from '../contexts/WebSocketContext';
+import Toast from './Toast';
 
 const Chat = ({ isOpen, onClose, chatWith, userID }) => {
   const [messageInput, setMessageInput] = useState('');
@@ -12,6 +13,13 @@ const Chat = ({ isOpen, onClose, chatWith, userID }) => {
   const inputRef = useRef(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [EmojiPicker, setEmojiPicker] = useState(null);
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'info' });
+
+  const showToast = (message, type = 'info', duration = 3500) => {
+    setToast({ visible: true, message, type, duration });
+  };
+
+  const hideToast = () => setToast(prev => ({ ...prev, visible: false }));
 
   // Fetch chat history when chat opens
   useEffect(() => {
@@ -153,7 +161,7 @@ const Chat = ({ isOpen, onClose, chatWith, userID }) => {
       });
       setMessageInput('');
     } else {
-      alert('Failed to send message. Please check your connection.');
+      showToast('Failed to send message. Please check your connection.', 'error');
     }
   };
 
@@ -301,6 +309,7 @@ const Chat = ({ isOpen, onClose, chatWith, userID }) => {
           </div>
         )}
       </form>
+        <Toast visible={toast.visible} message={toast.message} type={toast.type} onClose={hideToast} duration={toast.duration} />
     </div>
   );
 };

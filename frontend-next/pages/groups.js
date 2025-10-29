@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Layout from '../components/Layout';
+import Toast from '../components/Toast';
 import { useSession } from '../hooks/useSession';
 import { useWebSocketContext } from '../contexts/WebSocketContext';
 
 export default function Groups() {
   const { user, loading } = useSession();
   const router = useRouter();
-  const { subscribe } = useWebSocketContext();
+  const { subscribe, setNotifications } = useWebSocketContext();
   const [groups, setGroups] = useState([]);
   const [userGroups, setUserGroups] = useState([]);
   const [invitations, setInvitations] = useState([]);
@@ -17,6 +18,14 @@ export default function Groups() {
   const [activeTab, setActiveTab] = useState('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newGroup, setNewGroup] = useState({ title: '', description: '' });
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'info' });
+  const [leaveConfirmId, setLeaveConfirmId] = useState(null);
+
+  const showToast = (message, type = 'info', duration = 3500) => {
+    setToast({ visible: true, message, type, duration });
+  };
+
+  const hideToast = () => setToast(prev => ({ ...prev, visible: false }));
 
   useEffect(() => {
     if (user && user.userID) {
@@ -168,11 +177,10 @@ export default function Groups() {
       } else {
         const errorData = await response.json();
         console.error('Failed to join group:', response.status, errorData);
-        
         if (response.status === 409) {
-          alert('You have already requested to join this group or are already a member.');
+          showToast('You have already requested to join this group or are already a member.', 'info');
         } else {
-          alert(`Failed to join group: ${errorData.error || 'Unknown error'}`);
+          showToast(`Failed to join group: ${errorData.error || 'Unknown error'}`, 'error');
         }
       }
     } catch (error) {
@@ -180,11 +188,7 @@ export default function Groups() {
     }
   };
 
-  const handleLeaveGroup = async (groupId) => {
-    if (!confirm('Are you sure you want to leave this group?')) {
-      return;
-    }
-
+  const confirmLeaveGroup = async (groupId) => {
     try {
       const response = await fetch('/api/leave-group', {
         method: 'POST',
@@ -192,20 +196,22 @@ export default function Groups() {
         body: JSON.stringify({ group_id: groupId }),
         credentials: 'include'
       });
-      
+
       if (response.ok) {
-        alert('Successfully left the group');
+        showToast('Successfully left the group', 'success');
         // Refresh all group data
         fetchGroups();
         fetchUserGroups();
       } else {
         const data = await response.json();
-        alert(data.error || 'Failed to leave group');
+        showToast(data.error || 'Failed to leave group', 'error');
         console.error('Failed to leave group:', response.status);
       }
     } catch (error) {
       console.error('Error leaving group:', error);
-      alert('Error leaving group');
+      showToast('Error leaving group', 'error');
+    } finally {
+      setLeaveConfirmId(null);
     }
   };
 
@@ -224,14 +230,14 @@ export default function Groups() {
       if (response.ok) {
         // Refresh pending approvals
         fetchPendingApprovals();
-        alert(`Request ${action}ed successfully!`);
+        showToast(`Request ${action}ed successfully!`, 'success');
       } else {
         console.error(`Failed to ${action} request:`, response.status);
-        alert(`Failed to ${action} request`);
+        showToast(`Failed to ${action} request`, 'error');
       }
     } catch (error) {
       console.error(`Error ${action}ing request:`, error);
-      alert(`Error ${action}ing request`);
+      showToast(`Error ${action}ing request`, 'error');
     }
   };
 
@@ -252,14 +258,49 @@ export default function Groups() {
         fetchInvitations();
         fetchGroups();
         fetchUserGroups();
-        alert(`Invitation ${action}ed successfully!`);
+        showToast(`Invitation ${action}ed successfully!`, 'success');
+        // Remove corresponding notification(s) from the notifications list
+        try {
+          // Attempt to find the corresponding invitation in local state
+          const relatedInv = (invitations || []).find(inv => {
+            return String(inv.id) === String(invitationId)
+              || String(inv.group_id) === String(invitationId)
+              || String(inv.groupId) === String(invitationId)
+              || String(inv.id) === String(invitationId);
+          }) || null;
+
+          setNotifications(prev => {
+            const list = prev || [];
+            return list.filter(n => {
+              if (!n) return true;
+              if (n.type !== 'group_invitation') return true;
+
+              // Match by explicit invitation id if available
+              const nid = n.InvitationID || n.invitation_id || n.invitationId || n.id || 0;
+              if (nid && Number(nid) === Number(invitationId)) return false;
+
+              // Fallback: if we have the related invitation object, match by group+inviter
+              if (relatedInv) {
+                const ngid = n.GroupID || n.group_id || n.groupId || n.group || null;
+                const ninv = n.From || n.from || n.inviter_id || n.inviterId || null;
+                const igid = relatedInv.group_id || relatedInv.groupId || relatedInv.group || null;
+                const iinv = relatedInv.inviter_id || relatedInv.inviterId || relatedInv.inviter || relatedInv.from || null;
+                if (ngid && igid && String(ngid) === String(igid) && ninv && iinv && String(ninv) === String(iinv)) return false;
+              }
+
+              return true;
+            });
+          });
+        } catch (e) {
+          console.error('Failed to remove notification after respond:', e);
+        }
       } else {
         console.error(`Failed to ${action} invitation:`, response.status);
-        alert(`Failed to ${action} invitation`);
+        showToast(`Failed to ${action} invitation`, 'error');
       }
     } catch (error) {
       console.error(`Error ${action}ing invitation:`, error);
-      alert(`Error ${action}ing invitation`);
+      showToast(`Error ${action}ing invitation`, 'error');
     }
   };
 
@@ -608,15 +649,35 @@ export default function Groups() {
                             </svg>
                             Enter Group
                           </button>
-                          <button
-                            onClick={() => handleLeaveGroup(group.id)}
-                            className="group-btn-modern group-btn-danger-outline"
-                          >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                            Leave
-                          </button>
+                          {leaveConfirmId === group.id ? (
+                            <>
+                              <button
+                                onClick={() => confirmLeaveGroup(group.id)}
+                                className="group-btn-modern group-btn-danger-outline"
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                                Confirm
+                              </button>
+                              <button
+                                onClick={() => setLeaveConfirmId(null)}
+                                className="group-btn-modern group-btn-secondary"
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => setLeaveConfirmId(group.id)}
+                              className="group-btn-modern group-btn-danger-outline"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                              Leave
+                            </button>
+                          )}
                         </>
                       );
                     } else if (isPending) {
@@ -698,6 +759,7 @@ export default function Groups() {
           </div>
         </div>
       </div>
+      <Toast visible={toast.visible} message={toast.message} type={toast.type} onClose={hideToast} duration={toast.duration} />
     </Layout>
   );
 }

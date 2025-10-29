@@ -143,6 +143,20 @@ export default function Posts() {
             : post
         ));
       }
+
+      // Handle follow-related events: refresh the following users list so
+      // the chat sidebar updates immediately (no page refresh needed).
+      // This includes follow, follow-request responses, follow state updates
+      // and unfollow notifications so users appear/disappear in real-time.
+      else if (
+        message.type === 'new_follower' ||
+        message.type === 'follow_request_response' ||
+        message.type === 'follow_update' ||
+        message.type === 'unfollow_update'
+      ) {
+        // Best-effort: refetch following users in background
+        fetchFollowingUsers();
+      }
     });
 
     return () => unsubscribe();

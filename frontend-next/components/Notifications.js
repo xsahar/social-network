@@ -15,16 +15,10 @@ const Notifications = () => {
   }, [notifications]);
 
   const latest = notifications && notifications.length > 0 ? notifications[notifications.length - 1] : null;
-  const bellColorByType = {
-    follow_request: '#0056d6',
-    follow_request_response: '#198754',
-    new_follower: '#6f42c1',
-    group_invitation: '#fd7e14',
-    group_join_request: '#dc3545',
-    new_groupEvent: '#6610f2',
-    new_groupPost: '#0d6efd'
-  };
-  const bellBg = latest ? (bellColorByType[latest.type] || '#ffd700') : '#ffd700';
+
+  const bellBg = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+
+  // const bellBg = latest ? (bellColorByType[latest.type] || '#ffd700') : '#ffd700';
 
   const renderNotification = (n, idx) => {
     const titleMap = {
@@ -45,6 +39,10 @@ const Notifications = () => {
     const handleAction = async (action) => {
       try {
         // action should be 'accept' or 'decline'
+          // Optimistically remove this notification from UI so users see immediate feedback.
+          // We'll keep a snapshot to restore if the backend call fails.
+          const prevNotifications = (notifications || []).slice();
+          setNotifications(prev => prev.filter(item => item !== n));
         if (n.type === 'follow_request') {
           // Call handle-follow-request proxy
           // Accept a variety of possible field names from WebSocket payloads
@@ -61,7 +59,8 @@ const Notifications = () => {
             body: JSON.stringify({ requester_id: requesterId, action })
           });
           if (!resp.ok) {
-            // Try to parse backend response body for a helpful message
+            // restore previous notifications on failure
+            setNotifications(prevNotifications);
             let errMsg = 'Failed to respond to follow request';
             try {
               const txt = await resp.text();
@@ -71,44 +70,35 @@ const Notifications = () => {
                 else if (parsed && parsed.error) errMsg = parsed.error;
                 else errMsg = JSON.stringify(parsed);
               } catch (e) {
-                // plain text
                 if (txt && txt.trim()) errMsg = txt.trim();
               }
-            } catch (e) {
-              // ignore
-            }
-            throw new Error(errMsg);
+            } catch (e) {}
+            console.error(errMsg);
+            return;
           }
         } else if (n.type === 'group_invitation') {
-          // Ensure we have an invitation ID. WebSocket notifications sometimes
-          // omit the invitation id, so fetch the user's pending invitations and
-          // try to match by group and inviter.
-          let invitationId = n.InvitationID || n.invitation_id || n.invitationId;
-          if (!invitationId) {
-            try {
-              const invResp = await fetch('/api/groups/invitations', { credentials: 'include' });
-              if (invResp.ok) {
-                const invData = await invResp.json();
-                const invs = invData.invitations || [];
-                const gid = n.GroupID || n.group_id || n.groupId;
-                const inviter = n.From || n.from || n.inviter_id || n.inviterId;
-                const match = invs.find(i => (i.group_id == gid) && (i.inviter_id == inviter));
-                if (match) invitationId = match.id;
-              }
-            } catch (e) {
-              console.error('Failed to lookup invitation id', e);
-            }
-          }
+          // WebSocket notifications sometimes omit the invitation id. Instead
+          // of throwing client-side, send group_id + inviter in the request so
+          // the server-side proxy can resolve the invitation id and perform
+          // the action. This keeps the client simple and avoids brittle
+          // matching logic here.
+          const invitationId = n.InvitationID || n.invitation_id || n.invitationId || 0;
+          const gid = n.GroupID || n.group_id || n.groupId || null;
+          const inviter = n.From || n.from || n.inviter_id || n.inviterId || null;
 
-          if (!invitationId) throw new Error('Invitation id not found');
+          const bodyPayload = invitationId ? { invitation_id: invitationId, action } : { group_id: gid, inviter_id: inviter, action };
 
           const resp = await fetch('/api/groups/respond-invitation', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ invitation_id: invitationId, action })
+            body: JSON.stringify(bodyPayload)
           });
-          if (!resp.ok) throw new Error('Failed to respond to group invitation');
+          if (!resp.ok) {
+            setNotifications(prevNotifications);
+            console.error('Failed to respond to group invitation');
+            return;
+          }
         } else if (n.type === 'group_join_request') {
           const requestId = n.RequestID || n.request_id || n.requestId;
           const resp = await fetch('/api/groups/respond-request', {
@@ -117,24 +107,14 @@ const Notifications = () => {
             credentials: 'include',
             body: JSON.stringify({ request_id: requestId, action })
           });
-          if (!resp.ok) throw new Error('Failed to respond to join request');
+          if (!resp.ok) {
+            setNotifications(prevNotifications);
+            console.error('Failed to respond to join request');
+            return;
+          }
         }
 
-        // Remove this notification from UI
-        setNotifications(prev => prev.filter(item => {
-          // match by type and id or From
-          if (item === n) return false;
-          if (n.type === 'follow_request') return !(item.type === 'follow_request' && item.From === n.From && item.To === n.To);
-          if (n.type === 'group_invitation') {
-            const iid = n.InvitationID || n.invitation_id || n.invitationId;
-            return !(item.type === 'group_invitation' && ((item.InvitationID || item.invitation_id || item.invitationId) === iid));
-          }
-          if (n.type === 'group_join_request') {
-            const rid = n.RequestID || n.request_id || n.requestId;
-            return !(item.type === 'group_join_request' && ((item.RequestID || item.request_id || item.requestId) === rid));
-          }
-          return true;
-        }));
+        // Already removed optimistically above; nothing more to do here.
 
       } catch (err) {
         console.error('Action failed', err);

@@ -6,6 +6,7 @@ import { useWebSocketContext } from '../contexts/WebSocketContext';
 import GroupPostsSection from '../components/GroupPostsSection';
 import GroupChat from '../components/GroupChat';
 import GroupEvents from '../components/GroupEvents';
+import Toast from '../components/Toast';
 
 // Inline InviteMembers component
 function InviteMembers({ groupId }) {
@@ -13,6 +14,13 @@ function InviteMembers({ groupId }) {
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'info' });
+
+  const showToast = (message, type = 'info', duration = 3500) => {
+    setToast({ visible: true, message, type, duration });
+  };
+
+  const hideToast = () => setToast(prev => ({ ...prev, visible: false }));
 
   useEffect(() => {
     if (groupId) {
@@ -68,16 +76,16 @@ function InviteMembers({ groupId }) {
       });
 
       if (response.ok) {
-        alert(`Invitations sent to ${selectedUsers.length} user(s)!`);
+        showToast(`Invitations sent to ${selectedUsers.length} user(s)!`, 'success');
         setSelectedUsers([]);
         fetchInvitableUsers(); // Refresh the list
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to send invitations');
+        showToast(error.error || 'Failed to send invitations', 'error');
       }
     } catch (error) {
       console.error('Error sending invitations:', error);
-      alert('Failed to send invitations');
+      showToast('Failed to send invitations', 'error');
     } finally {
       setSending(false);
     }
@@ -155,9 +163,21 @@ function InviteMembers({ groupId }) {
           )}
         </>
       )}
+
+      {/* Inline toast for invite feedback (scoped to InviteMembers) */}
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onClose={hideToast}
+        duration={toast.duration}
+      />
+
     </div>
   );
 }
+
+
 
 export default function GroupDetails() {
   const router = useRouter();
@@ -169,6 +189,10 @@ export default function GroupDetails() {
   const [error, setError] = useState(null);
   const [showGroupChat, setShowGroupChat] = useState(false);
   const [activeTab, setActiveTab] = useState('posts');
+  // local toast for this page
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'info', duration: 2500 });
+  const showToast = (message, type = 'info', duration = 2500) => setToast({ visible: true, message, type, duration });
+  const hideToast = () => setToast(prev => ({ ...prev, visible: false }));
   
   // Use WebSocket context for real-time chat
   const { 
@@ -188,21 +212,71 @@ export default function GroupDetails() {
   useEffect(() => {
     if (!user || !id) return;
 
+    // toast state (local to this page)
+    // NOTE: we define these here so the subscriber can reference them via closure
+    // (we'll also render a Toast component below)
+
     const unsubscribe = subscribe((message) => {
       console.log('[GroupDetails] WebSocket message:', message);
-      
-      if (message.group_id == id) {
-        // Don't refresh entire group for posts/events - let child components handle it
-        if (message.type === 'new_groupPost') {
-          console.log('New group post received (handled by GroupPostsSection)');
-        } else if (message.type === 'new_groupEvent') {
-          console.log('New group event received (handled by GroupEvents)');
+
+      // normalize group id - backend uses 'group_id' in JSON
+      const msgGroupId = message.group_id || message.groupId || message.GroupID || message.groupId || message.GroupId;
+      if (!msgGroupId) return;
+
+      if (String(msgGroupId) !== String(id)) return;
+
+      // Handle messages we care about locally
+      if (message.type === 'new_groupPost') {
+        // handled by child component
+        return;
+      }
+
+      if (message.type === 'new_groupEvent') {
+        // handled by child component
+        return;
+      }
+
+      if (message.type === 'group_member_update') {
+        try {
+          const newMemberId = message.from || message.From || message.user_id || message.userId;
+          const newMemberUsername = message.username || message.Username || message.user || '';
+
+          setGroup(prev => {
+            if (!prev) return prev;
+
+            // coerce member_count to number (backend may return string)
+            const currentCount = Number(prev.member_count) || 0;
+            const updatedCount = currentCount + 1;
+
+            // add new member if not present
+            const members = Array.isArray(prev.members) ? prev.members.slice() : [];
+            const exists = members.some(m => String(m.id || m.user_id) === String(newMemberId));
+            if (!exists) {
+              members.push({ id: newMemberId, username: newMemberUsername });
+            }
+
+            const updated = { ...prev, member_count: updatedCount, members };
+
+            // If the current user is the one who joined, mark them as accepted
+            const currentUserId = user?.userID || user?.id;
+            if (String(newMemberId) === String(currentUserId)) {
+              updated.user_status = 'accepted';
+            }
+
+            return updated;
+          });
+
+          // show a small toast using local helper
+          try { showToast(`${message.username || 'Someone'} joined the group`, 'info', 2200); } catch (e) {}
+
+        } catch (err) {
+          console.error('Error handling group_member_update:', err);
         }
       }
     });
 
     return () => unsubscribe();
-  }, [user, id, subscribe]);
+  }, [user, id, subscribe, showToast]);
 
   const fetchGroupDetails = async (groupId) => {
     try {
@@ -456,6 +530,14 @@ export default function GroupDetails() {
         connected={connected}
         messages={messages}
         sendMessage={sendMessage}
+      />
+      {/* Page-scoped toast for membership / join events */}
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onClose={hideToast}
+        duration={toast.duration}
       />
     </Layout>
   );

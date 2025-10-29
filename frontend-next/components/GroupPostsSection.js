@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useWebSocketContext } from '../contexts/WebSocketContext';
+import Toast from './Toast';
 
 export default function GroupPostsSection({ groupId, user }) {
   const [posts, setPosts] = useState([]);
@@ -10,6 +11,13 @@ export default function GroupPostsSection({ groupId, user }) {
   const [postImage, setPostImage] = useState(null);
   const router = useRouter();
   const { subscribe } = useWebSocketContext();
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'info' });
+
+  const showToast = (message, type = 'info', duration = 3500) => {
+    setToast({ visible: true, message, type, duration });
+  };
+
+  const hideToast = () => setToast(prev => ({ ...prev, visible: false }));
 
   // Debug log to check groupId
   console.log('GroupPostsSection received groupId:', groupId, 'type:', typeof groupId);
@@ -96,12 +104,12 @@ export default function GroupPostsSection({ groupId, user }) {
   const handleCreatePost = async (e) => {
     e.preventDefault();
     if (!newPost.title.trim() || !newPost.content.trim()) {
-      alert('Please fill in both title and content');
+      showToast('Please fill in both title and content', 'error');
       return;
     }
-    
+
     if (!groupId) {
-      alert(`Group ID is missing. Received: ${groupId} (type: ${typeof groupId})`);
+      showToast(`Group ID is missing. Received: ${groupId} (type: ${typeof groupId})`, 'error');
       return;
     }
     
@@ -141,11 +149,11 @@ export default function GroupPostsSection({ groupId, user }) {
   fetchGroupPosts(); // Refresh posts
       } else {
         const errorText = await response.text();
-        alert(`Failed to create post: ${errorText}`);
+        showToast(`Failed to create post: ${errorText}`, 'error');
       }
     } catch (error) {
       console.error('Error creating post:', error);
-      alert('Error creating post');
+      showToast('Error creating post', 'error');
     }
   };
 
@@ -206,7 +214,8 @@ export default function GroupPostsSection({ groupId, user }) {
   };
 
   return (
-    <div className="group-posts-section-modern">
+    <>
+      <div className="group-posts-section-modern">
       {/* Modern Create Post Prompt */}
       <div className="create-post-prompt-modern">
         <button
@@ -406,6 +415,8 @@ export default function GroupPostsSection({ groupId, user }) {
           ))}
         </div>
       )}
-    </div>
+      </div>
+      <Toast visible={toast.visible} message={toast.message} type={toast.type} onClose={hideToast} duration={toast.duration} />
+    </>
   );
 }

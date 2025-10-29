@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useWebSocketContext } from '../contexts/WebSocketContext';
+import Toast from './Toast';
 
 export default function GroupEvents({ groupId, user }) {
   const [events, setEvents] = useState([]);
@@ -12,6 +13,13 @@ export default function GroupEvents({ groupId, user }) {
     time: ''
   });
   const { subscribe } = useWebSocketContext();
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'info' });
+
+  const showToast = (message, type = 'info', duration = 3500) => {
+    setToast({ visible: true, message, type, duration });
+  };
+
+  const hideToast = () => setToast(prev => ({ ...prev, visible: false }));
 
   useEffect(() => {
     if (groupId) {
@@ -95,14 +103,14 @@ export default function GroupEvents({ groupId, user }) {
   const handleCreateEvent = async (e) => {
     e.preventDefault();
     if (!newEvent.title.trim() || !newEvent.description.trim() || !newEvent.date || !newEvent.time) {
-      alert('Please fill in all fields');
+      showToast('Please fill in all fields', 'error');
       return;
     }
     
     try {
       const datetime = new Date(`${newEvent.date}T${newEvent.time}`);
       if (datetime < new Date()) {
-        alert('Event cannot be scheduled in the past');
+        showToast('Event cannot be scheduled in the past', 'error');
         return;
       }
 
@@ -124,11 +132,11 @@ export default function GroupEvents({ groupId, user }) {
         fetchGroupEvents(); // Refresh events
       } else {
         const errorText = await response.text();
-        alert(`Failed to create event: ${errorText}`);
+        showToast(`Failed to create event: ${errorText}`, 'error');
       }
     } catch (error) {
       console.error('Error creating event:', error);
-      alert('Error creating event');
+      showToast('Error creating event', 'error');
     }
   };
 
@@ -229,6 +237,7 @@ export default function GroupEvents({ groupId, user }) {
               </div>
             </form>
           </div>
+            <Toast visible={toast.visible} message={toast.message} type={toast.type} onClose={hideToast} duration={toast.duration} />
         </div>
       )}
 
