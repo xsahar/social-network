@@ -63,7 +63,23 @@
             // Optimistically remove this notification from UI so users see immediate feedback.
             // We'll keep a snapshot to restore if the backend call fails.
             const prevNotifications = (notifications || []).slice();
-            setNotifications(prev => prev.filter(item => item !== n));
+            // Robust removal: match by invitation id, group id, or inviter to avoid reference-inequality bugs
+            const actedNid = n.InvitationID || n.invitation_id || n.invitationId || n.id || 0;
+            const actedGid = n.GroupID || n.group_id || n.groupId || n.group || null;
+            const actedInviter = n.From || n.from || n.inviter_id || n.inviterId || null;
+            const matchesActed = (item) => {
+              if (!item) return false;
+              const iid = item.InvitationID || item.invitation_id || item.invitationId || item.id || 0;
+              const gid = item.GroupID || item.group_id || item.groupId || item.group || null;
+              const inv = item.From || item.from || item.inviter_id || item.inviterId || null;
+              if (iid && actedNid && Number(iid) === Number(actedNid)) return true;
+              if (gid && actedGid && String(gid) === String(actedGid)) return true;
+              if (inv && actedInviter && String(inv) === String(actedInviter)) return true;
+              // fallback: match same type and similar content
+              if (item.type === n.type && item.content === n.content) return true;
+              return false;
+            };
+            setNotifications(prev => prev ? prev.filter(item => !matchesActed(item)) : prev);
           if (n.type === 'follow_request') {
             // Call handle-follow-request proxy
             // Accept a variety of possible field names from WebSocket payloads
@@ -157,7 +173,7 @@
       const appliedStyle = typeStyles[n.type] || typeStyles.default;
 
       return (
-        <div key={idx} className="notification-item">
+        <div key={idx} className="notification-item" style={{ background: appliedStyle.itemBg, color: appliedStyle.itemText }}>
           <div className="notification-icon" aria-hidden>
             {/* simple type based icon */}
             {n.type === 'group_invitation' && <span className="icon-circle">📨</span>}
@@ -174,16 +190,25 @@
               <div className="notification-time">{when}</div>
             </div>
 
-            <div className="notification-content" style={{ background: appliedStyle.accent, color: appliedStyle.text, padding: '8px', borderRadius: 8 }}>
+            <div className="notification-content" style={{ background: appliedStyle.chipBg, color: appliedStyle.chipText, padding: '8px', borderRadius: 8 }}>
               {n.Content || n.content || n.message || (n.Username || n.username ? `${n.Username || n.username} sent a notification` : 'No message')}
             </div>
 
-            <div className="notification-meta">{n.Username || n.username || ''}</div>
-
             {(n.type === 'follow_request' || n.type === 'group_join_request' || n.type === 'group_invitation') && (
               <div className="notification-actions">
-                <button className="btn-accept" onClick={() => handleAction('accept')}>Accept</button>
-                <button className="btn-decline" onClick={() => handleAction('decline')}>Decline</button>
+                <button className="btn-accept" onClick={() => handleAction('accept')} aria-label="Accept request">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden className="btn-icon">
+                    <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <span>Accept</span>
+                </button>
+
+                <button className="btn-decline" onClick={() => handleAction('decline')} aria-label="Decline request">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden className="btn-icon">
+                    <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <span>Decline</span>
+                </button>
               </div>
             )}
           </div>
@@ -228,31 +253,33 @@
           .inbell-text { position:absolute; bottom:2px; right:2px; font-size:10px; color:#fff; background:rgba(0,0,0,0.15); padding:1px 4px; border-radius:3px }
           .badge { position: absolute; top: -6px; right: -6px; background: #d9534f; color: white; border-radius: 50%; padding: 4px 6px; font-size: 11px; min-width:20px; height:20px; display:flex; align-items:center; justify-content:center }
 
-          /* Force light panel by default, regardless of global theme */
-          .notif-dropdown { position: absolute; right: 0; top: 52px; width: min(420px, 92vw);
-            max-height: 68vh; overflow: auto; background: #ffffff !important; color:#0b1220;
-            border-radius:12px; border: none; box-shadow: 0 12px 36px rgba(12,18,30,0.12); z-index: 200; }
+          /* Panel container: use subtle background and internal padding so cards stand out */
+          .notif-dropdown { position: absolute; right: 0; top: 52px; width: min(480px, 96vw);
+            max-height: 68vh; overflow: auto; background: rgba(255,255,255,0.98); color:#0b1220;
+            border-radius:12px; border: none; box-shadow: 0 12px 36px rgba(12,18,30,0.12); z-index: 200; padding: 12px }
 
-          /* Explicit white bg to prevent “black item” inheritance */
-          .notification-item { background:#ffffff !important; padding: 12px;
-            border-bottom: 1px solid rgba(15,23,42,0.06); display:flex; gap:12px; align-items:flex-start }
+          /* Each notification is rendered as a card so items visually separate */
+          .notification-item { padding: 12px; display:flex; gap:12px; align-items:flex-start; border-radius:10px; margin-bottom:12px; box-shadow: 0 6px 18px rgba(12,18,30,0.06); border:1px solid rgba(15,23,42,0.04); background: transparent }
 
           .notification-icon { flex: 0 0 52px; display:flex; align-items:center; justify-content:center }
           .icon-circle { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center;
             background: linear-gradient(135deg, rgba(102,126,234,0.12), rgba(118,75,162,0.08)); font-size:18px }
 
-          .notification-body { flex:1; min-width:0; color:#0b1220 }
+          .notification-body { flex:1; min-width:0; color:#0b1220; display:flex; flex-direction:column; justify-content:space-between }
           .notification-row { display:flex; align-items:center; justify-content:space-between; gap:8px; background:transparent }
           .notification-title { font-weight: 700; color: #0b1220 }
           .notification-time { font-size: 12px; color: #6b7280 }
           .notification-content { font-size: 14px; margin-top: 8px; line-height:1.35; overflow-wrap:anywhere; display:block }
           .notification-meta { font-size: 12px; color: #6b7280; margin-top: 8px }
 
-          .notification-actions { margin-top:10px; display:flex; gap:8px }
-          .btn-accept { background:linear-gradient(90deg,#10b981,#059669); border:none; color:white; padding:8px 10px; border-radius:8px; font-weight:600; cursor:pointer }
-          .btn-decline { background:transparent; border:1px solid rgba(15,23,42,0.12); color:#0f172a; padding:8px 10px; border-radius:8px; cursor:pointer }
-          .btn-accept:hover { filter:brightness(.95) }
-          .btn-decline:hover { background:rgba(15,23,42,0.03) }
+          .notification-actions { margin-top:12px; padding-top:12px; border-top:1px solid rgba(15,23,42,0.04); display:flex; gap:12px; justify-content:flex-end; align-items:center; white-space:nowrap }
+          .btn-accept { background: linear-gradient(90deg,#10b981,#059669); border:none; color:white; padding:0 16px; min-width:110px; height:40px; border-radius:10px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:10px; justify-content:center; font-size:15px; box-shadow: 0 8px 24px rgba(16,185,129,0.12); transition: transform 140ms ease, box-shadow 140ms ease }
+          .btn-decline { background: #fff; border:1px solid #ef4444; color:#ef4444; padding:0 14px; min-width:110px; height:40px; border-radius:10px; cursor:pointer; display:inline-flex; align-items:center; gap:10px; justify-content:center; font-size:15px; transition: transform 140ms ease, background 140ms ease }
+          .btn-accept:hover { transform: translateY(-2px); box-shadow: 0 16px 36px rgba(16,185,129,0.14) }
+          .btn-decline:hover { background: rgba(239,68,68,0.06); transform: translateY(-2px) }
+          .btn-accept:focus, .btn-decline:focus { outline: 3px solid rgba(59,130,246,0.12); outline-offset: 2px }
+          .btn-accept[disabled], .btn-decline[disabled] { opacity: 0.6; cursor: not-allowed; transform: none }
+          .btn-icon { display:inline-flex; align-items:center; justify-content:center; color:inherit }
 
           .notif-empty { padding: 20px; color: #6b7280; text-align:center }
           .notif-header { display:flex; align-items:center; justify-content:space-between; padding:12px 16px;

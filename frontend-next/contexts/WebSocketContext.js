@@ -149,7 +149,28 @@ export const WebSocketProvider = ({ children, userID }) => {
           case 'group_invitation':
           case 'group_join_request':
           case 'new_groupEvent':
-            setNotifications(prev => [...prev, data]);
+            setNotifications(prev => {
+              try {
+                const exists = (prev || []).some(item => {
+                  if (!item) return false;
+                  // match by invitation/request id when available
+                  const iid = item.InvitationID || item.invitation_id || item.invitationId || item.id;
+                  const did = data.InvitationID || data.invitation_id || data.invitationId || data.id;
+                  if (iid && did && String(iid) === String(did)) return true;
+                  // match by group id + from/inviter
+                  const gidA = item.GroupID || item.group_id || item.groupId || item.group;
+                  const gidB = data.GroupID || data.group_id || data.groupId || data.group;
+                  const fromA = item.From || item.from || item.inviter_id || item.inviterId;
+                  const fromB = data.From || data.from || data.inviter_id || data.inviterId;
+                  if (gidA && gidB && String(gidA) === String(gidB) && fromA && fromB && String(fromA) === String(fromB)) return true;
+                  // fallback: same type and content
+                  if (item.type === data.type && (item.content === data.content || item.Content === data.Content)) return true;
+                  return false;
+                });
+                if (exists) return prev || [];
+              } catch (err) {}
+              return [...(prev || []), data];
+            });
             break;
             
           case 'group_message':

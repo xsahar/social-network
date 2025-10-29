@@ -217,6 +217,27 @@ export default function Groups() {
 
   const handleApproveRequest = async (requestId, action) => {
     try {
+      // Optimistic removal of matching notifications (group_join_request) so bell updates immediately
+      try {
+        setNotifications(prev => {
+          if (!prev) return prev;
+          return prev.filter(n => {
+            if (!n) return true;
+            // If this notification is a join request and references this requestId, remove it
+            const rid = n.RequestID || n.request_id || n.requestId || n.id || 0;
+            if (rid && Number(rid) === Number(requestId)) return false;
+
+            // Also remove notifications that reference the same group id (fallback)
+            const ngid = n.GroupID || n.group_id || n.groupId || n.group || null;
+            if (ngid && String(ngid) === String(requestId)) return false;
+
+            return true;
+          });
+        });
+      } catch (e) {
+        console.error('Optimistic notification removal failed for approveRequest', e);
+      }
+
       const response = await fetch('/api/groups/respond-request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -226,14 +247,30 @@ export default function Groups() {
         }),
         credentials: 'include'
       });
-      
+
       if (response.ok) {
         // Refresh pending approvals
         fetchPendingApprovals();
         showToast(`Request ${action}ed successfully!`, 'success');
+        // run a delayed cleanup in case websocket re-broadcasts the same notification
+        setTimeout(() => {
+          setNotifications(prev => {
+            if (!prev) return prev;
+            return prev.filter(n => {
+              const rid = n.RequestID || n.request_id || n.requestId || n.id || 0;
+              const ngid = n.GroupID || n.group_id || n.groupId || n.group || null;
+              if (rid && Number(rid) === Number(requestId)) return false;
+              if (ngid && String(ngid) === String(requestId)) return false;
+              return true;
+            });
+          });
+        }, 300);
       } else {
-        console.error(`Failed to ${action} request:`, response.status);
-        showToast(`Failed to ${action} request`, 'error');
+        const txt = await response.text();
+        console.error(`Failed to ${action} request:`, response.status, txt);
+        // restore pending approvals from server
+        fetchPendingApprovals();
+        showToast(`Failed to ${action} request: ${txt || response.status}`, 'error');
       }
     } catch (error) {
       console.error(`Error ${action}ing request:`, error);
@@ -243,6 +280,58 @@ export default function Groups() {
 
   const handleRespondToInvitation = async (invitationId, action) => {
     try {
+      // Find the related invitation object (if available) so we can match notifications by group+inviter
+      const relatedInv = (invitations || []).find(inv => {
+        return String(inv.id) === String(invitationId)
+          || String(inv.group_id) === String(invitationId)
+          || String(inv.groupId) === String(invitationId)
+          || (inv && inv.id && String(inv.id) === String(invitationId));
+      }) || null;
+
+      // Optimistically remove matching notifications and invitation from UI so user sees immediate feedback.
+      try {
+        setNotifications(prev => {
+          if (!prev) return prev;
+          return prev.filter(n => {
+            if (!n) return true;
+            // remove common invitation/join request types that refer to this group/invitation
+            const nid = n.InvitationID || n.invitation_id || n.invitationId || n.id || 0;
+            if (nid && relatedInv && Number(nid) === Number(relatedInv.id)) return false;
+
+            const ngid = n.GroupID || n.group_id || n.groupId || n.group || null;
+            const ninv = n.From || n.from || n.inviter_id || n.inviterId || null;
+
+            // If relatedInv exists, match by group + inviter (robust to missing invitation id)
+            if (relatedInv && (ngid && String(ngid) === String(relatedInv.group_id))) return false;
+            if (relatedInv && ninv && (String(ninv) === String(relatedInv.inviter_id) || String(ninv) === String(relatedInv.inviter))) return false;
+
+            // Fallback: if the notification directly references the group id passed in
+            if (ngid && String(ngid) === String(invitationId)) return false;
+
+            return true;
+          });
+        });
+        // Also remove the invitation from the invitations list optimistically
+        setInvitations(prev => (prev || []).filter(inv => String(inv.id) !== String(invitationId) && String(inv.group_id) !== String(invitationId)));
+
+        // After a short delay, run one more cleanup pass in case the websocket re-broadcasted a related notification
+        setTimeout(() => {
+          setNotifications(prev => {
+            if (!prev) return prev;
+            return prev.filter(n => {
+              if (!n) return true;
+              const ngid = n.GroupID || n.group_id || n.groupId || n.group || null;
+              const nid = n.InvitationID || n.invitation_id || n.invitationId || n.id || 0;
+              if (relatedInv && ((nid && Number(nid) === Number(relatedInv.id)) || (ngid && String(ngid) === String(relatedInv.group_id)))) return false;
+              if (ngid && String(ngid) === String(invitationId)) return false;
+              return true;
+            });
+          });
+        }, 300);
+      } catch (e) {
+        console.error('Optimistic removal failed', e);
+      }
+
       const response = await fetch('/api/groups/respond-invitation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -254,49 +343,18 @@ export default function Groups() {
       });
       
       if (response.ok) {
-        // Refresh invitations and groups
+        // Refresh invitations and groups to ensure canonical state
         fetchInvitations();
         fetchGroups();
         fetchUserGroups();
         showToast(`Invitation ${action}ed successfully!`, 'success');
-        // Remove corresponding notification(s) from the notifications list
-        try {
-          // Attempt to find the corresponding invitation in local state
-          const relatedInv = (invitations || []).find(inv => {
-            return String(inv.id) === String(invitationId)
-              || String(inv.group_id) === String(invitationId)
-              || String(inv.groupId) === String(invitationId)
-              || String(inv.id) === String(invitationId);
-          }) || null;
-
-          setNotifications(prev => {
-            const list = prev || [];
-            return list.filter(n => {
-              if (!n) return true;
-              if (n.type !== 'group_invitation') return true;
-
-              // Match by explicit invitation id if available
-              const nid = n.InvitationID || n.invitation_id || n.invitationId || n.id || 0;
-              if (nid && Number(nid) === Number(invitationId)) return false;
-
-              // Fallback: if we have the related invitation object, match by group+inviter
-              if (relatedInv) {
-                const ngid = n.GroupID || n.group_id || n.groupId || n.group || null;
-                const ninv = n.From || n.from || n.inviter_id || n.inviterId || null;
-                const igid = relatedInv.group_id || relatedInv.groupId || relatedInv.group || null;
-                const iinv = relatedInv.inviter_id || relatedInv.inviterId || relatedInv.inviter || relatedInv.from || null;
-                if (ngid && igid && String(ngid) === String(igid) && ninv && iinv && String(ninv) === String(iinv)) return false;
-              }
-
-              return true;
-            });
-          });
-        } catch (e) {
-          console.error('Failed to remove notification after respond:', e);
-        }
+        // already removed optimistically above
       } else {
-        console.error(`Failed to ${action} invitation:`, response.status);
-        showToast(`Failed to ${action} invitation`, 'error');
+        const txt = await response.text();
+        console.error(`Failed to ${action} invitation:`, response.status, txt);
+        // Restore invitations and notifications by re-fetching server state
+        fetchInvitations();
+        showToast(`Failed to ${action} invitation: ${txt || response.status}`, 'error');
       }
     } catch (error) {
       console.error(`Error ${action}ing invitation:`, error);
