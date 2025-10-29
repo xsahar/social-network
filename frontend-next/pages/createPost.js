@@ -183,9 +183,6 @@ export default function CreatePost() {
                   {/* Title Field - Professional Design */}
                   <div className="space-y-4">
                     <label htmlFor="title" className="block text-xl font-bold text-gray-800 flex items-center gap-3">
-                      <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 text-white text-lg font-bold shadow-lg">
-                        ✏️
-                      </span>
                       Post Title <span className="text-red-500">*</span>
                     </label>
                     <div className="relative group">
@@ -202,18 +199,12 @@ export default function CreatePost() {
                         style={{ borderWidth: '3px' }}
                       />
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600 bg-purple-50 px-4 py-3 rounded-xl">
-                      <span className="text-purple-500">💡</span>
-                      <span className="font-medium">Make it catchy and inspiring!</span>
-                    </div>
+                   
                   </div>
 
                   {/* Content Field - Enhanced Textarea */}
                   <div className="space-y-4">
                     <label htmlFor="content" className="block text-xl font-bold text-gray-800 flex items-center gap-3">
-                      <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 text-white text-lg font-bold shadow-lg">
-                        📝
-                      </span>
                       Post Content <span className="text-red-500">*</span>
                     </label>
                     <div className="relative group">
@@ -230,20 +221,11 @@ export default function CreatePost() {
                         style={{ borderWidth: '3px' }}
                       />
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600 bg-blue-50 px-4 py-3 rounded-xl">
-                      <span className="text-blue-500">✨</span>
-                      <span className="font-medium">Express yourself freely! Your voice matters.</span>
-                    </div>
                   </div>
 
                   {/* Category Field - Beautiful Selector */}
                   <div className="space-y-4">
-                    <label className="block text-xl font-bold text-gray-800 flex items-center gap-3">
-                      <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 text-white text-lg font-bold shadow-lg">
-                        🏷️
-                      </span>
-                      Category <span className="text-red-500">*</span>
-                    </label>
+                
                     <div className="relative group">
                       <div className="absolute inset-0 bg-gradient-to-r from-green-400 to-emerald-400 rounded-2xl opacity-0 group-hover:opacity-20 blur-xl transition-all duration-500"></div>
                       <select
@@ -256,24 +238,17 @@ export default function CreatePost() {
                         style={{ borderWidth: '3px' }}
                       >
                         <option value="">Select a category...</option>
-                        <option value="Travel">🌍 Travel</option>
-                        <option value="Sport">⚽ Sports</option>
-                        <option value="Food">🍕 Food</option>
-                        <option value="Nature">🌿 Nature</option>
+                        <option value="Travel"> Travel</option>
+                        <option value="Sport"> Sports</option>
+                        <option value="Food"> Food</option>
+                        <option value="Nature"> Nature</option>
                       </select>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600 bg-green-50 px-4 py-3 rounded-xl">
-                      <span className="text-green-500">🎯</span>
-                      <span className="font-medium">Help people discover your amazing content!</span>
                     </div>
                   </div>
 
                   {/* Privacy Settings - Ultra-Modern */}
                   <div className="space-y-6">
                     <label className="block text-xl font-bold text-gray-800 flex items-center gap-3">
-                      <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 text-white text-lg font-bold shadow-lg">
-                        🔒
-                      </span>
                       Privacy Setting <span className="text-red-500">*</span>
                     </label>
                     
@@ -287,9 +262,9 @@ export default function CreatePost() {
                           'private': 'linear-gradient(135deg, #f5f3ff 0%, #eadfff 100%)'
                         };
                         const icons = {
-                          'public': '🌍',
-                          'almost-private': '👥',
-                          'private': '🔐'
+                          'public': '',
+                          'almost-private': '',
+                          'private': ''
                         };
                         
                         return (
@@ -351,10 +326,7 @@ export default function CreatePost() {
                       })}
                     </div>
                     
-                    <div className="flex items-center gap-2 text-sm text-gray-600 bg-orange-50 px-4 py-3 rounded-xl">
-                      <span className="text-orange-500">👀</span>
-                      <span className="font-medium">Choose who gets to see your amazing content!</span>
-                    </div>
+                 
                   </div>
 
             {/* Follower Selector for Private Posts */}
@@ -369,7 +341,6 @@ export default function CreatePost() {
                 <div className="border-3 border-indigo-300 rounded-2xl p-6 max-h-80 overflow-y-auto bg-gradient-to-br from-indigo-50 to-purple-50" style={{ borderWidth: '3px' }}>
                   {followers.length === 0 ? (
                     <div className="text-center py-8">
-                      <div className="text-6xl mb-4">😔</div>
                       <p className="text-lg font-bold text-gray-700 mb-2">
                         No followers yet!
                       </p>
@@ -400,11 +371,7 @@ export default function CreatePost() {
                             </div>
                             <span className="text-base font-bold text-gray-900">{follower.username}</span>
                           </div>
-                          {formData.selectedFollowers.includes(follower.id) && (
-                            <svg className="w-6 h-6 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                          )}
+                          {formData.selectedFollowers.includes(follower.id) }
                         </label>
                       ))}
                     </div>
@@ -412,7 +379,7 @@ export default function CreatePost() {
                 </div>
                 {formData.selectedFollowers.length > 0 && (
                   <div className="bg-green-50 border-2 border-green-300 rounded-xl p-4 flex items-center gap-3">
-                    <span className="text-2xl">✅</span>
+                    {/* <span className="text-2xl">✅</span> */}
                     <p className="text-base font-bold text-green-800">
                       {formData.selectedFollowers.length} follower(s) selected
                     </p>
@@ -425,7 +392,7 @@ export default function CreatePost() {
                   <div className="space-y-4">
                     <label className="block text-xl font-bold text-gray-800 flex items-center gap-3">
                       <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 text-white text-lg font-bold shadow-lg">
-                        🖼️
+                        
                       </span>
                       Add Image <span className="text-gray-500 font-normal text-sm">(Optional)</span>
                     </label>

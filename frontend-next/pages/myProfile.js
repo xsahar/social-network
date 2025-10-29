@@ -27,6 +27,8 @@ export default function MyProfile() {
     dateOfBirth: '',
     avatarFile: null
   });
+
+ const [avatarRefresh, setAvatarRefresh] = useState(Date.now());
   const { user, loading: sessionLoading } = useSession();
   const { onlineUsers, subscribe } = useWebSocketContext();
   const { chatOpen, chatWith, startChat, setChatOpen } = useChat();
@@ -39,13 +41,17 @@ export default function MyProfile() {
         method: 'GET',
         credentials: 'include'
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setProfile(data.profile);
+        // bump avatarRefresh to bust browser cache when profile (and avatar) changes
+        const ts = Date.now();
+        setAvatarRefresh(ts);
+        try { localStorage.setItem('avatarRefresh', String(ts)); } catch (e) { /* ignore */ }
         setPosts(data.posts || []);
         setFollowers(data.followers || []);
-        setFollowing(data.following || []);
+        setFollowing(data.following  || []);
         setPendingRequests(data.pendingRequests || []);
         setIsPrivate(data.profile?.isPrivate || false);
       }
@@ -55,7 +61,6 @@ export default function MyProfile() {
       setLoading(false);
     }
   };
-
   const togglePrivacy = async () => {
     try {
       const response = await fetch('/api/toggle-privacy', {
