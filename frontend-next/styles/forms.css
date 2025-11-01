@@ -117,16 +117,38 @@ select {
 
 /* File Input */
 input[type="file"] {
-  padding: var(--space-4);
-  background: var(--primary-50);
-  border: 2px dashed var(--primary-300);
+  padding: 0;
+  background: transparent;
+  border: none;
   cursor: pointer;
-  border-radius: var(--radius-xl);
+  border-radius: 0;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  position: absolute;
 }
 
 input[type="file"]:hover {
-  background: var(--primary-100);
-  border-color: var(--primary-400);
+  background: transparent;
+}
+
+/* Hide file input when using custom styling */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Hide the default file input button completely */
+input[type="file"]::file-selector-button,
+input[type="file"]::-webkit-file-upload-button {
+  display: none;
 }
 
 /* Error Messages */
@@ -158,4 +180,35 @@ input[type="file"]:hover {
     margin: 0 var(--space-4);
     border-radius: var(--radius-xl);
   }
+}
+
+/* ================================
+   CREATE POST PAGE STYLES
+   ================================ */
+
+.create-post-hero {
+  text-align: center;
+  padding: 40px 20px 32px;
+  position: relative;
+}
+
+.create-post-hero-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 24px;
+  font-family: var(--font-family-display);
+}
+
+.create-post-form-container {
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  max-width: 900px;
+  margin: 0 auto 40px;
+  position: relative;
+  overflow: hidden;
 }

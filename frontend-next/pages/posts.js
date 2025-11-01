@@ -252,83 +252,87 @@ export default function Posts() {
       
       <div className="posts-page-bg">
         <div className={`posts-layout ${chatOpen ? 'chat-open' : ''}`}>
-          {/* Professional Main Content */}
-          <div className="posts-main-content container-professional">
-            
-            {/* Modern Posts Header */}
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-white/90 backdrop-blur-lg rounded-2xl shadow-xl mb-6 animate-float">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center animate-gentle-rotate">
-                  {/* <div className="text-white text-xl font-bold">P</div> */}
-                </div>
+          {/* Hero Section - matching groups page style */}
+          <div className="posts-hero-section">
+            <div className="posts-hero-content">
+              <div className="posts-hero-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <polyline points="14 2 14 8 20 8" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <line x1="16" y1="13" x2="8" y2="13" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <line x1="16" y1="17" x2="8" y2="17" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <polyline points="10 9 9 9 8 9" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </div>
               
-              <h1 className="text-4xl font-bold text-gradient mb-4">
-                Discover Amazing Stories!
+              <h1 className="posts-hero-title">
+                Discover Amazing Stories
               </h1>
               
+              <p className="posts-hero-subtitle">
+                Share your thoughts and explore incredible content from your community
+              </p>
+
               <button 
-                className="button-create group relative overflow-hidden"
                 onClick={() => router.push('/createPost')}
-                style={{ 
-                  background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-                  color: 'white',
-                  padding: '16px 32px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  fontSize: '18px',
-                  fontWeight: '700',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  boxShadow: '0 8px 32px rgba(59, 130, 246, 0.3)'
-                }}
+                className="posts-hero-cta"
               >
+                <span className="posts-hero-cta-icon">+</span>
                 Create New Post
-                
-                {/* Button decoration */}
-                <div className="absolute top-1 right-2 w-2 h-2 bg-white/30 rounded-full animate-pulse"></div>
               </button>
             </div>
-
-            {/* Professional Posts Container */}
-            <div className="posts-container">
+          </div>
+          
+          {/* Main Content Container */}
+          <div className="posts-main-content container-professional">
+            <div className="posts-container-modern">
               {loading ? (
-                <div className="bg-white/90 backdrop-blur-lg rounded-3xl p-12 shadow-xl border border-white/30 text-center animate-pulse">
+                <div style={{
+                  background: 'white',
+                  borderRadius: '20px',
+                  padding: '48px',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                  textAlign: 'center'
+                }}>
                   <div className="text-6xl mb-6 animate-spin flex items-center justify-center" style={{animationDuration: '2s'}}>
                     <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full"></div>
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-700 mb-4">Loading amazing stories...</h3>
+                  <h3 className="text-2xl font-bold mb-4" style={{color: '#6b7280'}}>Loading amazing stories...</h3>
                   <p className="text-lg text-gray-600">Preparing incredible content for you!</p>
-                  <div className="loading-spinner mt-6"></div>
                 </div>
               ) : posts.length === 0 ? (
-                <div className="bg-white/90 backdrop-blur-lg rounded-3xl p-16 shadow-xl border border-white/30 text-center relative overflow-hidden">
-                  <div className="absolute top-4 right-4 w-6 h-6 bg-yellow-400 rounded-full opacity-20 animate-float"></div>
-                  <div className="absolute bottom-4 left-4 w-4 h-4 bg-purple-400 rounded-full opacity-15 animate-bounce"></div>
-                  
+                <div style={{
+                  background: 'white',
+                  borderRadius: '20px',
+                  padding: '64px 32px',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                  textAlign: 'center',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}>
                   <div className="text-8xl mb-8 animate-float flex items-center justify-center">
                     <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center">
                       <div className="text-white text-4xl font-bold">+</div>
                     </div>
                   </div>
-                  <h3 className="text-3xl font-bold text-gray-800 mb-4">No posts yet!</h3>
-                  <p className="text-xl text-gray-600 mb-8">
+                  <h3 className="text-3xl font-bold mb-4" style={{color: '#4b5563'}}>No posts yet!</h3>
+                  <p className="text-xl mb-8" style={{color: '#6b7280'}}>
                     Be the first to share something <span className="font-bold text-gradient">amazing</span>!
                   </p>
                   <button 
                     onClick={() => router.push('/createPost')}
                     className="btn btn-primary btn-lg"
                     style={{ 
-                      background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                      background: 'linear-gradient(135deg, #3a4da5ff 0%, #927ca8ff 100%)',
                       color: 'white',
                       border: 'none',
-                      padding: '12px 24px',
-                      borderRadius: '12px',
+                      padding: '14px 32px',
+                      borderRadius: '50px',
                       fontSize: '16px',
                       fontWeight: '600',
                       cursor: 'pointer',
                       transition: 'all 0.3s ease',
-                      boxShadow: '0 4px 16px rgba(59, 130, 246, 0.3)'
+                      boxShadow: '0 8px 24px rgba(102, 126, 234, 0.3)'
                     }}
                   >
                     Create Your First Post

@@ -188,17 +188,17 @@
 }
 
 .event-vote-yes.active {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  border-color: #10b981;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-color: #667eea;
   color: white;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 .event-vote-no.active {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  border-color: #ef4444;
+  background: linear-gradient(135deg, #764ba2 0%, #9333ea 100%);
+  border-color: #764ba2;
   color: white;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  box-shadow: 0 4px 12px rgba(118, 75, 162, 0.3);
 }
 
 .vote-label {
@@ -236,7 +236,7 @@
 }
 
 .event-user-vote svg {
-  color: #10b981;
+  color: #667eea;
 }
 
 /* Animations */

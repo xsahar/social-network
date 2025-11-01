@@ -9,8 +9,13 @@
 
 .groups-page-modern {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background:
+    radial-gradient(ellipse 900px 600px at 10% 20%, rgba(118,75,162,0.08) 0%, transparent 50%),
+    radial-gradient(ellipse 700px 500px at 85% 80%, rgba(167,139,250,0.06) 0%, transparent 50%),
+    linear-gradient(180deg, #f3ecff 0%, #e9ddff 60%, #f6f4ff 100%);
   padding-bottom: 60px;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 /* Hero Section */
@@ -191,7 +196,7 @@
   min-width: 20px;
   height: 20px;
   padding: 0 6px;
-  background: #ef4444;
+  background: #764ba2;
   color: white;
   border-radius: 10px;
   font-size: 0.7rem;
@@ -379,35 +384,35 @@
 }
 
 .group-btn-success {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 .group-btn-success:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
 }
 
 .group-btn-danger {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  background: linear-gradient(135deg, #764ba2 0%, #9333ea 100%);
   color: white;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  box-shadow: 0 4px 12px rgba(118, 75, 162, 0.3);
 }
 
 .group-btn-danger:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+  box-shadow: 0 6px 16px rgba(118, 75, 162, 0.4);
 }
 
 .group-btn-danger-outline {
   background: transparent;
-  color: #ef4444;
-  border: 2px solid #ef4444;
+  color: #764ba2;
+  border: 2px solid #764ba2;
 }
 
 .group-btn-danger-outline:hover {
-  background: #ef4444;
+  background: #764ba2;
   color: white;
 }
 
@@ -935,7 +940,7 @@
   position: fixed;
   right: 0;
   top: 64px;
-  width: 350px;
+  width: 280px;
   height: calc(100vh - 64px);
   background: white;
   box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
@@ -1003,7 +1008,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #10b981;
+  background: #667eea;
   animation: pulse-dot 2s ease-in-out infinite;
 }
 
@@ -1017,7 +1022,7 @@
 }
 
 .group-chat-status-dot.disconnected {
-  background: #ef4444;
+  background: #9ca3af;
 }
 
 .group-chat-close-btn {
@@ -1437,17 +1442,17 @@
 }
 
 .event-vote-yes.active {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  border-color: #10b981;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-color: #667eea;
   color: white;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 .event-vote-no.active {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  border-color: #ef4444;
+  background: linear-gradient(135deg, #764ba2 0%, #9333ea 100%);
+  border-color: #764ba2;
   color: white;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  box-shadow: 0 4px 12px rgba(118, 75, 162, 0.3);
 }
 
 .vote-label {
@@ -1485,7 +1490,7 @@
 }
 
 .event-user-vote svg {
-  color: #10b981;
+  color: #667eea;
 }
 
 /* ========================================
@@ -1692,8 +1697,8 @@
 }
 
 .post-action-btn.active.disliked {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  border-color: #ef4444;
+  background: linear-gradient(135deg, #764ba2 0%, #9333ea 100%);
+  border-color: #764ba2;
   color: white;
 }
 

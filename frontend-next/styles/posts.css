@@ -2,6 +2,99 @@
    GROUP POSTS - MODERN DESIGN
    ======================================== */
 
+/* Posts Page Hero Section - compact and clean */
+.posts-hero-section {
+  background: linear-gradient(135deg, #6b80dd 0%, #835daa 100%);
+  padding: 12px 20px 20px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: -12px;
+}
+
+.posts-hero-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)" /></svg>');
+  opacity: 0.3;
+}
+
+.posts-hero-content {
+  max-width: 800px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.posts-hero-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  margin-bottom: 6px;
+  animation: float 3s ease-in-out infinite;
+}
+
+.posts-hero-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: white;
+  margin: 0 0 4px 0;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  font-family: var(--font-family-display);
+}
+
+.posts-hero-subtitle {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.95);
+  margin: 0 0 10px 0;
+  line-height: 1.6;
+}
+
+.posts-hero-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  background: white;
+  color: #667eea;
+  border: none;
+  border-radius: 50px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.posts-hero-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+}
+
+.posts-hero-cta-icon {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+/* Posts Container Modern */
+.posts-container-modern {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 20px;
+  position: relative;
+  z-index: 2;
+}
+
 .group-posts-section-modern {
   padding: 24px;
 }
@@ -209,7 +302,7 @@
 }
 
 .post-action-btn.active.disliked {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  border-color: #ef4444;
+  background: linear-gradient(135deg, #764ba2 0%, #9333ea 100%);
+  border-color: #764ba2;
   color: white;
 }

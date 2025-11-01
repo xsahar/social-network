@@ -1,0 +1,35 @@
+/* frontend-next/styles/theme.css */
+
+:root {
+  /* Light Theme */
+  --primary-color: #007bff;
+  --primary-hover-color: #0056b3;
+  --secondary-color: #6c757d;
+  --secondary-hover-color: #5a6268;
+  --accent-color: #17a2b8;
+  --accent-hover-color: #138496;
+  --background-color: #ffffff;
+  --text-color: #212529;
+  --border-color: #dee2e6;
+  --card-background-color: #f8f9fa;
+  --card-border-color: #ced4da;
+  --success-color: #28a745;
+  --error-color: #dc3545;
+  --white-color: #fff;
+
+  /* Dark Theme */
+  --dark-primary-color: #007bff;
+  --dark-primary-hover-color: #0056b3;
+  --dark-secondary-color: #6c757d;
+  --dark-secondary-hover-color: #5a6268;
+  --dark-accent-color: #17a2b8;
+  --dark-accent-hover-color: #138496;
+  --dark-background-color: #343a40;
+  --dark-text-color: #f8f9fa;
+  --dark-border-color: #495057;
+  --dark-card-background-color: #495057;
+  --dark-card-border-color: #6c757d;
+  --dark-success-color: #28a745;
+  --dark-error-color: #dc3545;
+  --dark-white-color: #fff;
+}

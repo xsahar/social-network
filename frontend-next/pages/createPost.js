@@ -142,7 +142,7 @@ export default function CreatePost() {
         <meta name="description" content="Create amazing content and inspire your community!" />
       </Head>
       
-      <div className="create-post-page">
+      <div className="create-post-page posts-page-bg">
         <div className="container-professional">
           
           {/* Professional Header */}
@@ -171,7 +171,7 @@ export default function CreatePost() {
             
             <div className="p-12">
               <div className="text-center mb-10">
-                <h2 className="text-3xl font-bold text-gray-800 mb-4">
+                <h2 className="text-3xl font-bold mb-4" style={{color: '#4b5563'}}>
                   Share Your Story
                 </h2>
                
@@ -182,7 +182,7 @@ export default function CreatePost() {
                   
                   {/* Title Field - Professional Design */}
                   <div className="space-y-4">
-                    <label htmlFor="title" className="block text-xl font-bold text-gray-800 flex items-center gap-3">
+                    <label htmlFor="title" className="block text-xl font-bold flex items-center gap-3" style={{color: '#4b5563'}}>
                       Post Title <span className="text-red-500">*</span>
                     </label>
                     <div className="relative group">
@@ -204,7 +204,7 @@ export default function CreatePost() {
 
                   {/* Content Field - Enhanced Textarea */}
                   <div className="space-y-4">
-                    <label htmlFor="content" className="block text-xl font-bold text-gray-800 flex items-center gap-3">
+                    <label htmlFor="content" className="block text-xl font-bold flex items-center gap-3" style={{color: '#4b5563'}}>
                       Post Content <span className="text-red-500">*</span>
                     </label>
                     <div className="relative group">
@@ -248,7 +248,7 @@ export default function CreatePost() {
 
                   {/* Privacy Settings - Ultra-Modern */}
                   <div className="space-y-6">
-                    <label className="block text-xl font-bold text-gray-800 flex items-center gap-3">
+                    <label className="block text-xl font-bold flex items-center gap-3" style={{color: '#4b5563'}}>
                       Privacy Setting <span className="text-red-500">*</span>
                     </label>
                     
@@ -301,14 +301,14 @@ export default function CreatePost() {
                               </div>
                               
                               <div className="flex-1">
-                                <div className={`text-xl font-black mb-2 ${
-                                  isSelected ? 'text-white' : 'text-gray-900'
-                                }`}>
+                                <div className={`text-xl font-black mb-2`} style={{
+                                  color: isSelected ? 'white' : '#374151'
+                                }}>
                                   {option.label}
                                 </div>
-                                <div className={`text-base font-semibold ${
-                                  isSelected ? 'text-white/90' : 'text-gray-600'
-                                }`}>
+                                <div className={`text-base font-semibold`} style={{
+                                  color: isSelected ? 'rgba(255, 255, 255, 0.9)' : '#6b7280'
+                                }}>
                                   {option.description}
                                 </div>
                               </div>
@@ -332,7 +332,7 @@ export default function CreatePost() {
             {/* Follower Selector for Private Posts */}
             {formData.privacy === 'private' && (
               <div className="space-y-4">
-                <label className="block text-xl font-bold text-gray-800 flex items-center gap-3">
+                <label className="block text-xl font-bold flex items-center gap-3" style={{color: '#4b5563'}}>
                   <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 text-white text-lg font-bold shadow-lg">
                     👥
                   </span>
@@ -341,10 +341,10 @@ export default function CreatePost() {
                 <div className="border-3 border-indigo-300 rounded-2xl p-6 max-h-80 overflow-y-auto bg-gradient-to-br from-indigo-50 to-purple-50" style={{ borderWidth: '3px' }}>
                   {followers.length === 0 ? (
                     <div className="text-center py-8">
-                      <p className="text-lg font-bold text-gray-700 mb-2">
+                      <p className="text-lg font-bold mb-2" style={{color: '#4b5563'}}>
                         No followers yet!
                       </p>
-                      <p className="text-sm text-gray-600 font-medium">
+                      <p className="text-sm font-medium" style={{color: '#6b7280'}}>
                         Set post to "Almost Private" to allow future followers to see it.
                       </p>
                     </div>
@@ -366,7 +366,7 @@ export default function CreatePost() {
                             className="w-5 h-5 mr-4 text-indigo-600 focus:ring-indigo-500 rounded border-2"
                           />
                           <div className="flex items-center gap-3 flex-1">
-                            <span className="text-base font-bold text-gray-900">{follower.username ? `@${follower.username}` : ''}</span>
+                            <span className="text-base font-bold" style={{color: '#4b5563'}}>{follower.username ? `@${follower.username}` : ''}</span>
                           </div>
                           {formData.selectedFollowers.includes(follower.id) 
                           }
@@ -388,11 +388,11 @@ export default function CreatePost() {
 
                   {/* Modern Compact File Upload */}
                   <div className="space-y-4">
-                    <label className="block text-xl font-bold text-gray-800 flex items-center gap-3">
+                    <label className="block text-xl font-bold flex items-center gap-3" style={{color: '#4b5563'}}>
                       <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 text-white text-lg font-bold shadow-lg">
                         
                       </span>
-                      Add Image <span className="text-gray-500 font-normal text-sm">(Optional)</span>
+                      Add Image <span style={{color: '#9ca3af', fontWeight: 'normal', fontSize: '0.875rem'}}>(Optional)</span>
                     </label>
                     
                     {!formData.image ? (
@@ -412,19 +412,18 @@ export default function CreatePost() {
                           </div>
                           
                           <div className="flex-1">
-                            <h4 className="text-lg font-bold text-gray-800 mb-1 transition-colors" style={{ color: 'var(--gray-800)' }}>
+                            <h4 className="text-lg font-bold mb-1 transition-colors" style={{ color: '#4b5563' }}>
                               Click to upload an image
                             </h4>
-                            <p className="text-sm text-gray-600 font-medium">
+                            <p className="text-sm font-medium" style={{color: '#6b7280'}}>
                               Supports: JPEG, PNG, GIF (Max 10MB)
                             </p>
                           </div>
                           
                           <div className="flex-shrink-0 flex items-center gap-3">
-                            <svg className="w-6 h-6" style={{color: 'var(--primary-500)'}} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <svg className="w-6 h-6" style={{color: '#667eea'}} viewBox="0 0 24 24" fill="none" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
                             </svg>
-                            <span className="btn btn-primary btn-sm" style={{ pointerEvents: 'none' }}>Choose file</span>
                           </div>
                         </label>
                         
