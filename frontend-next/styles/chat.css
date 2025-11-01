@@ -9,7 +9,7 @@
     right: 150px;
     width: 260px;
     background-color: white;
-    border: 1px solid #ccc;
+    border: 1px solid var(--border-color);
     border-radius: 10px 10px 0 0;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     display: flex;
@@ -22,14 +22,14 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: #1f1f1f;
+    background-color: var(--gray-800);
     color: white;
     padding: 10px;
     border-radius: 10px 10px 0 0;
 }
 
 #chatWithLabel {
-    background-color: #1f1f1f;
+    background-color: var(--gray-800);
     color: white;
     padding: 10px;
     font-size: 16px;
@@ -49,7 +49,7 @@
 }
 
 .close-chat-button:hover {
-    color: #ccc;
+    color: var(--gray-300);
 }
 
 /* Chat Messages Area */
@@ -57,7 +57,7 @@
     overflow-y: auto;
     max-height: 300px;
     padding: 10px;
-    background-color: #f0f0f0;
+    background-color: var(--gray-50);
     display: flex;
     flex-direction: column;
 }
@@ -66,14 +66,14 @@
 #chatForm {
     display: flex;
     padding: 10px;
-    border-top: 1px solid #ccc;
+    border-top: 1px solid var(--border-color);
     background-color: white;
 }
 
 #chatInput {
     flex-grow: 1;
     padding: 10px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--gray-300);
     border-radius: 20px;
     font-size: 14px;
     outline: none;
@@ -81,7 +81,7 @@
 
 #chatForm button {
     margin-left: 8px;
-    background-color: #0084ff;
+    background-color: var(--primary-500);
     border: none;
     color: white;
     padding: 8px 12px;
@@ -91,7 +91,7 @@
 }
 
 #chatForm button:hover {
-    background-color: #006fd6;
+    background-color: var(--primary-600);
 }
 
 /* User Status Indicators */
@@ -103,11 +103,11 @@
 }
 
 .user-online {
-    background-color: #28a745;
+    background-color: var(--success-500);
 }
 
 .user-offline {
-    background-color: #ccc;
+    background-color: var(--gray-300);
 }
 
 /* User List */
@@ -117,11 +117,11 @@
     justify-content: space-between;
     padding: 10px;
     cursor: pointer;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid var(--gray-200);
 }
 
 .user-item:hover {
-    background-color: #f0f0f0;
+    background-color: var(--gray-50);
 }
 
 .status-dot {
@@ -133,11 +133,11 @@
 }
 
 .online {
-    background-color: #667eea;
+    background-color: var(--primary-500);
 }
 
 .offline {
-    background-color: gray;
+    background-color: var(--gray-400);
 }
 
 /* Messages Container */
@@ -154,7 +154,7 @@
 }
 
 .received-message {
-    background-color: #f8d7da;
+    background-color: var(--error-50);
     align-self: flex-start;
     text-align: left;
     margin: 2px;

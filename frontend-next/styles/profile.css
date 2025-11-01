@@ -60,7 +60,7 @@
     display: inline-block;
     width: 56px;
     height: 28px;
-    background-color: #ccc;
+    background-color: var(--gray-300);
     border-radius: 28px;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -68,7 +68,7 @@
 }
 
 .toggle-label:hover {
-    background-color: #bbb;
+    background-color: var(--gray-400);
 }
 
 .toggle-slider {
@@ -84,11 +84,11 @@
 }
 
 .toggle-input:checked + .toggle-label {
-    background-color: #4CAF50;
+    background-color: var(--success-500);
 }
 
 .toggle-input:checked + .toggle-label:hover {
-    background-color: #45a049;
+    background-color: var(--success-600);
 }
 
 .toggle-input:checked + .toggle-label .toggle-slider {
@@ -103,15 +103,9 @@
 }
 
 /* Profile Error Container */
-#errorContainer {
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: calc(100% - 300px);
-    margin: 0 auto;
-    padding: 20px;
-    background: #f4f4f4;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+.follow-requests {
+    background: var(--gray-50);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-top: 1rem;
 }

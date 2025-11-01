@@ -162,12 +162,6 @@ export default function CreatePost() {
           </div>
           {/* Ultra-Professional Form Container */}
           <div className="create-post-form-container">
-            {/* Top gradient bar */}
-            <div className="absolute top-0 left-0 right-0 h-2" style={{ background: 'var(--gradient-cosmic)' }}></div>
-            
-            {/* Floating decorations */}
-            <div className="absolute top-6 right-6 w-8 h-8 rounded-full opacity-15 animate-spin" style={{animationDuration: '15s', background: 'linear-gradient(90deg, var(--primary-300), var(--primary-500))'}}></div>
-            <div className="absolute bottom-8 left-8 w-6 h-6 rounded-full opacity-20 animate-bounce" style={{background: 'linear-gradient(90deg, var(--primary-100), var(--primary-200))'}}></div>
             
             <div className="p-12">
               <div className="text-center mb-10">
@@ -225,23 +219,24 @@ export default function CreatePost() {
 
                   {/* Category Field - Beautiful Selector */}
                   <div className="space-y-4">
-                
+                    <label htmlFor="category" className="block text-xl font-bold flex items-center gap-3" style={{color: '#4b5563'}}>
+                      Category <span className="text-red-500">*</span>
+                    </label>
                     <div className="relative group">
-                      <div className="absolute inset-0 bg-gradient-to-r from-green-400 to-emerald-400 rounded-2xl opacity-0 group-hover:opacity-20 blur-xl transition-all duration-500"></div>
                       <select
                         id="category"
                         name="category"
                         value={formData.category}
                         onChange={handleChange}
                         required
-                        className="relative w-full px-8 py-6 border-3 border-gray-300 rounded-2xl bg-white font-bold text-lg transition-all duration-300 focus:border-green-500 focus:ring-4 focus:ring-green-100 focus:shadow-2xl outline-none hover:border-green-400 hover:shadow-lg cursor-pointer"
-                        style={{ borderWidth: '3px' }}
+                        className="relative w-full px-8 py-6 border-3 rounded-2xl bg-white font-bold text-lg transition-all duration-300 outline-none hover:border-gray-400 hover:shadow-lg cursor-pointer"
+                        style={{ borderWidth: '3px', borderColor: '#d1d5db', color: '#374151' }}
                       >
                         <option value="">Select a category...</option>
-                        <option value="Travel"> Travel</option>
-                        <option value="Sport"> Sports</option>
-                        <option value="Food"> Food</option>
-                        <option value="Nature"> Nature</option>
+                        <option value="Travel">Travel</option>
+                        <option value="Sport">Sports</option>
+                        <option value="Food">Food</option>
+                        <option value="Nature">Nature</option>
                       </select>
                     </div>
                   </div>
@@ -256,15 +251,9 @@ export default function CreatePost() {
                       {privacyOptions.map((option) => {
                         const isSelected = formData.privacy === option.value;
                         const gradients = {
-                          // use light purple tones for all privacy options
-                          'public': 'linear-gradient(135deg, #e2e2faff 0%, #e2c9fdff 100%)',
-                          'almost-private': 'linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%)',
-                          'private': 'linear-gradient(135deg, #f5f3ff 0%, #eadfff 100%)'
-                        };
-                        const icons = {
-                          'public': '',
-                          'almost-private': '',
-                          'private': ''
+                          'public': 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
+                          'almost-private': 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
+                          'private': 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)'
                         };
                         
                         return (
@@ -292,34 +281,18 @@ export default function CreatePost() {
                             />
                             
                             <div className="flex items-center gap-6 relative z-10 w-full">
-                              <div 
-                                className={`w-16 h-16 rounded-xl flex items-center justify-center text-3xl transition-all duration-300 ${
-                                  isSelected ? 'scale-110 shadow-lg bg-white/20' : 'bg-gray-100 group-hover:scale-105'
-                                }`}
-                              >
-                                {icons[option.value]}
-                              </div>
-                              
                               <div className="flex-1">
                                 <div className={`text-xl font-black mb-2`} style={{
-                                  color: isSelected ? 'white' : '#374151'
+                                  color: isSelected ? '#667eea' : '#374151'
                                 }}>
                                   {option.label}
                                 </div>
                                 <div className={`text-base font-semibold`} style={{
-                                  color: isSelected ? 'rgba(255, 255, 255, 0.9)' : '#6b7280'
+                                  color: isSelected ? '#667eea' : '#6b7280'
                                 }}>
                                   {option.description}
                                 </div>
                               </div>
-                              
-                              {isSelected && (
-                                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg">
-                                  <svg className="w-6 h-6 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                  </svg>
-                                </div>
-                              )}
                             </div>
                           </label>
                         );
@@ -333,9 +306,7 @@ export default function CreatePost() {
             {formData.privacy === 'private' && (
               <div className="space-y-4">
                 <label className="block text-xl font-bold flex items-center gap-3" style={{color: '#4b5563'}}>
-                  <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 text-white text-lg font-bold shadow-lg">
-                    👥
-                  </span>
+                  
                   Select Followers <span className="text-red-500">*</span>
                 </label>
                 <div className="border-3 border-indigo-300 rounded-2xl p-6 max-h-80 overflow-y-auto bg-gradient-to-br from-indigo-50 to-purple-50" style={{ borderWidth: '3px' }}>
@@ -536,7 +507,6 @@ export default function CreatePost() {
                       ) : (
                         <>
                           <span className="tracking-wider">Create Post</span>
-                          <span className="text-2xl bg-white/20 w-8 h-8 flex items-center justify-center rounded-lg">✓</span>
                         </>
                       )}
                     </button>

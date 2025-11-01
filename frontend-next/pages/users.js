@@ -202,25 +202,23 @@ export default function Users() {
           {/* Professional Users List */}
           <div className="space-y-6">
             {loading ? (
-              <div className="bg-white/90 backdrop-blur-lg rounded-3xl p-12 shadow-xl border border-white/30 text-center animate-pulse">
+              <div className="bg-white rounded-2xl p-12 shadow-lg border border-gray-200 text-center">
                 <div className="text-6xl mb-6">
                   <div className="w-16 h-16 mx-auto bg-gradient-to-r from-blue-500 to-purple-600 rounded-full animate-spin"></div>
                 </div>
                 <h3 className="text-2xl font-bold text-gray-700 mb-4">Finding amazing people...</h3>
                 <p className="text-lg text-gray-600">Discovering connections for you</p>
-                <div className="loading-spinner mt-6"></div>
               </div>
             ) : (
               <div className="space-y-6">
                 {filteredUsers.length === 0 ? (
-                  <div className="bg-white/90 backdrop-blur-lg rounded-3xl p-16 shadow-xl border border-white/30 text-center relative overflow-hidden">
-                    
-                    <div className="text-8xl mb-8 animate-float">
+                  <div className="bg-white rounded-2xl p-16 shadow-lg border border-gray-200 text-center">
+                    <div className="text-8xl mb-8">
                       <div className="w-24 h-24 mx-auto bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-4xl font-bold">?</div>
                     </div>
                     <h3 className="text-3xl font-bold text-gray-800 mb-4">No matches found</h3>
                     <p className="text-xl text-gray-600 mb-8">
-                      Try a different search or explore all our <span className="font-bold text-gradient">amazing members</span>
+                      Try a different search or explore all our <span className="font-bold text-blue-600">amazing members</span>
                     </p>
                     <button 
                       onClick={() => setSearch('')}
@@ -234,18 +232,11 @@ export default function Users() {
                     {filteredUsers.map((u) => (
                       <div
                         key={u.id}
-                        className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-xl border border-white/40 p-8 relative overflow-hidden group hover:scale-102 transition-all duration-300 cursor-pointer"
+                        className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 hover:shadow-xl hover:border-blue-400 transition-all duration-300 cursor-pointer"
                         onClick={() => router.push(`/profile/${encodeURIComponent(u.username)}`)}
-                        style={{
-                          background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.85) 100%)'
-                        }}
                       >
-                        {/* Card Background Effects */}
-                        <div className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-5 group-hover:opacity-10 transition-opacity" style={{ background: 'var(--gradient-cosmic)' }}></div>
-                        <div className="absolute bottom-0 left-0 w-20 h-20 rounded-full opacity-5 group-hover:opacity-8 transition-opacity animate-pulse" style={{ background: 'var(--gradient-sunset)' }}></div>
-                        
                         {/* User Card Content */}
-                        <div className="flex items-center justify-between relative z-10">
+                        <div className="flex items-center justify-between">
                           {/* User Info Section */}
                           <div className="flex items-center gap-6">
                             {/* Professional Avatar */}
@@ -263,7 +254,7 @@ export default function Users() {
                             
                             {/* User Details */}
                             <div className="flex-1">
-                              <h3 className="text-2xl font-bold text-gray-900 mb-2 group-hover:text-gradient transition-colors">
+                              <h3 className="text-2xl font-bold text-gray-900 mb-2 hover:text-blue-600 transition-colors">
                                 {u.firstname} {u.lastname}
                               </h3>
                               <p className="text-lg text-gray-600 font-medium mb-3">@{u.username}</p>

@@ -115,6 +115,25 @@ select {
   appearance: none;
 }
 
+/* Style the dropdown options */
+select option {
+  padding: 12px 16px;
+  background: white;
+  color: #374151;
+}
+
+select option:hover,
+select option:focus {
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+  color: #667eea;
+}
+
+select option:checked {
+  background: linear-gradient(135deg, #e9d5ff 0%, #ddd6fe 100%);
+  color: #667eea;
+  font-weight: 600;
+}
+
 /* File Input */
 input[type="file"] {
   padding: 0;

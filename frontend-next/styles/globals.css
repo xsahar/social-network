@@ -1,132 +1,22 @@
-
-/* ================================
-   DESIGN TOKENS 
-   ================================ */
-:root {
-  /* Ultra-Rich Color Palette */
-  --primary-50: #eff6ff;
-  --primary-100: #dbeafe;
-  --primary-200: #bfdbfe;
-  --primary-300: #93c5fd;
-  --primary-400: #60a5fa;
-  --primary-500: #3b82f6;
-  --primary-600: #2563eb;
-  --primary-700: #1d4ed8;
-  --primary-800: #1e40af;
-  --primary-900: #1e3a8a;
-
-  /* Vibrant Gradient Collection */
-  --gradient-ocean: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --gradient-sunset: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  --gradient-forest: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  --gradient-aurora: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
-  --gradient-cosmic: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-  --gradient-royal: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --gradient-fire: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
-  --gradient-ice: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
-  --gradient-nature: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
-  --gradient-magic: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%);
-  --gradient-gold: linear-gradient(135deg, #fdcb6e 0%, #e17055 100%);
-  --gradient-emerald: linear-gradient(135deg, #00b894 0%, #55a3ff 100%);
-
-  /* Advanced Accent Colors */
-  --accent-primary: var(--gradient-royal);
-  --accent-secondary: var(--gradient-sunset);
-  --accent-success: var(--gradient-nature);
-  --accent-warning: var(--gradient-gold);
-  --accent-cosmic: var(--gradient-cosmic);
-  --accent-magic: var(--gradient-magic);
-  --accent-fire: var(--gradient-fire);
-  --accent-ice: var(--gradient-ice);
-
-  /* Professional Color Variations */
-  --violet-50: #f3f4f6;
-  --violet-500: #8b5cf6;
-  --violet-600: #7c3aed;
-  --pink-50: #fdf2f8;
-  --pink-500: #ec4899;
-  --pink-600: #db2777;
-  --orange-50: #fff7ed;
-  --orange-500: #f97316;
-  --orange-600: #ea580c;
-  --teal-50: #f0fdfa;
-  --teal-500: #14b8a6;
-  --teal-600: #0d9488;
-
-  /* Neutral Palette */
-  --gray-50: #f9fafb;
-  --gray-100: #f3f4f6;
-  --gray-200: #e5e7eb;
-  --gray-300: #d1d5db;
-  --gray-400: #9ca3af;
-  --gray-500: #6b7280;
-  --gray-600: #4b5563;
-  --gray-700: #374151;
-  --gray-800: #1f2937;
-  --gray-900: #111827;
-  
-  /* Semantic Colors */
-  --success-50: #ecfdf5;
-  --success-500: #10b981;
-  --success-600: #059669;
-  --error-50: #fef2f2;
-  --error-500: #ef4444;
-  --error-600: #dc2626;
-
-  /* Professional Typography Scale */
-  /* Include emoji-capable fonts at the end to ensure emojis render (Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji) */
-  --font-family-display: 'Outfit', 'Inter', 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
-  --font-family-body: 'Inter', 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
-  --font-family-accent: 'Space Grotesk', 'Inter', 'Poppins', sans-serif;
-  
-  --text-xs: 0.75rem;    /* 12px */
-  --text-sm: 0.875rem;   /* 14px */
-  --text-base: 1rem;     /* 16px */
-  --text-lg: 1.125rem;   /* 18px */
-  --text-xl: 1.25rem;    /* 20px */
-  --text-2xl: 1.5rem;    /* 24px */
-  --text-3xl: 1.875rem;  /* 30px */
-  --text-4xl: 2.25rem;   /* 36px */
-
-  /* Spacing Scale */
-  --space-0: 0;
-  --space-1: 0.25rem;    /* 4px */
-  --space-2: 0.5rem;     /* 8px */
-  --space-3: 0.75rem;    /* 12px */
-  --space-4: 1rem;       /* 16px */
-  --space-5: 1.25rem;    /* 20px */
-  --space-6: 1.5rem;     /* 24px */
-  --space-8: 2rem;       /* 32px */
-  --space-10: 2.5rem;    /* 40px */
-  --space-12: 3rem;      /* 48px */
-  --space-16: 4rem;      /* 64px */
-
-  /* Border Radius */
-  --radius-sm: 0.375rem;  /* 6px */
-  --radius-md: 0.5rem;    /* 8px */
-  --radius-lg: 0.75rem;   /* 12px */
-  --radius-xl: 1rem;      /* 16px */
-  --radius-2xl: 1.5rem;   /* 24px */
-  --radius-full: 9999px;
-
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-
-  /* Transitions */
-  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
 /* Modern CSS Reset */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+/* Override browser default select option colors */
+option {
+  background: white !important;
+  color: #374151 !important;
+  padding: 10px;
+}
+
+option:checked,
+option:hover,
+option:focus {
+  background: linear-gradient(135deg, #e9d5ff 0%, #ddd6fe 100%) !important;
+  color: #667eea !important;
 }
 
 html {
@@ -404,19 +294,19 @@ a:hover {
   display: flex;
   gap: 20px;
   min-height: calc(100vh - 80px);
-  margin-right: 280px; /* Always account for fixed chat sidebar */
+  margin-right: 0; /* Remove default margin */
   transition: margin-right 0.3s ease;
 }
 
 .posts-layout.chat-open {
-  /* chat is always visible on desktop */
-  margin-right: 280px;
+  margin-right: 280px; /* Add margin only when chat is open */
 }
 
 .posts-main-content {
   flex: 1;
-  margin-left: 170px; /* Account for fixed sidebar */
+  margin-left: 0; /* Remove default margin */
   padding: 20px;
+  max-width: 100%;
 }
 
 .posts-header {
@@ -510,7 +400,7 @@ textarea {
     font-size: 1rem;
     padding: 10px;
     border: 1px solid var(--border-color);
-    border-radius: 4px;
+    border-radius: var(--radius-lg);
     margin-bottom: 1rem;
   width: 100%;
     box-sizing: border-box;
@@ -536,7 +426,7 @@ textarea:focus {
     margin-right: auto;
     background: var(--card-background-color);
     /* Light gray background */
-    border-radius: 8px;
+    border-radius: var(--radius-xl);
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
@@ -548,7 +438,7 @@ textarea:focus {
 /* Container */
 .container-create {
     background: var(--card-background-color);
-    border-radius: 8px;
+    border-radius: var(--radius-xl);
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     padding: 20px;
     box-sizing: border-box;
@@ -782,7 +672,7 @@ input[type="submit"]:active {
     padding: 30px;
     max-width: 800px;
     background: var(--card-background-color);
-    border-radius: 12px;
+    border-radius: var(--radius-2xl);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
@@ -808,7 +698,7 @@ input[type="submit"]:active {
     color: var(--white-color);
     border: none;
     padding: 10px 16px;
-    border-radius: 5px;
+    border-radius: var(--radius-md);
     cursor: pointer;
     transition: background-color 0.3s;
 }
@@ -838,7 +728,7 @@ input[type="submit"]:active {
     /* Center horizontally */
     padding: 20px;
     background: var(--card-background-color);
-    border-radius: 8px;
+    border-radius: var(--radius-xl);
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
@@ -901,7 +791,7 @@ input[type="submit"]:active {
     width: 56px;
     height: 28px;
     background-color: var(--secondary-color);
-    border-radius: 28px;
+    border-radius: var(--radius-2xl);
     cursor: pointer;
     transition: all 0.3s ease;
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -959,7 +849,7 @@ input[type="submit"]:active {
     background-color: var(--background-color);
     margin: 5% auto;
     padding: 30px;
-    border-radius: 12px;
+    border-radius: var(--radius-2xl);
     width: 90%;
     max-width: 500px;
     position: relative;
@@ -1006,7 +896,7 @@ input[type="submit"]:active {
     width: 100%;
     padding: 12px;
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: var(--radius-xl);
     font-size: 16px;
     box-sizing: border-box;
 }
@@ -1034,7 +924,7 @@ input[type="submit"]:active {
 .invitation-card {
     background: var(--card-background-color);
     border: 1px solid var(--border-color);
-    border-radius: 12px;
+    border-radius: var(--radius-2xl);
     padding: 20px;
     margin-bottom: 15px;
     display: flex;
@@ -1124,7 +1014,7 @@ input[type="submit"]:active {
     margin: 15px 0;
     padding: 15px;
     background: var(--card-background-color);
-    border-radius: 5px;
+    border-radius: var(--radius-md);
     border: 2px solid var(--primary-color);
     visibility: visible !important;
 }
@@ -1136,7 +1026,7 @@ input[type="submit"]:active {
     margin: 0;
     cursor: pointer;
     padding: 8px;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     transition: background-color 0.2s;
     visibility: visible !important;
 }
@@ -1180,7 +1070,7 @@ input[type="submit"]:active {
     margin: 15px 0;
     padding: 15px;
     background: var(--card-background-color);
-    border-radius: 5px;
+    border-radius: var(--radius-md);
     border: 2px solid var(--success-color);
 }
 
@@ -1204,30 +1094,30 @@ input[type="submit"]:active {
 .users-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
-    padding: 20px;
+    gap: var(--space-6);
+    padding: var(--space-6);
     max-width: 1200px;
     margin: 0 auto;
 }
 
 .user-card {
-    background: var(--card-background-color);
-    border: 2px solid var(--border-color);
-    border-radius: 10px;
-    padding: 20px;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-2xl);
+    padding: var(--space-6);
     text-align: center;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    transition: all var(--transition-normal);
+    box-shadow: var(--shadow-md);
 }
 
 .user-card:hover {
-    border-color: var(--success-color);
+    border-color: var(--primary-500);
     transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    box-shadow: var(--shadow-xl);
 }
 
 .user-card.online {
-    border-left: 4px solid var(--success-color);
+    border-left: 4px solid var(--success-500);
 }
 
 .user-avatar {
@@ -1288,7 +1178,7 @@ input[type="submit"]:active {
 .user-actions button {
     padding: 8px 16px;
     border: none;
-    border-radius: 5px;
+    border-radius: var(--radius-md);
     cursor: pointer;
     font-size: 14px;
     transition: background-color 0.3s ease;
@@ -1307,7 +1197,7 @@ input[type="submit"]:active {
     background: var(--primary-color);
     color: var(--white-color);
     padding: 0.5rem 1rem;
-    border-radius: 6px;
+    border-radius: var(--radius-lg);
     border: none;
     font-size: 0.875rem;
     font-weight: 500;
@@ -1331,7 +1221,7 @@ input[type="submit"]:active {
     width: 100%;
     padding: 12px 16px;
     border: 2px solid var(--border-color);
-    border-radius: 25px;
+    border-radius: var(--radius-2xl);
     font-size: 16px;
     outline: none;
     transition: border-color 0.3s ease;
@@ -1358,7 +1248,7 @@ input[type="submit"]:active {
     margin: 8px 0 0;
     background-color: var(--background-color);
     border: 1px solid var(--border-color);
-    border-radius: 5px;
+    border-radius: var(--radius-md);
     padding: 10px;
 }
 .users-list li {
@@ -1370,7 +1260,7 @@ input[type="submit"]:active {
 
 .users-list li:hover {
     background-color: var(--card-background-color);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
 }
 .users-list a {
     color: var(--text-color);
@@ -1384,7 +1274,7 @@ input[type="submit"]:active {
 .user-info-container {
     background: var(--background-color);
     border: 2px solid var(--border-color);
-    border-radius: 10px;
+    border-radius: var(--radius-xl);
     padding: 16px 20px;
     margin: 16px 0 24px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
@@ -1412,7 +1302,7 @@ input[type="submit"]:active {
     padding: 12px 14px;
     background: var(--card-background-color);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: var(--radius-xl);
     color: var(--text-color);
 }
 
@@ -1422,7 +1312,7 @@ input[type="submit"]:active {
 
 .post-card {
   background: var(--card-background-color);
-  border-radius: 12px;
+  border-radius: var(--radius-2xl);
   padding: 20px;
   margin-bottom: 20px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -1436,7 +1326,7 @@ input[type="submit"]:active {
 
 .post-image-wrapper {
   margin: 15px 0;
-  border-radius: 8px;
+  border-radius: var(--radius-xl);
   overflow: hidden;
 }
 
@@ -1470,7 +1360,7 @@ input[type="submit"]:active {
   border: none;
   cursor: pointer;
   padding: 5px 10px;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
 }
 
 .icon-btn:hover {
@@ -1483,7 +1373,7 @@ input[type="submit"]:active {
 
 .post-card {
     background: var(--card-background-color);
-    border-radius: 8px;
+    border-radius: var(--radius-xl);
     padding: 20px;
     margin-bottom: 20px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -1491,7 +1381,7 @@ input[type="submit"]:active {
 
 .post-image-container {
     margin: 15px 0;
-    border-radius: 8px;
+    border-radius: var(--radius-xl);
     overflow: hidden;
     background: var(--card-background-color);
 }
@@ -1965,41 +1855,20 @@ input[type="submit"]:active {
 
 /* Groups Page - Community Vibes */
 .groups-page-bg {
-  background: 
-    /* Community circles */
-    radial-gradient(ellipse 600px 400px at 80% 20%, rgba(108, 92, 231, 0.1) 0%, transparent 50%),
-    radial-gradient(ellipse 700px 500px at 20% 80%, rgba(236, 72, 153, 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse 500px 300px at 50% 50%, rgba(14, 184, 166, 0.06) 0%, transparent 50%),
-    /* Base community gradient */
-    linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 25%, #f0fdf4 50%, #fef7f7 75%, #f0f9ff 100%);
+  background: var(--background-color);
   min-height: 100vh;
   position: relative;
 }
 
-.groups-page-bg::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: 
-    /* Network patterns */
-    radial-gradient(circle 2px at 25% 25%, rgba(108, 92, 231, 0.3) 0%, transparent 50%),
-    radial-gradient(circle 3px at 75% 75%, rgba(236, 72, 153, 0.2) 0%, transparent 50%),
-    radial-gradient(circle 2px at 50% 10%, rgba(14, 184, 166, 0.25) 0%, transparent 50%);
-  animation: networkPulse 8s ease-in-out infinite alternate;
-  pointer-events: none;
-}
 
 @keyframes networkPulse {
   0% { opacity: 0.6; transform: scale(1); }
   100% { opacity: 1; transform: scale(1.05); }
 }
 
-/* Users Page - Connection Theme */
+/* Users Page - Clean Professional Theme */
 .users-page-bg {
-  background:
-    radial-gradient(ellipse 900px 600px at 10% 20%, rgba(118,75,162,0.08) 0%, transparent 50%),
-    radial-gradient(ellipse 700px 500px at 85% 80%, rgba(167,139,250,0.06) 0%, transparent 50%),
-    linear-gradient(180deg, #f3ecff 0%, #e9ddff 60%, #f6f4ff 100%);
+  background: var(--background-color);
   min-height: 100vh;
   position: relative;
   overflow-x: hidden;
@@ -2056,7 +1925,7 @@ input[type="submit"]:active {
 .enhanced-post-card {
   background: var(--card-background-color);
   backdrop-filter: blur(10px);
-  border-radius: 20px;
+  border-radius: var(--radius-2xl);
   padding: 24px;
   margin-bottom: 24px;
   box-shadow: 0 4px 20px rgba(102, 126, 234, 0.15);
@@ -2142,7 +2011,7 @@ input[type="submit"]:active {
   background: var(--primary-color);
   color: var(--white-color);
   padding: 6px 14px;
-  border-radius: 20px;
+  border-radius: var(--radius-2xl);
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -2172,7 +2041,7 @@ input[type="submit"]:active {
 
 .enhanced-post-image-container {
   margin: 16px 0;
-  border-radius: 12px;
+  border-radius: var(--radius-2xl);
   overflow: hidden;
   background: var(--card-background-color);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -2209,7 +2078,7 @@ input[type="submit"]:active {
   border: 2px solid var(--border-color);
   cursor: pointer;
   padding: 10px 16px;
-  border-radius: 12px;
+  border-radius: var(--radius-2xl);
   font-size: 14px;
   font-weight: 600;
   transition: all 0.3s ease;
@@ -2307,7 +2176,7 @@ input[type="submit"]:active {
 
 .post-detail {
     background: var(--card-background-color);
-    border-radius: 8px;
+    border-radius: var(--radius-xl);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     padding: 24px;
     margin-bottom: 32px;
@@ -2354,13 +2223,13 @@ input[type="submit"]:active {
 .post-image {
     max-width: 500px;
     width: 100%;
-    border-radius: 8px;
+    border-radius: var(--radius-xl);
     margin-bottom: 16px;
 }
 
 .comment-form {
     background: var(--card-background-color);
-    border-radius: 8px;
+    border-radius: var(--radius-xl);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     padding: 24px;
     margin-bottom: 32px;
@@ -2378,7 +2247,7 @@ input[type="submit"]:active {
     width: 100%;
     padding: 12px;
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: var(--radius-xl);
     resize: none;
     font-family: inherit;
     font-size: 14px;
@@ -2413,7 +2282,7 @@ input[type="submit"]:active {
     text-align: center;
     padding: 32px;
     background: var(--card-background-color);
-    border-radius: 8px;
+    border-radius: var(--radius-xl);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     border: 1px solid var(--border-color);
 }
@@ -2424,7 +2293,7 @@ input[type="submit"]:active {
 
 .comment-card {
     background: var(--card-background-color);
-    border-radius: 8px;
+    border-radius: var(--radius-xl);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     padding: 20px;
     margin-bottom: 16px;
@@ -2470,12 +2339,12 @@ input[type="submit"]:active {
 }
 
 .group-details-container .group-header {
-    background: linear-gradient(135deg, #4a76a8 0%, #5b8fc4 100%);
+    background: var(--gradient-royal);
     color: white;
     padding: 0;
-    border-radius: 10px;
+    border-radius: var(--radius-xl);
     margin-bottom: 24px;
-    box-shadow: 0 3px 10px rgba(74, 118, 168, 0.25);
+    box-shadow: 0 3px 10px rgba(102, 126, 234, 0.25);
     overflow: hidden;
 }
 
@@ -2505,7 +2374,7 @@ input[type="submit"]:active {
     backdrop-filter: blur(10px);
     color: white;
     padding: 6px 12px;
-    border-radius: 20px;
+    border-radius: var(--radius-2xl);
     font-size: 12px;
     font-weight: 600;
     border: 1px solid rgba(255, 255, 255, 0.3);
@@ -2520,7 +2389,7 @@ input[type="submit"]:active {
     font-size: 14px;
     padding: 10px 12px;
     background: rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
+    border-radius: var(--radius-lg);
     border-left: 3px solid rgba(255, 255, 255, 0.3);
 }
 
@@ -2575,14 +2444,14 @@ input[type="submit"]:active {
 .group-activity-title {
     font-size: 24px;
     font-weight: 700;
-    color: #1c1e21;
+    color: var(--gray-900);
 }
 
 .chat-button {
-    background: #4a76a8;
+    background: var(--primary-500);
     color: white;
     padding: 10px 16px;
-    border-radius: 6px;
+    border-radius: var(--radius-lg);
     border: none;
     font-weight: 500;
     display: inline-flex;
@@ -2593,7 +2462,7 @@ input[type="submit"]:active {
 }
 
 .chat-button:hover {
-    background: #3d6390;
+    background: var(--primary-600);
 }
 
 /* Make chat user item look clickable when chat button is removed */
@@ -2602,7 +2471,7 @@ input[type="submit"]:active {
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-xl);
   transition: background 0.15s ease, transform 0.08s ease;
   cursor: pointer;
 }
@@ -2616,12 +2485,18 @@ input[type="submit"]:active {
 }
 
 /* Chat user name styling (clickable list) */
+.chat-user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
 .chat-user-item .chat-username {
   font-family: var(--font-family-display);
   font-weight: 700;
   font-size: 0.95rem;
   color: var(--gray-900);
-  margin-left: 8px;
 }
 
 /* Chat Sidebar Container */
@@ -2685,19 +2560,19 @@ input[type="submit"]:active {
     background: none;
     border-bottom: 2px solid transparent;
     padding-bottom: 8px;
-    color: #65676b;
+    color: var(--gray-500);
     font-weight: 500;
     cursor: pointer;
     transition: color 0.2s ease, border-color 0.2s ease;
 }
 
 .group-tab.active {
-    border-bottom-color: #4a76a8;
-    color: #4a76a8;
+    border-bottom-color: var(--primary-500);
+    color: var(--primary-500);
 }
 
 .group-tab:hover {
-    color: #1c1e21;
+    color: var(--gray-900);
 }
 
 .group-events-section {
@@ -2707,7 +2582,7 @@ input[type="submit"]:active {
 .group-events-title {
     font-size: 20px;
     font-weight: 700;
-    color: #1c1e21;
+    color: var(--gray-900);
     margin-bottom: 16px;
 }
 
@@ -2717,15 +2592,15 @@ input[type="submit"]:active {
 }
 
 .join-prompt-box {
-    background: #f7f8fa;
-    border-radius: 8px;
+    background: var(--gray-50);
+    border-radius: var(--radius-xl);
     padding: 32px;
 }
 
 .join-prompt-title {
     font-size: 20px;
     font-weight: 600;
-    color: #1c1e21;
+    color: var(--gray-900);
     margin-bottom: 16px;
 }
 
@@ -2738,12 +2613,12 @@ input[type="submit"]:active {
 
 .loading-text {
     font-size: 18px;
-    color: #65676b;
+    color: var(--gray-500);
 }
 
 .error-text {
     font-size: 18px;
-    color: #e41e3f;
+    color: var(--error-500);
 }
 
 /* Group Posts Section Styles */
@@ -2753,7 +2628,7 @@ input[type="submit"]:active {
 
 .create-post-prompt {
     background: white;
-    border-radius: 8px;
+    border-radius: var(--radius-xl);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
     border: 1px solid #e4e6ea;
     padding: 16px;
@@ -2766,8 +2641,8 @@ input[type="submit"]:active {
     padding: 12px;
     background: #f0f2f5;
     border: 2px dashed #dadde1;
-    border-radius: 8px;
-    color: #65676b;
+    border-radius: var(--radius-xl);
+    color: var(--gray-500);
     cursor: pointer;
     transition: all 0.2s ease;
     font-size: 14px;
@@ -2785,7 +2660,7 @@ input[type="submit"]:active {
 
 .create-event-prompt {
     background: white;
-    border-radius: 8px;
+    border-radius: var(--radius-xl);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
     border: 1px solid #e4e6ea;
     padding: 16px;
@@ -2798,8 +2673,8 @@ input[type="submit"]:active {
     padding: 12px;
     background: #f0f2f5;
     border: 2px dashed #dadde1;
-    border-radius: 8px;
-    color: #65676b;
+    border-radius: var(--radius-xl);
+    color: var(--gray-500);
     cursor: pointer;
     transition: all 0.2s ease;
     font-size: 14px;
@@ -2812,7 +2687,7 @@ input[type="submit"]:active {
 
 .event-card {
     background: white;
-    border-radius: 8px;
+    border-radius: var(--radius-xl);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
     border: 1px solid #e4e6ea;
     padding: 20px;
@@ -2829,20 +2704,20 @@ input[type="submit"]:active {
 .event-title {
     font-size: 18px;
     font-weight: 600;
-    color: #1c1e21;
+    color: var(--gray-900);
     margin: 0;
 }
 
 .event-date {
     font-size: 14px;
-    color: #65676b;
+    color: var(--gray-500);
     background: #f0f2f5;
     padding: 4px 8px;
-    border-radius: 4px;
+    border-radius: var(--radius-md);
 }
 
 .event-description {
-    color: #1c1e21;
+    color: var(--gray-900);
     line-height: 1.5;
     margin-bottom: 16px;
 }
