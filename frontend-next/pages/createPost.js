@@ -148,7 +148,7 @@ export default function CreatePost() {
           {/* Professional Header */}
           <div className="create-post-hero">
             {/* <div className="create-post-hero-icon">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="44" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
             </div> */}

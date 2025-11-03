@@ -93,6 +93,13 @@
   padding: 24px 20px;
   position: relative;
   z-index: 2;
+   transition: margin-right 0.3s;
+}
+
+@media (min-width: 900px) {
+  .posts-container-modern {
+    margin-right: 280px; /* matches chat width + gap */
+  }
 }
 
 .group-posts-section-modern {

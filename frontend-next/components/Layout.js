@@ -65,12 +65,12 @@ const Layout = ({ children }) => {
                 >
                   Posts
                 </button>
-                <button 
+                {/* <button 
                   onClick={() => navigateTo('/createPost')} 
                   className="nav-link"
                 >
                   Create Post
-                </button>
+                </button> */}
                 <button 
                   onClick={() => navigateTo('/groups')} 
                   className="nav-link"

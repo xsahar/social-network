@@ -268,10 +268,7 @@ export default function Posts() {
               <h1 className="posts-hero-title">
                 Discover Amazing Stories
               </h1>
-              
-              <p className="posts-hero-subtitle">
-                Share your thoughts and explore incredible content from your community
-              </p>
+            
 
               <button 
                 onClick={() => router.push('/createPost')}
