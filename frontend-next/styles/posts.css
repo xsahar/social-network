@@ -102,6 +102,49 @@
   }
 }
 
+/* Responsive: stack hero + content on narrow viewports and hide chat sidebar */
+@media (max-width: 900px) {
+  .posts-layout {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .posts-hero-section {
+    margin-bottom: 0;
+    padding: 16px;
+    text-align: left;
+  }
+
+  .posts-hero-content {
+    max-width: 100%;
+    padding: 0;
+  }
+
+  .posts-container-modern {
+    margin-right: 0;
+    padding: 16px;
+  }
+
+  .posts-main-content {
+    padding: 12px;
+  }
+
+  /* On small screens the chat sidebar should be hidden to avoid covering content */
+  .chat-sidebar {
+    display: none !important;
+  }
+}
+
+/* Medium screens: keep chat hidden until wide enough */
+@media (min-width: 901px) and (max-width: 1100px) {
+  .posts-container-modern {
+    margin-right: 0; /* avoid forcing space when chat is hidden on medium screens */
+  }
+  .chat-sidebar {
+    display: none !important;
+  }
+}
+
 .group-posts-section-modern {
   padding: 24px;
 }

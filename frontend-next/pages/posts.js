@@ -15,6 +15,7 @@ export default function Posts() {
   const { onlineUsers, subscribe } = useWebSocketContext();
   const { chatOpen, chatWith, startChat, setChatOpen } = useChat();
   const router = useRouter();
+  const [mobileChatOpen, setMobileChatOpen] = useState(false);
 
   const fetchPosts = async () => {
     try {
@@ -421,7 +422,7 @@ export default function Posts() {
 
         {/* Right Sidebar - Chat with Following Users */}
         {user && (
-          <div className="chat-sidebar">
+            <div className="chat-sidebar">
             <h3 className="chat-sidebar-title">
               Chat ({followingUsers.length})
             </h3>
@@ -456,6 +457,51 @@ export default function Posts() {
               )}
             </div>
           </div>
+        )}
+
+        {/* Mobile chat drawer toggle (visible only on small screens via CSS) */}
+        {user && (
+          <>
+            <button
+              className="mobile-chat-button"
+              onClick={() => setMobileChatOpen(true)}
+              aria-label="Open chat"
+            >
+              💬
+            </button>
+
+            <div className={`mobile-chat-drawer ${mobileChatOpen ? 'open' : ''}`} role="dialog" aria-modal="true">
+              <div className="mobile-chat-drawer-header">
+                <h4>Chat</h4>
+                <button className="mobile-chat-close" onClick={() => setMobileChatOpen(false)}>×</button>
+              </div>
+              <div className="mobile-chat-users">
+                {followingUsers.length > 0 ? (
+                  followingUsers.map((followingUser) => (
+                    <div
+                      key={followingUser.id}
+                      className="chat-user-item"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => { startChat(followingUser); setMobileChatOpen(false); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { startChat(followingUser); setMobileChatOpen(false); } }}
+                    >
+                      <div className="chat-user-info">
+                        <div className={`chat-status-dot ${onlineUsers.some(u => u.id === followingUser.id) ? 'online' : 'offline'}`}></div>
+                        <div className="user-avatar-small"><span>{followingUser.emoji || (followingUser.username ? followingUser.username.charAt(0).toUpperCase() : '?')}</span></div>
+                        <span className="chat-username">{followingUser.username}</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="chat-empty-state">
+                    <p>No users to chat with</p>
+                    <p className="chat-empty-subtext">Follow users to start chatting</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
         )}
       </div>
       </div> {/* Close posts-page-bg */}

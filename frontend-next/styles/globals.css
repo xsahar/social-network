@@ -447,10 +447,17 @@ textarea:focus {
     /* Center items */
     text-align: center;
     /* Center text */
-    width: calc(100% - 300px);
-    /* Full width minus both sidebars */
+    width: 100%;
+    max-width: 1000px; /* keep reasonable max width on large screens */
     margin: 0 auto;
     /* Center horizontally */
+}
+
+/* Ensure elements that previously subtracted sidebar widths adapt on smaller viewports */
+@media (min-width: 1100px) {
+  .container-create {
+    width: calc(100% - 300px);
+  }
 }
 
 /* Heading */
@@ -461,7 +468,7 @@ h1 {
     color: var(--text-color);
     text-align: center;
     /* Center the heading */
-    padding-right: 50px;
+  padding-right: 0; /* remove fixed right padding to avoid horizontal overflow on small screens */
     /* Add space to the right of the text */
     box-sizing: border-box;
     /* Include padding in element's total width */
@@ -722,10 +729,10 @@ input[type="submit"]:active {
     /* Stack content vertically */
     align-items: center;
     /* Center items */
-    width: calc(100% - 300px);
-    /* Full width minus both sidebars */
-    margin: 0 auto;
-    /* Center horizontally */
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  /* Center horizontally */
     padding: 20px;
     background: var(--card-background-color);
     border-radius: var(--radius-xl);
@@ -2511,6 +2518,80 @@ input[type="submit"]:active {
   padding: 20px;
   overflow-y: auto;
   z-index: 100;
+}
+
+/* Hide the fixed chat sidebar on narrower viewports to avoid covering content */
+@media (max-width: 1100px) {
+  .chat-sidebar {
+    display: none !important;
+  }
+}
+
+/* Mobile chat drawer and floating button */
+.mobile-chat-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 8px 24px rgba(102,126,234,0.25);
+  font-size: 22px;
+  display: none; /* shown on small screens */
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  cursor: pointer;
+}
+
+.mobile-chat-drawer {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  top: 0;
+  width: 100%;
+  max-width: 380px;
+  background: white;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  z-index: 210;
+  box-shadow: -8px 0 24px rgba(0,0,0,0.12);
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-chat-drawer.open {
+  transform: translateX(0);
+}
+
+.mobile-chat-drawer-header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.mobile-chat-close {
+  background:none;
+  border:none;
+  font-size:22px;
+  cursor:pointer;
+}
+
+.mobile-chat-users {
+  padding: 12px;
+  overflow-y: auto;
+  flex:1;
+}
+
+/* show floating button and drawer only on small screens */
+@media (max-width: 1100px) {
+  .mobile-chat-button { display: flex; }
+  .mobile-chat-drawer { width: 100%; max-width: 100%; }
 }
 
 .chat-users-list {
