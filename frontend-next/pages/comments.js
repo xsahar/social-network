@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Layout from '../components/Layout';
@@ -155,6 +155,16 @@ export default function Comments() {
     }
   };
 
+  // Listen for ReplaceButton file selection (custom event) for comment image
+  useEffect(() => {
+    const onReplace = (ev) => {
+      const file = ev.detail;
+      if (file) setCommentImage(file);
+    };
+    window.addEventListener('replace-image-selected', onReplace);
+    return () => window.removeEventListener('replace-image-selected', onReplace);
+  }, []);
+
   if (loading || sessionLoading) {
     return (
       <Layout>
@@ -272,32 +282,87 @@ export default function Comments() {
             
             {/* Image Upload */}
             <div className="mt-3">
-              <label htmlFor="comment-image" className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Add Image or GIF (Optional)
               </label>
-              <input
-                type="file"
-                id="comment-image"
-                accept="image/jpeg,image/jpg,image/png,image/gif"
-                onChange={(e) => setCommentImage(e.target.files[0])}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-              />
-              
-              {/* Image Preview */}
-              {commentImage && (
-                <div className="mt-2 relative inline-block">
-                  <img 
-                    src={URL.createObjectURL(commentImage)} 
-                    alt="Preview" 
-                    className="max-w-xs max-h-32 rounded-lg border border-gray-300"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setCommentImage(null)}
-                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 text-lg leading-none"
+
+              {/* Use the same modern compact upload box as Create Post */}
+              {!commentImage ? (
+                <div className="relative">
+                  <label
+                    htmlFor="comment-image"
+                    className="group flex items-center gap-4 p-4 rounded-2xl border-2 border-dashed cursor-pointer transition-all duration-300 hover:shadow-md"
+                    style={{ background: 'var(--primary-50)', borderColor: 'var(--primary-200)' }}
                   >
-                    ×
-                  </button>
+                    <div className="flex-shrink-0">
+                      <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-200" style={{ background: 'linear-gradient(135deg, var(--primary-500), var(--primary-600))' }}>
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
+                        </svg>
+                      </div>
+                    </div>
+
+                    <div className="flex-1">
+                      <h4 className="text-md font-bold mb-1 transition-colors" style={{ color: '#374151' }}>
+                        Click to upload an image
+                      </h4>
+                      <p className="text-sm font-medium" style={{ color: '#6b7280' }}>
+                        Supports: JPEG, PNG, GIF (Max 10MB)
+                      </p>
+                    </div>
+
+                    <div className="flex-shrink-0 flex items-center gap-3">
+                      <svg className="w-5 h-5" style={{ color: '#667eea' }} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </label>
+
+                  <input
+                    type="file"
+                    id="comment-image"
+                    accept="image/jpeg,image/jpg,image/png,image/gif"
+                    onChange={(e) => { if (e.target.files && e.target.files[0]) setCommentImage(e.target.files[0]); }}
+                    className="sr-only"
+                  />
+                </div>
+              ) : (
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-4 border-2 border-green-300 shadow relative overflow-hidden">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 relative group">
+                      <div className="w-20 h-20 rounded-xl overflow-hidden shadow-md border-2 border-white">
+                        <img src={URL.createObjectURL(commentImage)} alt="Preview" className="w-full h-full object-cover" />
+                      </div>
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/8 rounded-xl transition-colors duration-200"></div>
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      </div>
+
+                      <p className="text-sm text-green-700 font-medium mb-3 truncate">{commentImage.name}</p>
+
+                      <div className="flex gap-2 image-action-group">
+                        <button
+                          type="button"
+                          onClick={() => setCommentImage(null)}
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-red-300 text-red-700 rounded-xl font-semibold text-sm hover:bg-red-50 hover:border-red-400 transition-all duration-150 shadow-sm image-action-btn image-action-remove"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Remove
+                        </button>
+
+                        <ReplaceButton />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -385,5 +450,39 @@ export default function Comments() {
         </div>
       </div>
     </Layout>
+  );
+}
+
+function ReplaceButton() {
+  const replaceRef = useRef(null);
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => replaceRef.current && replaceRef.current.click()}
+        className="inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-purple-300 text-purple-700 rounded-xl font-semibold text-sm hover:bg-purple-50 hover:border-purple-400 transition-all duration-200 shadow-sm hover:shadow cursor-pointer image-action-btn image-action-replace"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        Replace
+      </button>
+      <input
+        type="file"
+        id="comment-image-replace"
+        name="comment-image-replace"
+        accept="image/jpeg,image/jpg,image/png,image/gif"
+        onChange={(e) => {
+          if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            const custom = new CustomEvent('replace-image-selected', { detail: file });
+            window.dispatchEvent(custom);
+          }
+        }}
+        ref={replaceRef}
+        className="sr-only"
+      />
+    </>
   );
 }
