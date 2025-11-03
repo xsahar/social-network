@@ -2114,35 +2114,36 @@ input[type="submit"]:active {
 }
 
 .like-btn-enhanced:hover {
-  background: var(--primary-hover-color);
-  border-color: var(--primary-color);
-  color: var(--primary-color);
+  /* use a softer, lighter purple hover so it isn't too dark */
+  background: var(--primary-100);
+  border-color: var(--primary-300);
+  color: var(--primary-700);
 }
 
 .like-btn-enhanced:hover .action-icon {
-  background: var(--primary-color);
+  background: var(--primary-300);
   color: var(--white-color);
 }
 
 .dislike-btn-enhanced:hover {
-  background: var(--primary-hover-color);
-  border-color: var(--primary-color);
-  color: var(--primary-color);
+  background: var(--primary-100);
+  border-color: var(--primary-300);
+  color: var(--primary-700);
 }
 
 .dislike-btn-enhanced:hover .action-icon {
-  background: var(--primary-color);
+  background: var(--primary-300);
   color: var(--white-color);
 }
 
 .comment-btn-enhanced:hover {
-  background: var(--primary-hover-color);
-  border-color: var(--primary-color);
-  color: var(--primary-color);
+  background: var(--primary-100);
+  border-color: var(--primary-300);
+  color: var(--primary-700);
 }
 
 .comment-btn-enhanced:hover .action-icon {
-  background: var(--primary-color);
+  background: var(--primary-300);
   color: var(--white-color);
 }
 
