@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Layout from '../components/Layout';
@@ -124,6 +124,16 @@ export default function CreatePost() {
       setLoading(false);
     }
   };
+
+  // Listen for ReplaceButton file selection (custom event)
+  useEffect(() => {
+    const onReplace = (ev) => {
+      const file = ev.detail;
+      if (file) setFormData(prev => ({ ...prev, image: file }));
+    };
+    window.addEventListener('replace-image-selected', onReplace);
+    return () => window.removeEventListener('replace-image-selected', onReplace);
+  }, []);
 
   if (sessionLoading) {
     return (
@@ -432,7 +442,6 @@ export default function CreatePost() {
                                 <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                                 </svg>
-                                <h4 className="text-base font-bold text-green-800">Image uploaded!</h4>
                               </div>
                             </div>
                             
@@ -440,11 +449,11 @@ export default function CreatePost() {
                               {formData.image.name}
                             </p>
                             
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 image-action-group">
                               <button
                                 type="button"
                                 onClick={() => setFormData({...formData, image: null})}
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-red-300 text-red-700 rounded-xl font-semibold text-sm hover:bg-red-50 hover:border-red-400 transition-all duration-200 shadow-sm hover:shadow"
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-red-300 text-red-700 rounded-xl font-semibold text-sm hover:bg-red-50 hover:border-red-400 transition-all duration-200 shadow-sm hover:shadow image-action-btn image-action-remove"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -452,23 +461,8 @@ export default function CreatePost() {
                                 Remove
                               </button>
                               
-                              <label 
-                                htmlFor="image-replace"
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-purple-300 text-purple-700 rounded-xl font-semibold text-sm hover:bg-purple-50 hover:border-purple-400 transition-all duration-200 shadow-sm hover:shadow cursor-pointer"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
-                                Replace
-                              </label>
-                              <input
-                                type="file"
-                                id="image-replace"
-                                name="image"
-                                accept="image/jpeg,image/jpg,image/png,image/gif"
-                                onChange={handleChange}
-                                className="sr-only"
-                              />
+                              {/* Replace button triggers hidden file input via ref for reliability */}
+                              <ReplaceButton />
                             </div>
                           </div>
                         </div>
@@ -536,5 +530,41 @@ export default function CreatePost() {
         </div>
       </div>
     </Layout>
+  );
+}
+
+function ReplaceButton() {
+  const replaceRef = useRef(null);
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => replaceRef.current && replaceRef.current.click()}
+        className="inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-purple-300 text-purple-700 rounded-xl font-semibold text-sm hover:bg-purple-50 hover:border-purple-400 transition-all duration-200 shadow-sm hover:shadow cursor-pointer image-action-btn image-action-replace"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        Replace
+      </button>
+      <input
+        type="file"
+        id="image-replace"
+        name="image"
+        accept="image/jpeg,image/jpg,image/png,image/gif"
+        onChange={(e) => {
+          /* propagate change to parent handler: find form input by name and trigger synthetic event */
+          if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            /* find the global handler on page by dispatching a custom event */
+            const custom = new CustomEvent('replace-image-selected', { detail: file });
+            window.dispatchEvent(custom);
+          }
+        }}
+        ref={replaceRef}
+        className="sr-only"
+      />
+    </>
   );
 }

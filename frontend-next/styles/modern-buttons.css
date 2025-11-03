@@ -195,3 +195,92 @@
   width: 20px;
   height: 20px;
 }
+
+/* Image preview action buttons (Remove / Replace) — compact, icon-friendly */
+.image-action-group {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.image-action-group .image-action-btn {
+  padding: 6px 10px;
+  font-size: 0.9rem;
+  border-radius: 10px;
+  gap: 8px;
+  box-shadow: 0 6px 12px rgba(16,24,40,0.06);
+  min-width: 92px; /* wider so text doesn't wrap */
+  height: 44px;
+  align-items: center;
+  white-space: nowrap; /* prevent label wrapping under icon */
+  text-align: center;
+}
+
+.image-action-group .image-action-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.image-action-group .image-action-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(16,24,40,0.08);
+}
+
+/* Make sure filename and action buttons are separated and do not overlap */
+.create-post-form-container .flex-1 .truncate,
+.create-post-form-container .flex-1 p {
+  margin-bottom: 8px;
+}
+
+.create-post-form-container .flex-1 {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Purple Replace button (icon + text) - small, matches primary color */
+.image-action-replace {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white !important;
+  border-color: rgba(118,75,162,0.2) !important;
+  box-shadow: 0 10px 28px rgba(118,75,162,0.18);
+}
+
+.image-action-replace svg {
+  stroke: white;
+  fill: white;
+}
+
+/* Remove button uses white background but purple text/border to match theme */
+.image-action-remove {
+  background: white;
+  color: #6d5ce8 !important;
+  border-color: rgba(109,92,232,0.14) !important;
+  box-shadow: 0 6px 18px rgba(109,92,232,0.06);
+}
+
+.image-action-remove svg {
+  stroke: #6d5ce8;
+  fill: none;
+}
+
+/* Ensure Create Post / Cancel buttons align and share height */
+.create-post-page .create-post-form-container .flex.flex-row {
+  align-items: center;
+}
+
+.create-post-page .create-post-form-container .flex.flex-row .btn {
+  height: 56px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  padding: 0 20px;
+}
+
+.create-post-page .create-post-form-container .flex.flex-row .btn.btn-primary {
+  min-width: 200px;
+}
+
+.create-post-page .create-post-form-container .flex.flex-row .btn.btn-secondary {
+  min-width: 120px;
+}
