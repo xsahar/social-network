@@ -27,7 +27,8 @@ export default async function handler(req, res) {
         const gid = req.body?.group_id || req.body?.GroupID || req.body?.groupId || req.body?.group || null;
         const inviter = req.body?.inviter_id || req.body?.InviterID || req.body?.inviterId || req.body?.from || req.body?.From || null;
 
-        const invResp = await fetch('http://localhost:8080/get-received-invitations', {
+        const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
+        const invResp = await fetch(`${BACKEND_URL}/get-received-invitations`, {
           method: 'GET',
           headers: { 'Cookie': req.headers.cookie || '' },
         });
@@ -55,7 +56,7 @@ export default async function handler(req, res) {
     // Convert action to status format expected by backend
     const status = action === 'accept' ? 'accepted' : 'declined';
 
-    const response = await fetch('http://localhost:8080/respond-group-invitation', {
+    const response = await fetch(`${BACKEND_URL}/respond-group-invitation`, {
       method: 'POST',
       headers: {
         'Cookie': req.headers.cookie || '',

@@ -1,7 +1,8 @@
 // pages/api/posts.js
 export default async function handler(req, res) {
   try {
-    let url = 'http://localhost:8080/get-posts';
+  const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
+  let url = `${BACKEND_URL}/get-posts`;
     
     // Handle query parameters for category filtering
     if (req.query.category) {

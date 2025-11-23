@@ -31,7 +31,8 @@ export default async function handler(req, res) {
       headers['Content-Length'] = req.headers['content-length'];
     }
 
-    const response = await fetch('http://localhost:8080/create-comment', {
+    const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
+    const response = await fetch(`${BACKEND_URL}/create-comment`, {
       method: 'POST',
       body: buffer,
       headers: headers,

@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { useWebSocketContext } from '../contexts/WebSocketContext';
 import Toast from './Toast';
 
+// Use NEXT_PUBLIC_BACKEND_URL for client-side code; fallback to localhost for local dev
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:8080';
+
 export default function GroupEvents({ groupId, user }) {
   const [events, setEvents] = useState([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
@@ -77,7 +80,7 @@ export default function GroupEvents({ groupId, user }) {
       setLoadingEvents(true);
       console.log('Fetching group events for groupId:', groupId);
       
-      const response = await fetch(`http://localhost:8080/groups/${groupId}/events`, {
+      const response = await fetch(`${BACKEND_URL}/groups/${groupId}/events`, {
         method: 'GET',
         credentials: 'include'
       });
@@ -115,7 +118,7 @@ export default function GroupEvents({ groupId, user }) {
         return;
       }
 
-      const response = await fetch('http://localhost:8080/create-event', {
+      const response = await fetch(`${BACKEND_URL}/create-event`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -143,7 +146,7 @@ export default function GroupEvents({ groupId, user }) {
 
   const handleVote = async (eventId, choice) => {
     try {
-      const response = await fetch(`http://localhost:8080/groups/events/vote?event_id=${eventId}&choice=${choice}`, {
+      const response = await fetch(`${BACKEND_URL}/groups/events/vote?event_id=${eventId}&choice=${choice}`, {
         method: 'POST',
         credentials: 'include'
       });

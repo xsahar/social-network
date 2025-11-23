@@ -2,8 +2,10 @@
 export default async function handler(req, res) {
   if (req.method === 'POST') {
     try {
+      // Determine backend URL
+      const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
       // Forward the logout request to the Go backend
-      const response = await fetch('http://localhost:8080/logout', {
+      const response = await fetch(`${BACKEND_URL}/logout`, {
         method: 'POST',
         headers: {
           'Cookie': req.headers.cookie || '',

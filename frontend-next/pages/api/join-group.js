@@ -6,7 +6,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const response = await fetch('http://localhost:8080/request-join-group', {
+    const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
+    const response = await fetch(`${BACKEND_URL}/request-join-group`, {
       method: 'POST',
       body: JSON.stringify(req.body),
       headers: {

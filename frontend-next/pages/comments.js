@@ -5,6 +5,8 @@ import Layout from '../components/Layout';
 import { useSession } from '../hooks/useSession';
 import { useWebSocketContext } from '../contexts/WebSocketContext';
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:8080';
+
 export default function Comments() {
   const router = useRouter();
   const { postId, type, groupId } = router.query;
@@ -71,7 +73,7 @@ export default function Comments() {
       
       if (isGroupPost && groupId) {
         // For group posts, fetch directly from backend
-        const response = await fetch(`http://localhost:8080/groups/${groupId}/posts/${postId}/comments`, {
+        const response = await fetch(`${BACKEND_URL}/groups/${groupId}/posts/${postId}/comments`, {
           credentials: 'include'
         });
         
@@ -122,7 +124,7 @@ export default function Comments() {
           formData.append('imgOrgif', commentImage);
         }
         
-        response = await fetch('http://localhost:8080/groups/comments', {
+        response = await fetch(`${BACKEND_URL}/groups/comments`, {
           method: 'POST',
           body: formData,
           credentials: 'include'

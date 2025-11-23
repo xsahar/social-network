@@ -2,8 +2,10 @@
 export default async function handler(req, res) {
   if (req.method === 'POST') {
     try {
+      // Determine backend URL and forward the login request to it
+      const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
       // Forward the login request to the Go backend
-      const response = await fetch('http://localhost:8080/login', {
+      const response = await fetch(`${BACKEND_URL}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

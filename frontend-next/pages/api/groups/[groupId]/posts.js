@@ -3,7 +3,8 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
-      const response = await fetch(`http://localhost:8080/groups/${groupId}/posts`, {
+      const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
+      const response = await fetch(`${BACKEND_URL}/groups/${groupId}/posts`, {
         method: 'GET',
         headers: {
           'Cookie': req.headers.cookie || ''

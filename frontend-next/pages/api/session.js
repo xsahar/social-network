@@ -2,8 +2,10 @@
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
+      // Determine backend URL from env (works in Docker Compose and local dev)
+      const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
       // Forward the request to the Go backend
-      const response = await fetch('http://localhost:8080/check-session', {
+      const response = await fetch(`${BACKEND_URL}/check-session`, {
         method: 'GET',
         headers: {
           'Cookie': req.headers.cookie || '',

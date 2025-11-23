@@ -19,7 +19,9 @@ export default async function handler(req, res) {
     // Convert action to status format expected by backend
     const status = action === 'accept' ? 'accepted' : 'declined';
 
-    const response = await fetch('http://localhost:8080/respond-join-request', {
+    const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
+
+    const response = await fetch(`${BACKEND_URL}/respond-join-request`, {
       method: 'POST',
       headers: {
         'Cookie': req.headers.cookie || '',

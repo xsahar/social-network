@@ -8,8 +8,9 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Missing group_id parameter' });
       }
 
+      const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
       // Forward the request to the Go backend
-      const response = await fetch(`http://localhost:8080/group-messages?group_id=${group_id}&offset=${offset}`, {
+      const response = await fetch(`${BACKEND_URL}/group-messages?group_id=${group_id}&offset=${offset}`, {
         method: 'GET',
         headers: {
           'Cookie': req.headers.cookie || '',

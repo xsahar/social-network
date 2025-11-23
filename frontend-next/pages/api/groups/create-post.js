@@ -9,7 +9,8 @@ export default async function handler(req, res) {
       formData.append('title', title);
       formData.append('content', content);
 
-      const response = await fetch('http://localhost:8080/groups/create-post', {
+      const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
+      const response = await fetch(`${BACKEND_URL}/groups/create-post`, {
         method: 'POST',
         headers: {
           'Cookie': req.headers.cookie || ''

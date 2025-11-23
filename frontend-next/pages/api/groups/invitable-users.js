@@ -7,8 +7,9 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Group ID is required' });
       }
 
+      const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
       // Forward the request to the Go backend
-      const response = await fetch(`http://localhost:8080/get-invitable-users?groupId=${groupId}`, {
+      const response = await fetch(`${BACKEND_URL}/get-invitable-users?groupId=${groupId}`, {
         method: 'GET',
         headers: {
           'Cookie': req.headers.cookie || '',
