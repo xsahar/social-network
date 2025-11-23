@@ -1,3 +1,4 @@
+
 ## Social Network — Copilot instructions (concise)
 
 This repo is a full-stack social app: Go backend + Next.js frontend. The purpose of this file is to get an AI coding agent productive quickly with concrete, project-specific patterns, files, and commands.
