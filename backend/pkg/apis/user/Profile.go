@@ -353,6 +353,17 @@ func UpdateProfileHandler(db *sql.DB, w http.ResponseWriter, r *http.Request, cu
 	gender := get("gender", existing.Gender)
 	dateOfBirth := get("dateOfBirth", existing.DateOfBirth)
 
+	// If a dateOfBirth is provided, compute the age from it and normalize the date
+	if strings.TrimSpace(dateOfBirth) != "" {
+		if computedAge, normalized, err := ComputeAgeFromDOB(dateOfBirth); err == nil {
+			age = computedAge
+			dateOfBirth = normalized
+		} else {
+			fmt.Println("warning: could not parse dateOfBirth during profile update:", err)
+			// keep submitted/parsed age in this case
+		}
+	}
+
 	bio := ""
 	if b := strings.TrimSpace(formValues["bio"]); b != "" {
 		bio = b
@@ -735,6 +746,16 @@ func UpdateProfileJSONHandler(db *sql.DB, w http.ResponseWriter, r *http.Request
 	if err := json.NewDecoder(r.Body).Decode(&updateData); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
+	}
+
+	// If a dateOfBirth is provided in JSON, compute/override the age
+	if strings.TrimSpace(updateData.DateOfBirth) != "" {
+		if computedAge, normalized, err := ComputeAgeFromDOB(updateData.DateOfBirth); err == nil {
+			updateData.Age = computedAge
+			updateData.DateOfBirth = normalized
+		} else {
+			fmt.Println("warning: could not parse dateOfBirth in JSON profile update:", err)
+		}
 	}
 
 	// Update the user profile

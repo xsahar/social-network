@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 	database "socialnetwork/pkg/db"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -55,8 +56,8 @@ func Register(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 	lname := r.FormValue("lname")
 	age := r.FormValue("age") // your DB uses TEXT
 	gender := r.FormValue("gender")
-	nickname := r.FormValue("nickname") // optional
-	bio := r.FormValue("bio")           // optional
+	nickname := r.FormValue("nickname")       // optional
+	bio := r.FormValue("bio")                 // optional
 	dateOfBirth := r.FormValue("dateOfBirth") // optional
 
 	// Optional avatar
@@ -135,6 +136,18 @@ func Register(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
+	}
+
+	// If a dateOfBirth was provided try to compute/override age to keep DB consistent
+	if dateOfBirth != "" {
+		if computedAge, normalized, err := ComputeAgeFromDOB(dateOfBirth); err == nil {
+			age = strconv.Itoa(computedAge)
+			dateOfBirth = normalized
+		} else {
+			// If parsing fails, log but continue with submitted age
+			// (InsertUser will accept the provided age string)
+			fmt.Println("warning: could not parse dateOfBirth during registration:", err)
+		}
 	}
 
 	// IMPORTANT: ensure this argument order matches your InsertUser signature/columns
