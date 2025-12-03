@@ -77,22 +77,31 @@ const Chat = ({ isOpen, onClose, chatWith, userID }) => {
           (message.from === userID && message.to === chatWith.id) || 
           (message.from === chatWith.id && message.to === userID)
         ) {
-          setChatMessages(prev => {
-            // Avoid duplicates: only suppress when timestamp (ms), content and sender exactly match
-            const isDuplicate = prev.some(msg => 
-              msg.content === message.content &&
-              msg.from === message.from &&
-              new Date(msg.timestamp).getTime() === new Date(message.timestamp).getTime()
-            );
-            if (isDuplicate) {
-              console.log('[Chat] Duplicate suppressed (exact timestamp match):', { existing: prev.find(m => m.content === message.content && m.from === message.from), incoming: message });
-              return prev;
-            }
-            
-            // Add new message and sort by timestamp
-            const updated = [...prev, message];
-            return updated.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-          });
+            setChatMessages(prev => {
+              // Use client_msg_id if present for robust dedupe
+              if (message.client_msg_id) {
+                const exists = prev.some(m => m && (m.client_msg_id === message.client_msg_id || m.clientMsgId === message.client_msg_id));
+                if (exists) {
+                  console.log('[Chat] Ignoring incoming duplicate by client_msg_id:', message.client_msg_id);
+                  return prev;
+                }
+              }
+
+              // Avoid duplicates: only suppress when timestamp (ms), content and sender exactly match
+              const isDuplicate = prev.some(msg => 
+                msg.content === message.content &&
+                msg.from === message.from &&
+                new Date(msg.timestamp).getTime() === new Date(message.timestamp).getTime()
+              );
+              if (isDuplicate) {
+                console.log('[Chat] Duplicate suppressed (exact timestamp match):', { existing: prev.find(m => m.content === message.content && m.from === message.from), incoming: message });
+                return prev;
+              }
+
+              // Add new message and sort by timestamp
+              const updated = [...prev, message];
+              return updated.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            });
         }
       }
     });

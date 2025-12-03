@@ -219,6 +219,15 @@ export const WebSocketProvider = ({ children, userID }) => {
             // Group messages — dedupe similar to private messages
             setMessages(prev => {
               try {
+                // Prefer client_msg_id dedupe when available
+                if (data.client_msg_id) {
+                  const exists = prev.some(m => m && (m.client_msg_id === data.client_msg_id || m.clientMsgId === data.client_msg_id));
+                  if (exists) {
+                    console.log('[WebSocket] Skipping incoming message - client_msg_id already exists:', data.client_msg_id);
+                    return prev;
+                  }
+                }
+
                 const isDup = prev.some(m => {
                   if (!m || !m.content) return false;
                   if (m.type !== data.type) return false;
@@ -266,6 +275,20 @@ export const WebSocketProvider = ({ children, userID }) => {
   const sendMessage = useCallback((messageData) => {
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       try {
+        // Ensure a client-generated id exists for reliable deduplication
+        if (!messageData.client_msg_id && !messageData.clientMsgId && !messageData.clientMsgID) {
+          // Use crypto.randomUUID when available, otherwise fallback
+          let id = null;
+          try {
+            if (typeof crypto !== 'undefined' && crypto.randomUUID) id = crypto.randomUUID();
+          } catch (e) {}
+          if (!id) id = `cmsg-${Date.now()}-${Math.floor(Math.random()*1000000)}`;
+          messageData.client_msg_id = id;
+        }
+
+        // Normalize timestamp if absent
+        if (!messageData.timestamp) messageData.timestamp = new Date().toISOString();
+
         socketRef.current.send(JSON.stringify(messageData));
         console.log('[WebSocket] Message sent:', messageData);
         return true;

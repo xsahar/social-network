@@ -33,6 +33,7 @@ type Frontend struct {
 	RequestID    int       `json:"request_id,omitempty"`
 	InvitationID int       `json:"invitation_id,omitempty"`
 	EventDate    string    `json:"event_date,omitempty"`
+	ClientMsgID  string    `json:"client_msg_id,omitempty"`
 }
 
 type Client struct {

@@ -62,19 +62,27 @@ export default function GroupChat({ groupId, user, isOpen, onClose, connected, m
           const unique = [];
           for (const m of combined) {
             try {
-              const isSeen = unique.some(u => {
-                if (!u) return false;
-                if ((u.from || u.From) !== (m.from || m.From)) return false;
-                if ((u.content || u.Content) !== (m.content || m.Content)) return false;
-                // Only treat as duplicate if the timestamps are exactly equal (ms precision)
-                const t1 = new Date(u.timestamp || u.Timestamp || Date.now()).getTime();
-                const t2 = new Date(m.timestamp || m.Timestamp || Date.now()).getTime();
-                const exactEqual = t1 === t2;
-                if (exactEqual) {
-                  console.log('[GroupChat] Dropping duplicate message (exact timestamp match)', {u, m});
+              // If client_msg_id exists, use it to detect duplicates
+              let isSeen = false;
+              if (m.client_msg_id) {
+                isSeen = unique.some(u => u && (u.client_msg_id === m.client_msg_id || u.clientMsgId === m.client_msg_id));
+                if (isSeen) {
+                  console.log('[GroupChat] Dropping duplicate based on client_msg_id', m.client_msg_id);
                 }
-                return exactEqual; // exact ms match => duplicate
-              });
+              }
+              if (!isSeen) {
+                // fallback to exact timestamp/content/from equality
+                isSeen = unique.some(u => {
+                  if (!u) return false;
+                  if ((u.from || u.From) !== (m.from || m.From)) return false;
+                  if ((u.content || u.Content) !== (m.content || m.Content)) return false;
+                  const t1 = new Date(u.timestamp || u.Timestamp || Date.now()).getTime();
+                  const t2 = new Date(m.timestamp || m.Timestamp || Date.now()).getTime();
+                  const exactEqual = t1 === t2;
+                  if (exactEqual) console.log('[GroupChat] Dropping duplicate message (exact timestamp match)', {u, m});
+                  return exactEqual;
+                });
+              }
               if (!isSeen) unique.push(m);
             } catch (err) {
               unique.push(m);
