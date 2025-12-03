@@ -66,9 +66,14 @@ export default function GroupChat({ groupId, user, isOpen, onClose, connected, m
                 if (!u) return false;
                 if ((u.from || u.From) !== (m.from || m.From)) return false;
                 if ((u.content || u.Content) !== (m.content || m.Content)) return false;
+                // Only treat as duplicate if the timestamps are exactly equal (ms precision)
                 const t1 = new Date(u.timestamp || u.Timestamp || Date.now()).getTime();
                 const t2 = new Date(m.timestamp || m.Timestamp || Date.now()).getTime();
-                return Math.abs(t1 - t2) < 3000; // within 3 seconds => duplicate
+                const exactEqual = t1 === t2;
+                if (exactEqual) {
+                  console.log('[GroupChat] Dropping duplicate message (exact timestamp match)', {u, m});
+                }
+                return exactEqual; // exact ms match => duplicate
               });
               if (!isSeen) unique.push(m);
             } catch (err) {

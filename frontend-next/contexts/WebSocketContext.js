@@ -112,11 +112,35 @@ export const WebSocketProvider = ({ children, userID }) => {
 
     socket.onmessage = (event) => {
       try {
-        const data = JSON.parse(event.data);
-        console.log('[WebSocket] Message received:', data);
+        const raw = JSON.parse(event.data);
+        console.log('[WebSocket] Raw message received:', raw);
+
+        // Normalize common fields so downstream components don't have to
+        const data = {
+          ...raw,
+          type: raw.type || raw.Type,
+          group_id: raw.group_id || raw.groupId || raw.GroupID || raw.group || raw.Group,
+          from: raw.from || raw.From || raw.user_id || raw.userId || raw.FromUser || raw.sender || raw.From,
+          content: raw.content || raw.Content || raw.message || raw.Message || raw.ContentText,
+        };
+
+        // Normalize timestamp: prefer several possible fields and fall back to now
+        const tsCandidates = [raw.timestamp, raw.Timestamp, raw.time, raw.Time, raw.created_at, raw.createdAt];
+        let parsedTS = null;
+        for (const t of tsCandidates) {
+          if (!t) continue;
+          const p = Date.parse(t);
+          if (!isNaN(p)) { parsedTS = p; break; }
+        }
+        if (!parsedTS && raw.Timestamp && typeof raw.Timestamp === 'number') parsedTS = raw.Timestamp;
+        if (!parsedTS && raw.ts && typeof raw.ts === 'number') parsedTS = raw.ts;
+        if (!parsedTS) parsedTS = Date.now();
+        data.timestamp = new Date(parsedTS).toISOString();
+
+        console.log('[WebSocket] Normalized message:', data);
         
         // Handle different message types
-        switch (data.type) {
+  switch (data.type) {
           case 'online_users':
             setOnlineUsers(data.users || []);
             break;
@@ -201,9 +225,14 @@ export const WebSocketProvider = ({ children, userID }) => {
                   if ((m.group_id || m.GroupID) !== (data.group_id || data.GroupID)) return false;
                   if (m.from !== data.from) return false;
                   if (m.content !== data.content) return false;
+                  // Only treat as duplicate if timestamps are exactly equal (ms precision).
                   const t1 = new Date(m.timestamp || m.Timestamp || Date.now()).getTime();
                   const t2 = new Date(data.timestamp || data.Timestamp || Date.now()).getTime();
-                  return Math.abs(t1 - t2) < 3000;
+                  const exactEqual = t1 === t2;
+                  if (exactEqual) {
+                    console.log('[WebSocket] Duplicate suppressed (exact timestamp match):', { m, data });
+                  }
+                  return exactEqual;
                 });
                 if (isDup) return prev;
               } catch (err) {}

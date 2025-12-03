@@ -78,13 +78,16 @@ const Chat = ({ isOpen, onClose, chatWith, userID }) => {
           (message.from === chatWith.id && message.to === userID)
         ) {
           setChatMessages(prev => {
-            // Avoid duplicates based on timestamp, content, and sender
+            // Avoid duplicates: only suppress when timestamp (ms), content and sender exactly match
             const isDuplicate = prev.some(msg => 
               msg.content === message.content &&
               msg.from === message.from &&
-              Math.abs(new Date(msg.timestamp) - new Date(message.timestamp)) < 3000
+              new Date(msg.timestamp).getTime() === new Date(message.timestamp).getTime()
             );
-            if (isDuplicate) return prev;
+            if (isDuplicate) {
+              console.log('[Chat] Duplicate suppressed (exact timestamp match):', { existing: prev.find(m => m.content === message.content && m.from === message.from), incoming: message });
+              return prev;
+            }
             
             // Add new message and sort by timestamp
             const updated = [...prev, message];
