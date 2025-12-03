@@ -1,8 +1,10 @@
   import { useState, useEffect, useRef } from 'react';
   import { useWebSocketContext } from '../contexts/WebSocketContext';
+  import { useSession } from '../hooks/useSession';
 
   const Notifications = () => {
-    const { notifications, clearNotifications, setNotifications } = useWebSocketContext();
+  const { notifications, clearNotifications, setNotifications, emitLocalMessage } = useWebSocketContext();
+  const { user } = useSession();
     const [visible, setVisible] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
     const wrapperRef = useRef(null);
@@ -138,6 +140,25 @@
               setNotifications(prevNotifications);
               console.error('Failed to respond to group invitation');
               return;
+            }
+            // If accept succeeded, emit a local synthetic "group_member_update"
+            // so the client who performed the accept updates their UI immediately
+            // (the server will also broadcast to other clients when ready).
+            try {
+              if (action === 'accept' && emitLocalMessage) {
+                const gidVal = gid || (bodyPayload && bodyPayload.group_id) || null;
+                const localMsg = {
+                  type: 'group_member_update',
+                  group_id: gidVal,
+                  from: user?.userID || user?.id || null,
+                  username: user?.username || user?.name || null,
+                  Timestamp: new Date().toISOString()
+                };
+                emitLocalMessage(localMsg);
+              }
+            } catch (e) {
+              // non-fatal
+              console.error('emitLocalMessage failed', e);
             }
           } else if (n.type === 'group_join_request') {
             const requestId = n.RequestID || n.request_id || n.requestId;

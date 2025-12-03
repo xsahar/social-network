@@ -273,6 +273,33 @@ export default function GroupDetails() {
           console.error('Error handling group_member_update:', err);
         }
       }
+      
+      if (message.type === 'group_member_left') {
+        try {
+          const leftId = message.from || message.From || message.user_id || message.userId;
+
+          setGroup(prev => {
+            if (!prev) return prev;
+
+            const members = Array.isArray(prev.members) ? prev.members.filter(m => String(m.id || m.user_id) !== String(leftId)) : [];
+            const currentCount = Number(prev.member_count) || 0;
+            const updatedCount = Math.max(0, currentCount - 1);
+            const updated = { ...prev, member_count: updatedCount, members };
+
+            // If the current user is the one who left, mark them as not a member
+            const currentUserId = user?.userID || user?.id;
+            if (String(leftId) === String(currentUserId)) {
+              updated.user_status = 'not_member';
+            }
+
+            return updated;
+          });
+
+          try { showToast(`${message.username || 'Someone'} left the group`, 'info', 2200); } catch (e) {}
+        } catch (err) {
+          console.error('Error handling group_member_left:', err);
+        }
+      }
     });
 
     return () => unsubscribe();

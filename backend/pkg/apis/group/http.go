@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -371,7 +372,7 @@ func RespondToGroupInvitation(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, 
 		}
 		hub.Mutex.RUnlock()
 
-		// If accepted, broadcast to all group members
+		// If accepted, broadcast to the group's accepted members (plus inviter and responder)
 		if responseData.Status == "accepted" {
 			memberNotif := chat.Frontend{
 				Type:      "group_member_update",
@@ -382,15 +383,47 @@ func RespondToGroupInvitation(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, 
 				Timestamp: time.Now(),
 			}
 
-			// Broadcast to ALL connected users
-			hub.Mutex.RLock()
-			for _, client := range hub.Clients {
-				select {
-				case client.Send <- memberNotif:
-				default:
+			// Determine recipients: accepted group members (use DB helper)
+			members, err := database.GetGroupMembers(db, groupID)
+			if err != nil {
+				fmt.Printf("[WebSocket] GetGroupMembers error for group %d: %v\n", groupID, err)
+			} else {
+				// Ensure inviter and the responder are included
+				include := make(map[int]struct{})
+				for _, m := range members {
+					if m == nil {
+						continue
+					}
+					if vid, ok := m["id"].(int); ok {
+						include[vid] = struct{}{}
+					} else if vid64, ok := m["id"].(int64); ok {
+						include[int(vid64)] = struct{}{}
+					} else if vfloat, ok := m["id"].(float64); ok {
+						include[int(vfloat)] = struct{}{}
+					} else if vstr, ok := m["id"].(string); ok {
+						if parsed, perr := strconv.Atoi(vstr); perr == nil {
+							include[parsed] = struct{}{}
+						}
+					}
 				}
+				include[inviterID] = struct{}{}
+				include[userID] = struct{}{}
+
+				hub.Mutex.RLock()
+				sentCount := 0
+				for mid := range include {
+					if client, ok := hub.Clients[mid]; ok {
+						select {
+						case client.Send <- memberNotif:
+							sentCount++
+						default:
+						}
+					}
+				}
+				hub.Mutex.RUnlock()
+
+				fmt.Printf("[WebSocket] Broadcast group_member_update group=%d user=%d sent_to=%d\n", groupID, userID, sentCount)
 			}
-			hub.Mutex.RUnlock()
 		}
 	}
 
@@ -560,7 +593,7 @@ func LeaveGroup(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *http.Reques
 	// Broadcast WebSocket notification to all users
 	if hub != nil {
 		var username string
-		db.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
+		_ = db.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
 
 		notification := chat.Frontend{
 			Type:      "group_member_left",
@@ -571,15 +604,46 @@ func LeaveGroup(db *sql.DB, hub *chat.Hub, w http.ResponseWriter, r *http.Reques
 			Timestamp: time.Now(),
 		}
 
-		// Broadcast to ALL connected users
-		hub.Mutex.RLock()
-		for _, client := range hub.Clients {
-			select {
-			case client.Send <- notification:
-			default:
+		// Determine recipients: accepted group members (after deletion)
+		members, err := database.GetGroupMembers(db, leaveData.GroupID)
+		if err != nil {
+			fmt.Printf("[WebSocket] GetGroupMembers error for group %d: %v\n", leaveData.GroupID, err)
+		} else {
+			include := make(map[int]struct{})
+			for _, m := range members {
+				if m == nil {
+					continue
+				}
+				if vid, ok := m["id"].(int); ok {
+					include[vid] = struct{}{}
+				} else if vid64, ok := m["id"].(int64); ok {
+					include[int(vid64)] = struct{}{}
+				} else if vfloat, ok := m["id"].(float64); ok {
+					include[int(vfloat)] = struct{}{}
+				} else if vstr, ok := m["id"].(string); ok {
+					if parsed, perr := strconv.Atoi(vstr); perr == nil {
+						include[parsed] = struct{}{}
+					}
+				}
 			}
+			// Also notify the user who left so their client gets a confirmation
+			include[userID] = struct{}{}
+
+			hub.Mutex.RLock()
+			sentCount := 0
+			for mid := range include {
+				if client, ok := hub.Clients[mid]; ok {
+					select {
+					case client.Send <- notification:
+						sentCount++
+					default:
+					}
+				}
+			}
+			hub.Mutex.RUnlock()
+
+			fmt.Printf("[WebSocket] Broadcast group_member_left group=%d user=%d sent_to=%d\n", leaveData.GroupID, userID, sentCount)
 		}
-		hub.Mutex.RUnlock()
 	}
 
 	response := map[string]interface{}{

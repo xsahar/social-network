@@ -38,6 +38,24 @@ export const WebSocketProvider = ({ children, userID }) => {
     });
   }, []);
 
+  // Allow other components to emit a local (client-side) message that will be
+  // dispatched to all subscribers. This is useful for optimistic UI updates
+  // when the server will broadcast the same event but the local client should
+  // react immediately without waiting for a round-trip.
+  const emitLocalMessage = useCallback((message) => {
+    try {
+      // append to messages for historical UI if appropriate
+      setMessages(prev => [...prev, message]);
+    } catch (err) {
+      // ignore
+    }
+    try {
+      notifyListeners(message);
+    } catch (err) {
+      console.error('[WebSocket] emitLocalMessage failed', err);
+    }
+  }, [notifyListeners]);
+
   const connectWebSocket = useCallback((userId) => {
     if (!userId) {
       console.log('[WebSocket] No userID provided, skipping connection');
@@ -287,6 +305,9 @@ export const WebSocketProvider = ({ children, userID }) => {
     clearNotifications: () => setNotifications([]),
     // Setter exposed if needed by components
     setNotifications
+    ,
+    // Emit a synthetic/local message to all subscribers (optimistic updates)
+    emitLocalMessage
   };
 
   return (
