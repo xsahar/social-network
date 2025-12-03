@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useSession } from '../hooks/useSession';
 import { useWebSocketContext } from '../contexts/WebSocketContext';
+import Notifications from '../components/Notifications';
 
 export default function MainPage() {
   const router = useRouter();
@@ -63,6 +64,9 @@ export default function MainPage() {
           
           <div className="nav-menu">
             <div className="nav-user-menu">
+              <div style={{ marginRight: 12 }}>
+                <Notifications />
+              </div>
               <span className="nav-welcome">Welcome, {user.username}</span>
               <button
                 onClick={handleLogout}
