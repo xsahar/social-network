@@ -207,6 +207,7 @@ export const WebSocketProvider = ({ children, userID }) => {
                 });
                 if (isDup) return prev;
               } catch (err) {}
+              console.log('[WebSocket] Appending group_message to messages:', data);
               return [...prev, data];
             });
             break;

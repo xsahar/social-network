@@ -55,6 +55,7 @@ export default function GroupChat({ groupId, user, isOpen, onClose, connected, m
       );
       
       if (newMessages.length > 0) {
+        console.log('[GroupChat] newMessages arriving for group', groupId, newMessages);
         setGroupMessages(prev => {
           // Merge and dedupe by from+content and timestamp proximity (3s window)
           const combined = [...prev, ...newMessages];
@@ -74,6 +75,7 @@ export default function GroupChat({ groupId, user, isOpen, onClose, connected, m
               unique.push(m);
             }
           }
+          console.log('[GroupChat] after dedupe, unique length:', unique.length, 'combined length:', combined.length);
           return unique.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         });
       }
