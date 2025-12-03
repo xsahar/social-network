@@ -7,7 +7,9 @@ import (
 
 // ComputeAgeFromDOB parses a date string (several common layouts) and returns
 // the computed age in years and a normalized date string in YYYY-MM-DD form.
-// It returns an error if parsing fails.
+// It returns an error only when the input is empty or cannot be parsed. The
+// computed age may be negative or unusually large for "unlogical" DOBs; callers
+// should decide how to handle such values (display, sanitize, or accept).
 func ComputeAgeFromDOB(dob string) (int, string, error) {
 	if dob == "" {
 		return 0, "", fmt.Errorf("empty dob")

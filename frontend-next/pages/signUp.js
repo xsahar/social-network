@@ -19,6 +19,7 @@ export default function SignUp() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [dobWarning, setDobWarning] = useState('');
   const router = useRouter();
 
   const handleChange = (e) => {
@@ -28,10 +29,39 @@ export default function SignUp() {
         [e.target.name]: e.target.files[0]
       });
     } else {
-      setFormData({
-        ...formData,
-        [e.target.name]: e.target.value
-      });
+      const name = e.target.name;
+      const value = e.target.value;
+      // If the user picked a date of birth, derive the age automatically
+      if (name === 'dateOfBirth') {
+        let ageVal = '';
+        if (value) {
+          const d = new Date(value);
+          if (!isNaN(d.getTime())) {
+            const now = new Date();
+            let years = now.getFullYear() - d.getFullYear();
+            if (now.getMonth() < d.getMonth() || (now.getMonth() === d.getMonth() && now.getDate() < d.getDate())) {
+              years--
+            }
+            // Accept computed age even if it's negative or unusually large; the
+            // backend will accept any parseable DOB. We still normalize and send
+            // the computed value so the server has a consistent age value.
+            ageVal = String(years);
+          }
+        }
+        // Validate the computed age for warning purposes (but still accept it)
+        let parsed = null;
+        if (ageVal !== '') {
+          parsed = parseInt(ageVal, 10);
+        }
+        if (parsed !== null && (parsed < 0 || parsed > 120)) {
+          setDobWarning('The year looks incorrect — please check your Date of Birth.');
+        } else {
+          setDobWarning('');
+        }
+        setFormData({ ...formData, dateOfBirth: value, age: ageVal });
+      } else {
+        setFormData({ ...formData, [name]: value });
+      }
     }
   };
 
@@ -39,6 +69,13 @@ export default function SignUp() {
     e.preventDefault();
     setLoading(true);
     setError('');
+
+    // Prevent submission when DOB warning exists
+    if (dobWarning) {
+      setError(dobWarning);
+      setLoading(false);
+      return;
+    }
 
     try {
       const formDataToSend = new FormData();
@@ -194,9 +231,12 @@ export default function SignUp() {
                   onChange={handleChange}
                   className="block w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
                 />
+                {dobWarning && (
+                  <div className="text-sm text-red-600 mt-2">{dobWarning}</div>
+                )}
               </div>
               
-              {/* Age Field */}
+              {/* Age Field (derived from DOB) */}
               <div>
                 <label htmlFor="age" className="block text-sm font-semibold text-gray-700 mb-2">
                   Age <span className="text-red-500">*</span>
@@ -209,10 +249,11 @@ export default function SignUp() {
                   max="120"
                   required
                   value={formData.age}
-                  onChange={handleChange}
+                  readOnly
                   className="block w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
                   placeholder="Your age"
                 />
+                <div className="text-xs text-gray-500 mt-1">Age is calculated from Date of Birth and cannot be edited directly.</div>
               </div>
               
               {/* Gender Field */}

@@ -76,11 +76,12 @@ type ProfilePrivacyResponse struct {
 
 func GetProfileHandler(db *sql.DB, w http.ResponseWriter, r *http.Request, username string) {
 	var bio sql.NullString
+	var dateOfBirth sql.NullString
 	var profile UserProfile
 
 	err := db.QueryRow(`
-    SELECT username, nickname, firstname, lastname, email, age, gender, bio , avatar_url, isPrivate
-    FROM users WHERE username = ?`,
+	SELECT username, nickname, firstname, lastname, email, age, gender, bio , avatar_url, isPrivate, date_of_birth
+	FROM users WHERE username = ?`,
 		username).Scan(
 		&profile.Username,
 		&profile.Nickname,
@@ -92,11 +93,34 @@ func GetProfileHandler(db *sql.DB, w http.ResponseWriter, r *http.Request, usern
 		&bio,
 		&profile.Avatar,
 		&profile.IsPrivate,
+		&dateOfBirth,
 	)
 	if bio.Valid {
 		profile.Bio = bio.String
 	} else {
 		profile.Bio = "" // Default value when NULL
+	}
+	if dateOfBirth.Valid {
+		profile.DateOfBirth = dateOfBirth.String
+		// Try computing age from DOB; if computed age is out of display bounds
+		// (negative or unrealistically large) then sanitize to 0 for display.
+		if computedAge, _, err := ComputeAgeFromDOB(dateOfBirth.String); err == nil {
+			if computedAge < 0 || computedAge > 120 {
+				profile.Age = 0
+			} else {
+				profile.Age = computedAge
+			}
+		} else {
+			// ensure stored age is reasonable
+			if profile.Age < 0 || profile.Age > 120 {
+				profile.Age = 0
+			}
+		}
+	} else {
+		// ensure stored age is reasonable
+		if profile.Age < 0 || profile.Age > 120 {
+			profile.Age = 0
+		}
 	}
 	if err != nil {
 		fmt.Println("Error fetching user:", err)
@@ -459,7 +483,7 @@ func GetOtherProfile(db *sql.DB, username string) (UserProfile, error) {
 	var profile UserProfile
 
 	err := db.QueryRow(`
-		SELECT username, nickname, firstname, lastname, email, age, gender, password, bio, avatar_url, isPrivate
+		SELECT username, nickname, firstname, lastname, email, age, gender, password, bio, avatar_url, isPrivate, date_of_birth
 		FROM users WHERE username = ?`,
 		username).Scan(
 		&profile.Username,
@@ -473,6 +497,7 @@ func GetOtherProfile(db *sql.DB, username string) (UserProfile, error) {
 		&bio,
 		&profile.Avatar,
 		&profile.IsPrivate,
+		&profile.DateOfBirth,
 	)
 	if err != nil {
 		return UserProfile{}, err
@@ -481,6 +506,25 @@ func GetOtherProfile(db *sql.DB, username string) (UserProfile, error) {
 	profile.Bio = ""
 	if bio.Valid {
 		profile.Bio = bio.String
+	}
+
+	// sanitize age using DOB if present
+	if strings.TrimSpace(profile.DateOfBirth) != "" {
+		if computedAge, _, err := ComputeAgeFromDOB(profile.DateOfBirth); err == nil {
+			if computedAge < 0 || computedAge > 120 {
+				profile.Age = 0
+			} else {
+				profile.Age = computedAge
+			}
+		} else {
+			if profile.Age < 0 || profile.Age > 120 {
+				profile.Age = 0
+			}
+		}
+	} else {
+		if profile.Age < 0 || profile.Age > 120 {
+			profile.Age = 0
+		}
 	}
 
 	return profile, nil
@@ -525,6 +569,26 @@ func GetCompleteProfileHandler(db *sql.DB, w http.ResponseWriter, r *http.Reques
 	}
 	if dateOfBirth.Valid {
 		profile.DateOfBirth = dateOfBirth.String
+	}
+
+	// Compute/sanitize age for response: prefer DOB-based computation when available
+	if dateOfBirth.Valid {
+		if computedAge, _, err := ComputeAgeFromDOB(dateOfBirth.String); err == nil {
+			if computedAge < 0 || computedAge > 120 {
+				profile.Age = 0
+			} else {
+				profile.Age = computedAge
+			}
+		} else {
+			// If DOB parsing failed, ensure stored age is reasonable
+			if profile.Age < 0 || profile.Age > 120 {
+				profile.Age = 0
+			}
+		}
+	} else {
+		if profile.Age < 0 || profile.Age > 120 {
+			profile.Age = 0
+		}
 	}
 
 	// Get user's posts

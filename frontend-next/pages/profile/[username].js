@@ -209,7 +209,7 @@ export default function ProfilePage() {
             <>
               {profile.bio && <p>{profile.bio}</p>}
               <div>Email: {profile.email || '—'}</div>
-              <div>Age: {profile.age || '—'}</div>
+              <div>Age: {(profile.age > 0 && profile.age <= 120) ? profile.age : '—'}</div>
               <div>Gender: {profile.gender || '—'}</div>
               {profile.dateOfBirth && <div>Born: {new Date(profile.dateOfBirth).toLocaleDateString()}</div>}
             </>

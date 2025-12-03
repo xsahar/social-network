@@ -249,6 +249,7 @@ func ConnectWeb(db *sql.DB) {
 			lname          string
 			email          string
 			age            int
+			dateOfBirth    sql.NullString
 			gender         string
 			bio            string
 			avatar         string
@@ -257,12 +258,12 @@ func ConnectWeb(db *sql.DB) {
 			followingCount int
 		)
 		err = db.QueryRow(`
-				SELECT u.id, u.firstname, u.lastname, u.email, u.age, u.gender, u.bio, u.avatar_url, isPrivate,
-					(SELECT COUNT(DISTINCT f.follower_id) FROM userFollow f JOIN users uf ON uf.id = f.follower_id WHERE f.following_id = u.id),
-					(SELECT COUNT(DISTINCT f.following_id) FROM userFollow f JOIN users uf2 ON uf2.id = f.following_id WHERE f.follower_id = u.id)
-				FROM users u
-				WHERE u.username = ?
-			`, username).Scan(&id, &fname, &lname, &email, &age, &gender, &existingBio, &avatar, &isPrivate, &followerCount, &followingCount)
+					SELECT u.id, u.firstname, u.lastname, u.email, u.age, u.gender, u.bio, u.avatar_url, isPrivate, u.date_of_birth,
+						(SELECT COUNT(DISTINCT f.follower_id) FROM userFollow f JOIN users uf ON uf.id = f.follower_id WHERE f.following_id = u.id),
+						(SELECT COUNT(DISTINCT f.following_id) FROM userFollow f JOIN users uf2 ON uf2.id = f.following_id WHERE f.follower_id = u.id)
+						FROM users u
+					WHERE u.username = ?
+				`, username).Scan(&id, &fname, &lname, &email, &age, &gender, &existingBio, &avatar, &isPrivate, &dateOfBirth, &followerCount, &followingCount)
 		if err != nil {
 			http.Error(w, "Profile lookup error", http.StatusInternalServerError)
 			fmt.Println("Error fetching profile for username:", username, "Error:", err)
@@ -272,6 +273,22 @@ func ConnectWeb(db *sql.DB) {
 			bio = existingBio.String
 		} else {
 			bio = ""
+		}
+
+		// Compute/sanitize age using DOB if available; otherwise clamp impossible stored ages
+		ageToShow := age
+		if dateOfBirth.Valid {
+			if computedAge, _, err := u.ComputeAgeFromDOB(dateOfBirth.String); err == nil {
+				ageToShow = computedAge
+			} else {
+				if ageToShow < 0 || ageToShow > 120 {
+					ageToShow = 0
+				}
+			}
+		} else {
+			if ageToShow < 0 || ageToShow > 120 {
+				ageToShow = 0
+			}
 		}
 
 		// Determine whether the viewer can see the full profile
@@ -412,7 +429,7 @@ func ConnectWeb(db *sql.DB) {
 			"fname":          fname,
 			"lname":          lname,
 			"email":          map[bool]interface{}{true: email, false: ""}[canView],
-			"age":            map[bool]interface{}{true: age, false: 0}[canView],
+			"age":            map[bool]interface{}{true: ageToShow, false: 0}[canView],
 			"gender":         map[bool]interface{}{true: gender, false: ""}[canView],
 			"bio":            map[bool]interface{}{true: bio, false: ""}[canView],
 			"avatar":         avatar,

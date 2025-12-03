@@ -27,6 +27,7 @@ export default function MyProfile() {
     dateOfBirth: '',
     avatarFile: null
   });
+  const [dobWarning, setDobWarning] = useState('');
 
  const [avatarRefresh, setAvatarRefresh] = useState(Date.now());
   const { user, loading: sessionLoading } = useSession();
@@ -132,9 +133,34 @@ export default function MyProfile() {
     setEditMode(true);
   };
 
+  // Keep age synchronized with dateOfBirth (age is derived, not editable)
+  useEffect(() => {
+    const dob = editForm.dateOfBirth;
+    if (!dob) return;
+    const d = new Date(dob);
+    if (isNaN(d.getTime())) return;
+    const now = new Date();
+    let years = now.getFullYear() - d.getFullYear();
+    if (now.getMonth() < d.getMonth() || (now.getMonth() === d.getMonth() && now.getDate() < d.getDate())) {
+      years--;
+    }
+    // Set computed age and also set a warning if out-of-bounds
+    setEditForm(prev => ({ ...prev, age: String(years) }));
+    if (years < 0 || years > 120) {
+      setDobWarning('The year looks incorrect — please check your Date of Birth.');
+    } else {
+      setDobWarning('');
+    }
+  }, [editForm.dateOfBirth]);
+
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     try {
+      // Block saving if DOB warning exists
+      if (dobWarning) {
+        console.error('Cannot save profile: DOB warning active');
+        return;
+      }
       let requestBody;
       let headers = {};
       
@@ -255,7 +281,7 @@ export default function MyProfile() {
                       {profile?.email && (
                         <div style={{ marginBottom: '0.25rem' }}>Email: {profile.email}</div>
                       )}
-                      {profile?.age && profile?.gender && (
+                      {(profile?.age > 0 && profile?.age <= 120) && profile?.gender && (
                         <div style={{ marginBottom: '0.25rem' }}>{profile.age} years old - {profile.gender}</div>
                       )}
                       {profile?.dateOfBirth && (
@@ -365,17 +391,17 @@ export default function MyProfile() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                     <div>
                       <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
-                        Age *
+                        Age (derived from Date of Birth)
                       </label>
                       <input
                         type="number"
-                        min="1"
+                        min="0"
                         max="120"
                         value={editForm.age}
-                        onChange={(e) => setEditForm({...editForm, age: e.target.value})}
-                        style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem' }}
-                        required
+                        readOnly
+                        style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', background: '#f9fafb' }}
                       />
+                      <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>Age is calculated from the Date of Birth and cannot be edited directly.</div>
                     </div>
                     <div>
                       <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
@@ -402,6 +428,9 @@ export default function MyProfile() {
                         onChange={(e) => setEditForm({...editForm, dateOfBirth: e.target.value})}
                         style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem' }}
                       />
+                      {dobWarning && (
+                        <div style={{ color: '#b91c1c', fontSize: '0.85rem', marginTop: '0.5rem' }}>{dobWarning}</div>
+                      )}
                     </div>
                   </div>
                   
