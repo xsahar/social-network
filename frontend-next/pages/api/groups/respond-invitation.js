@@ -9,8 +9,9 @@ export default async function handler(req, res) {
     // Be permissive with incoming payloads (many clients may send different casing or types)
     const rawId = req.body?.invitation_id || req.body?.InvitationID || req.body?.invitationId || req.body?.id;
     const rawAction = (req.body?.action || req.body?.Action || req.body?.status || '').toString().toLowerCase();
-    let invitation_id = Number(rawId || 0);
-    const action = rawAction;
+  let invitation_id = Number(rawId || 0);
+  const action = rawAction;
+  const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
 
     if (!action || !['accept', 'decline'].includes(action)) {
       return res.status(400).json({ error: 'Invalid action' });
@@ -27,7 +28,6 @@ export default async function handler(req, res) {
         const gid = req.body?.group_id || req.body?.GroupID || req.body?.groupId || req.body?.group || null;
         const inviter = req.body?.inviter_id || req.body?.InviterID || req.body?.inviterId || req.body?.from || req.body?.From || null;
 
-        const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
         const invResp = await fetch(`${BACKEND_URL}/get-received-invitations`, {
           method: 'GET',
           headers: { 'Cookie': req.headers.cookie || '' },
